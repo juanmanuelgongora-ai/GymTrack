@@ -6,6 +6,7 @@ import LoginView from './vistas/auth/LoginView';
 import RegisterView from './vistas/auth/RegisterView';
 import ShopView from './vistas/shop/ShopView';
 import PaymentModal from './vistas/shop/PaymentModal';
+import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 
 function App() {
   // --- Controller Logic (State & Handlers) ---
@@ -111,6 +112,10 @@ function App() {
           setView={setView}
           handleRegister={handleRegister}
         />
+      )}
+
+      {view === 'panelCliente' && (
+        <PanelClienteGYMTRACK setView={setView} />
       )}
 
       {view === 'shop' && (

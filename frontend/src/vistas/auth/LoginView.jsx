@@ -24,7 +24,7 @@ const LoginView = ({ setView }) => {
             if (response.ok) {
                 alert("¡Se logueó correctamente!");
                 console.log("Token secreto de sesión:", data.access_token);
-                setView('shop');
+                setView('panelCliente');
             } else {
                 alert("Error al iniciar sesión: " + (data.message || "Credenciales incorrectas"));
             }
