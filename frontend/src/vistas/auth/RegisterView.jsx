@@ -1,7 +1,7 @@
 import React from 'react';
 import Icons from '../../logica/Icons';
 
-const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondition, setView }) => (
+const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondition, setView, handleRegister }) => (
     <div className="auth-card">
         <div className="logo-container">
             <div className="logo-box"><Icons.Dumbbell /></div>
@@ -25,7 +25,7 @@ const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondit
                     { label: 'Ingrese su dirección', name: 'direccion', placeholder: 'Ej: Calle 12 Bis #12-23', icon: <Icons.Map /> },
                     { label: 'Ingrese su edad', name: 'edad', placeholder: 'ej: 18' },
                     { label: 'Ingrese su correo', name: 'correo', placeholder: 'tu@email.com', icon: <Icons.Mail /> },
-                    { label: 'Seleccione su EPS', name: 'eps', placeholder: 'EPS Sanitas...' },
+                    { label: 'Seleccione su EPS', name: 'eps', isSelect: true, options: ["Seleccione...", "Sura", "Sanitas", "Compensar", "Coomeva", "Nueva EPS"] },
                     { label: 'Ingrese su contraseña', name: 'pass', placeholder: '••••••••', icon: <Icons.Lock /> },
                     { label: 'Ingrese su número de contacto', name: 'contacto', placeholder: 'Ej: 31666666', icon: <Icons.Phone /> },
                     { label: 'Ingrese número de familiar', name: 'familiar', placeholder: 'Ej: 31211111', icon: <Icons.Users /> },
@@ -34,7 +34,20 @@ const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondit
                         <label className="field-label">{f.label}</label>
                         <div className="input-with-icon">
                             {f.icon && <div className="input-icon">{f.icon}</div>}
-                            <input name={f.name} value={formData[f.name]} onChange={handleInputChange} className={`input-element ${!f.icon ? 'no-icon' : ''}`} placeholder={f.placeholder} />
+                            {f.isSelect ? (
+                                <select
+                                    name={f.name}
+                                    value={formData[f.name]}
+                                    onChange={handleInputChange}
+                                    className={`input-element ${!f.icon ? 'no-icon' : ''}`}
+                                >
+                                    {f.options.map(opt => (
+                                        <option key={opt} value={opt === "Seleccione..." ? "" : opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input name={f.name} value={formData[f.name]} onChange={handleInputChange} className={`input-element ${!f.icon ? 'no-icon' : ''}`} placeholder={f.placeholder} />
+                            )}
                         </div>
                     </div>
                 ))}
@@ -43,7 +56,15 @@ const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondit
 
         {step === 2 && (
             <div className="form-grid">
-                <div className="field-group"><label className="field-label">Ingrese su edad</label><input name="edad" value={formData.edad} onChange={handleInputChange} className="input-element no-icon" placeholder="ej: 18" /></div>
+                <div className="field-group">
+                    <label className="field-label">Objetivo principal</label>
+                    <select name="objetivo_principal" value={formData.objetivo_principal || ''} onChange={handleInputChange} className="input-element no-icon">
+                        <option value="">Seleccione...</option>
+                        <option value="Bajar de peso">Bajar de peso</option>
+                        <option value="Ganar masa muscular">Ganar masa muscular</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                    </select>
+                </div>
                 <div className="field-group"><label className="field-label">Seleccione su sexo</label>
                     <select name="sexo" value={formData.sexo} onChange={handleInputChange} className="input-element no-icon">
                         <option value="">Seleccione...</option><option value="M">Masculino</option><option value="F">Femenino</option>
@@ -110,7 +131,7 @@ const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondit
 
         <div className="button-row">
             <button className="btn-secondary" onClick={() => step > 1 ? setStep(step - 1) : setView('login')}>Regresar</button>
-            <button className="btn-primary" disabled={step === 3 && !formData.disclaimer} onClick={() => step < 3 ? setStep(step + 1) : setView('shop')}>
+            <button className="btn-primary" disabled={step === 3 && !formData.disclaimer} onClick={() => step < 3 ? setStep(step + 1) : handleRegister()}>
                 {step === 3 ? 'Registrarse' : 'Continuar'}
             </button>
         </div>

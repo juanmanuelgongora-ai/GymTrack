@@ -15,7 +15,7 @@ function App() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
-    sexo: '', peso: '', estatura: '',
+    sexo: '', peso: '', estatura: '', objetivo_principal: '',
     salud: 'Excelente', cirugia: 'No', cirugiaDetalle: '', condiciones: [], medicamentos: 'No', medicamentosDetalle: '', lesion: 'No', lesionDetalle: '', frecuencia: '3-4 veces por semana', sueno: '7-8',
     disclaimer: false
   });
@@ -56,6 +56,46 @@ function App() {
     setView('login');
   };
 
+  const handleRegister = async () => {
+    try {
+      const nameParts = formData.nombre.trim().split(' ');
+      const nombre = nameParts[0] || 'Desconocido';
+      const apellido = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '.';
+
+      const response = await fetch("http://127.0.0.1:8000/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          nombre: nombre,
+          apellido: apellido,
+          email: formData.correo,
+          password: formData.pass,
+          rol: 'cliente',
+          edad: formData.edad,
+          genero: formData.sexo,
+          peso_kg: formData.peso,
+          altura_cm: formData.estatura,
+          objetivo_principal: formData.objetivo_principal
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("¡Registro Exitoso en la Base de Datos!");
+        setView('shop');
+      } else {
+        alert("Error de registro: " + (data.message || JSON.stringify(data.errors)));
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("No se pudo conectar al servidor de Laravel. Asegúrate de que php artisan serve esté corriendo.");
+    }
+  };
+
   // --- View Rendering ---
   return (
     <div className="App">
@@ -69,6 +109,7 @@ function App() {
           handleInputChange={handleInputChange}
           toggleCondition={toggleCondition}
           setView={setView}
+          handleRegister={handleRegister}
         />
       )}
 
