@@ -1,0 +1,61 @@
+Lista consolidada de librerías y paquetes del proyecto GymTrack
+
+Archivo: backend/composer.json
+Require:
+- php: ^8.2
+- laravel/framework: ^12.0
+- laravel/sanctum: ^4.0
+- laravel/tinker: ^2.10.1
+Require-dev:
+- fakerphp/faker: ^1.23
+- laravel/pail: ^1.2.2
+- laravel/pint: ^1.24
+- laravel/sail: ^1.41
+- mockery/mockery: ^1.6
+- nunomaduro/collision: ^8.6
+- phpunit/phpunit: ^11.5.50
+
+Archivo: backend/package.json
+DevDependencies:
+- @tailwindcss/vite: ^4.0.0
+- axios: ^1.11.0
+- concurrently: ^9.0.1
+- laravel-vite-plugin: ^2.0.0
+- tailwindcss: ^4.0.0
+- vite: ^7.0.7
+
+Archivo: frontend/package.json
+Dependencies:
+- lucide-react: ^1.7.0
+- react: ^19.2.4
+- react-dom: ^19.2.4
+DevDependencies:
+- @eslint/js: ^9.39.4
+- @types/react: ^19.2.14
+- @types/react-dom: ^19.2.3
+- @vitejs/plugin-react: ^6.0.1
+- eslint: ^9.39.4
+- eslint-plugin-react-hooks: ^7.0.1
+- eslint-plugin-react-refresh: ^0.5.2
+- globals: ^17.4.0
+- vite: ^8.0.1
+
+Archivo: package.json (raíz)
+Dependencies:
+- lucide-react: ^1.7.0
+- react: ^19.2.4
+- react-dom: ^19.2.4
+DevDependencies:
+- @eslint/js: ^9.39.4
+- @types/react: ^19.2.14
+- @types/react-dom: ^19.2.3
+- @vitejs/plugin-react: ^6.0.1
+- eslint: ^9.39.4
+- eslint-plugin-react-hooks: ^7.0.1
+- eslint-plugin-react-refresh: ^0.5.2
+- globals: ^17.4.0
+- vite: ^8.0.1
+
+Notas:
+- Esta lista se extrajo de los archivos de manifiesto (`composer.json` y `package.json`).
+- Para versiones exactas instaladas, revisar `composer.lock` o `vendor/composer/installed.json` (PHP) y `package-lock.json` o `yarn.lock` (JS) si existen.
