@@ -12,6 +12,7 @@ function App() {
   // --- Controller Logic (State & Handlers) ---
   const [view, setView] = useState('login'); // Por defecto iniciar en el login
   const [step, setStep] = useState(1);
+  const [userAuth, setUserAuth] = useState(null);
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -52,18 +53,60 @@ function App() {
     });
   };
 
-  const handlePaymentConfirm = () => {
+  const handlePaymentConfirm = async () => {
+    try {
+        const payload = {
+            nombre: formData.nombre.split(' ')[0] || 'Usuario',
+            apellido: formData.nombre.split(' ').slice(1).join(' ') || 'Prueba',
+            email: formData.correo || `user${Date.now()}@email.com`,
+            password: formData.pass || '123456',
+            rol: 'cliente',
+            edad: formData.edad,
+            sexo: formData.sexo,
+            peso_kg: formData.peso,
+            altura_cm: formData.estatura,
+            objetivo_principal: formData.salud
+        };
+
+        const res = await fetch('http://127.0.0.1:8000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setUserAuth({ token: data.access_token, user: data.user });
+        } else {
+            // Fallback to local form data if error from backend
+            setUserAuth({ token: 'mock-token', user: { ...payload, cliente: payload } });
+        }
+    } catch {
+        // Fallback fake user if backend isn't running
+        let hm = parseFloat(formData.estatura) / 100;
+        let p = parseFloat(formData.peso);
+        let imc = (hm > 0 && p > 0) ? (p / (hm * hm)).toFixed(2) : 0;
+        setUserAuth({ 
+            token: 'mock-token', 
+            user: { 
+                nombre: formData.nombre || 'Usuario', 
+                apellido: '',
+                email: formData.correo, 
+                cliente: { peso_kg: formData.peso, altura_cm: formData.estatura, edad: formData.edad, imc: imc } 
+            } 
+        });
+    }
+
     alert('¡Pago completado!');
     setShowPayment(false);
-    setView('login');
+    setView('panel_cliente');
   };
 
   // --- View Rendering ---
   return (
     <div className="App">
-      {view === 'panel_cliente' && <PanelClienteGYMTRACK setView={setView} />}
+      {view === 'panel_cliente' && <PanelClienteGYMTRACK setView={setView} userAuth={userAuth} />}
 
-      {view === 'login' && <LoginView setView={setView} />}
+      {view === 'login' && <LoginView setView={setView} setUserAuth={setUserAuth} />}
 
       {view === 'register' && (
 

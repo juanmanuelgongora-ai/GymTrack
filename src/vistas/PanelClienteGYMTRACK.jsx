@@ -12,14 +12,19 @@ import EjerciciosTab from './tabs/EjerciciosTab';
 import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 
-const PanelClienteGYMTRACK = ({ setView }) => {
+const PanelClienteGYMTRACK = ({ setView, userAuth }) => {
   const [activeTab, setActiveTab] = useState('inicio');
 
+  const userData = userAuth?.user || {};
+  const clienteData = userData.cliente || {};
+  const userName = userData.nombre || 'Usuario';
+
+  // Las barras de progreso y métricas deben empezar en 0 ya que apenas empieza
   const metricCards = [
-    { title: '7', subtitle: 'Días consecutivos', icon: Flame, stat: '+2', trend: 'up' },
-    { title: '24', subtitle: 'Entrenamientos este mes', icon: Activity, stat: '100%', trend: 'up' },
-    { title: '-3.5', subtitle: 'kg perdidos en 30 días', icon: Target, stat: '-4.3%', trend: 'down' },
-    { title: '5', subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
+    { title: '0', subtitle: 'Días consecutivos', icon: Flame, stat: '-', trend: 'neutral' },
+    { title: '0', subtitle: 'Entrenamientos este mes', icon: Activity, stat: '0%', trend: 'neutral' },
+    { title: '0', subtitle: 'kg perdidos en 30 días', icon: Target, stat: '0%', trend: 'neutral' },
+    { title: '0', subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
   ];
 
   const exercises = [
@@ -38,8 +43,8 @@ const PanelClienteGYMTRACK = ({ setView }) => {
           <>
             <header className="dashboard-header" style={{ animation: 'fadeIn 0.5s ease' }}>
               <div>
-                <h1 className="glow-text">¡Hola, Juan Manuel!</h1>
-                <p className="subtitle-text">Jueves, 5 de marzo de 2026</p>
+                <h1 className="glow-text">¡Hola, {userName}!</h1>
+                <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
               <button className="primary-btn pulse-glow">
                 <Play size={20} fill="currentColor" />
@@ -141,16 +146,16 @@ const PanelClienteGYMTRACK = ({ setView }) => {
                     <div className="goal-item">
                       <div className="goal-info">
                         <span>Perder peso</span>
-                        <span className="goal-value">70%</span>
+                        <span className="goal-value">0%</span>
                       </div>
-                      <div className="progress-bar"><div className="progress" style={{ width: '70%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
+                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
                     </div>
                     <div className="goal-item">
                       <div className="goal-info">
                         <span>Aumentar fuerza</span>
-                        <span className="goal-value">45%</span>
+                        <span className="goal-value">0%</span>
                       </div>
-                      <div className="progress-bar"><div className="progress" style={{ width: '45%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
+                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
                     </div>
                   </div>
                 </div>
@@ -165,8 +170,8 @@ const PanelClienteGYMTRACK = ({ setView }) => {
                   </div>
                   <div className="nutrition-info">
                     <div className="cals">
-                      <h4>1,450 <span>/ 2,100 kcal</span></h4>
-                      <div className="progress-bar"><div className="progress" style={{ width: '69%', background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
+                      <h4>0 <span>/ 2,100 kcal</span></h4>
+                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
                     </div>
                     <div className="macros">
                       <div className="macro"><CircleDot size={12} color="#ff6b35" /> Proteínas <b>95g</b></div>
@@ -188,15 +193,15 @@ const PanelClienteGYMTRACK = ({ setView }) => {
                   <div className="metrics-list">
                     <div className="metric-row">
                       <span>Peso actual</span>
-                      <b>76.5 kg</b>
+                      <b>{clienteData.peso_kg ? `${clienteData.peso_kg} kg` : '0 kg'}</b>
                     </div>
                     <div className="metric-row">
                       <span>IMC</span>
-                      <b>24.1</b>
+                      <b>{clienteData.imc ? clienteData.imc : '0.0'}</b>
                     </div>
                     <div className="metric-row">
-                      <span>Grasa corporal</span>
-                      <b>18.2%</b>
+                      <span>Altura</span>
+                      <b>{clienteData.altura_cm ? `${clienteData.altura_cm} cm` : '0 cm'}</b>
                     </div>
                   </div>
                   <button className="secondary-btn full-width mt-1"><BarChart3 size={16} /> Historial Completo</button>
@@ -214,7 +219,7 @@ const PanelClienteGYMTRACK = ({ setView }) => {
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab />;
+        return <PerfilTab userData={userData} clienteData={clienteData} />;
       default:
         return (
           <div className="placeholder-container glass-panel" style={{ 
@@ -274,8 +279,8 @@ const PanelClienteGYMTRACK = ({ setView }) => {
         </div>
         <div className="nav-user">
           <div className="user-info">
-            <span className="user-name">Juan Manuel</span>
-            <span className="user-level">Nivel Intermedio</span>
+            <span className="user-name">{userName}</span>
+            <span className="user-level">Nivel Principiante</span>
           </div>
           <div className="user-avatar">
             <User color="#fff" size={20} />

@@ -48,4 +48,9 @@ class User extends Authenticatable
     {
         return $this->password_hash;
     }
+
+    public function cliente()
+    {
+        return $this->hasOne(Cliente::class, 'user_id');
+    }
 }

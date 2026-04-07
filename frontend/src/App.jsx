@@ -10,13 +10,15 @@ import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 
 function App() {
   // --- Controller Logic (State & Handlers) ---
-  const [view, setView] = useState('login');
+  const [view, setView] = useState('login'); // Por defecto iniciar en el login
   const [step, setStep] = useState(1);
+  const [userAuth, setUserAuth] = useState(null);
+
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
-    sexo: '', peso: '', estatura: '', objetivo_principal: '',
+    sexo: '', peso: '', estatura: '',
     salud: 'Excelente', cirugia: 'No', cirugiaDetalle: '', condiciones: [], medicamentos: 'No', medicamentosDetalle: '', lesion: 'No', lesionDetalle: '', frecuencia: '3-4 veces por semana', sueno: '7-8',
     disclaimer: false
   });
@@ -51,58 +53,63 @@ function App() {
     });
   };
 
-  const handlePaymentConfirm = () => {
+  const handlePaymentConfirm = async () => {
+    try {
+        const payload = {
+            nombre: formData.nombre.split(' ')[0] || 'Usuario',
+            apellido: formData.nombre.split(' ').slice(1).join(' ') || 'Prueba',
+            email: formData.correo || `user${Date.now()}@email.com`,
+            password: formData.pass || '123456',
+            rol: 'cliente',
+            edad: formData.edad,
+            sexo: formData.sexo,
+            peso_kg: formData.peso,
+            altura_cm: formData.estatura,
+            objetivo_principal: formData.salud
+        };
+
+        const res = await fetch('http://127.0.0.1:8000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setUserAuth({ token: data.access_token, user: data.user });
+        } else {
+            // Fallback to local form data if error from backend
+            setUserAuth({ token: 'mock-token', user: { ...payload, cliente: payload } });
+        }
+    } catch {
+        // Fallback fake user if backend isn't running
+        let hm = parseFloat(formData.estatura) / 100;
+        let p = parseFloat(formData.peso);
+        let imc = (hm > 0 && p > 0) ? (p / (hm * hm)).toFixed(2) : 0;
+        setUserAuth({ 
+            token: 'mock-token', 
+            user: { 
+                nombre: formData.nombre || 'Usuario', 
+                apellido: '',
+                email: formData.correo, 
+                cliente: { peso_kg: formData.peso, altura_cm: formData.estatura, edad: formData.edad, imc: imc } 
+            } 
+        });
+    }
+
     alert('¡Pago completado!');
     setShowPayment(false);
-    setView('login');
-  };
-
-  const handleRegister = async () => {
-    try {
-      const nameParts = formData.nombre.trim().split(' ');
-      const nombre = nameParts[0] || 'Desconocido';
-      const apellido = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '.';
-
-      const response = await fetch("http://127.0.0.1:8000/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          nombre: nombre,
-          apellido: apellido,
-          email: formData.correo,
-          password: formData.pass,
-          rol: 'cliente',
-          edad: formData.edad,
-          genero: formData.sexo,
-          peso_kg: formData.peso,
-          altura_cm: formData.estatura,
-          objetivo_principal: formData.objetivo_principal
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("¡Registro Exitoso en la Base de Datos!");
-        setView('shop');
-      } else {
-        alert("Error de registro: " + (data.message || JSON.stringify(data.errors)));
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("No se pudo conectar al servidor de Laravel. Asegúrate de que php artisan serve esté corriendo.");
-    }
+    setView('panel_cliente');
   };
 
   // --- View Rendering ---
   return (
     <div className="App">
-      {view === 'login' && <LoginView setView={setView} />}
+      {view === 'panel_cliente' && <PanelClienteGYMTRACK setView={setView} userAuth={userAuth} />}
+
+      {view === 'login' && <LoginView setView={setView} setUserAuth={setUserAuth} />}
 
       {view === 'register' && (
+
         <RegisterView
           step={step}
           setStep={setStep}
@@ -110,12 +117,7 @@ function App() {
           handleInputChange={handleInputChange}
           toggleCondition={toggleCondition}
           setView={setView}
-          handleRegister={handleRegister}
         />
-      )}
-
-      {view === 'panelCliente' && (
-        <PanelClienteGYMTRACK setView={setView} />
       )}
 
       {view === 'shop' && (
