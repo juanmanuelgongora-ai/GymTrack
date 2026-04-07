@@ -1,0 +1,96 @@
+================================================================================
+GYMTRACK - Dependencias del Proyecto
+================================================================================
+
+BACKEND (Laravel - PHP)
+=======================
+Requisitos de Sistema:
+  - PHP: ^8.2
+
+Dependencias de Producción:
+  - laravel/framework: ^12.0
+  - laravel/sanctum: ^4.0
+  - laravel/tinker: ^2.10.1
+
+Dependencias de Desarrollo:
+  - fakerphp/faker: ^1.23
+  - laravel/pail: ^1.2.2
+  - laravel/pint: ^1.24
+  - laravel/sail: ^1.41
+  - mockery/mockery: ^1.6
+  - nunomaduro/collision: ^8.6
+  - phpunit/phpunit: ^11.5.50
+
+Para instalar dependencias de PHP (Backend):
+  cd backend
+  composer install
+
+FRONTEND (React + Vite)
+=======================
+Dependencias de Producción:
+  - lucide-react: ^1.7.0
+  - react: ^19.2.4
+  - react-dom: ^19.2.4
+
+Dependencias de Desarrollo:
+  - @eslint/js: ^9.39.4
+  - @types/react: ^19.2.14
+  - @types/react-dom: ^19.2.3
+  - @vitejs/plugin-react: ^6.0.1
+  - eslint: ^9.39.4
+  - eslint-plugin-react-hooks: ^7.0.1
+  - eslint-plugin-react-refresh: ^0.5.2
+  - globals: ^17.4.0
+  - vite: ^8.0.1
+
+Para instalar dependencias de JavaScript (Frontend):
+  cd frontend
+  npm install
+
+BACKEND - Dependencias de Desarrollo Node.js (Vite + Tailwind)
+==============================================================
+Dependencias de Desarrollo:
+  - @tailwindcss/vite: ^4.0.0
+  - axios: ^1.11.0
+  - concurrently: ^9.0.1
+  - laravel-vite-plugin: ^2.0.0
+  - tailwindcss: ^4.0.0
+  - vite: ^7.0.7
+
+Para instalar dependencias de JavaScript en backend:
+  cd backend
+  npm install
+
+================================================================================
+COMANDOS DE INSTALACIÓN RÁPIDA
+================================================================================
+
+Instalación Completa:
+  1. Instalar dependencias de PHP en backend:
+     cd backend && composer install
+  
+  2. Instalar dependencias de Node.js en backend:
+     cd .. && npm install
+  
+  3. Instalar dependencias de Node.js en frontend:
+     cd frontend && npm install
+
+O ejecutar el script de setup (si existe):
+  npm run setup (desde raíz del proyecto backend)
+
+================================================================================
+NOTAS
+================================================================================
+- Este archivo lista todas las dependencias del proyecto GymTrack
+- Las versiones exactas instaladas se encuentran en:
+  * backend/composer.lock (PHP)
+  * backend/package-lock.json (Node.js)
+  * frontend/package-lock.json (Node.js)
+- Para actualizar dependencias:
+  * PHP: composer update
+  * Node.js: npm update
+- Para auditoría de seguridad:
+  * PHP: composer audit
+  * Node.js: npm audit
+
+Fecha de generación: 7 Abril 2026
