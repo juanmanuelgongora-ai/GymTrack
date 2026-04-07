@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Cliente;
+use App\Models\Entrenador;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -54,6 +55,18 @@ class AuthController extends Controller
                 'altura_cm' => $request->altura_cm,
                 'imc' => $imc,
                 'objetivo_principal' => $request->objetivo_principal
+            ]);
+        }
+        else if ($user->rol === 'entrenador') {
+            Entrenador::create([
+                'user_id' => $user->id,
+                'especialidad' => $request->especialidad,
+                'experiencia_anios' => $request->experiencia,
+                'certificacion' => $request->certificacion,
+                'horarios' => $request->horarios,
+                'tipos_entrenamiento' => $request->tipos_entrenamiento,
+                'capacidad_maxima' => $request->capacidad_maxima,
+                'objetivos_profesionales' => $request->objetivos
             ]);
         }
 

@@ -9,22 +9,17 @@ import '../estilos/PanelClienteGYMTRACK.css';
 import AlimentacionTab from './tabs/AlimentacionTab';
 import ObjetivosTab from './tabs/ObjetivosTab';
 import EjerciciosTab from './tabs/EjerciciosTab';
-import PerfilTab from './tabs/PerfilTab';
+import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
 import RutinaTab from './tabs/RutinaTab';
 
-const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAuth, onLogout }) => {
+const PanelClienteGYMTRACK = ({ setView }) => {
   const [activeTab, setActiveTab] = useState('inicio');
 
-  const userData = remoteUserData || userAuth?.user || {};
-  const clienteData = userData.cliente || {};
-
-  const userName = `${userData.nombre || 'Usuario'} ${userData.apellido || ''}`.trim();
-  const userFirstName = userData.nombre || 'Usuario';
   const metricCards = [
-    { title: '0', subtitle: 'Días consecutivos', icon: Flame, stat: '-', trend: 'neutral' },
-    { title: '0', subtitle: 'Entrenamientos este mes', icon: Activity, stat: '0%', trend: 'neutral' },
-    { title: '0', subtitle: 'kg perdidos en 30 días', icon: Target, stat: '0%', trend: 'neutral' },
-    { title: '0', subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
+    { title: '7', subtitle: 'Días consecutivos', icon: Flame, stat: '+2', trend: 'up' },
+    { title: '24', subtitle: 'Entrenamientos este mes', icon: Activity, stat: '100%', trend: 'up' },
+    { title: '-3.5', subtitle: 'kg perdidos en 30 días', icon: Target, stat: '-4.3%', trend: 'down' },
+    { title: '5', subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
   ];
 
   const exercises = [
@@ -43,8 +38,8 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
           <>
             <header className="dashboard-header" style={{ animation: 'fadeIn 0.5s ease' }}>
               <div>
-                <h1 className="glow-text">¡Hola, {userFirstName}!</h1>
-                <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <h1 className="glow-text">¡Hola, Juan Manuel!</h1>
+                <p className="subtitle-text">Jueves, 5 de marzo de 2026</p>
               </div>
               <button className="primary-btn pulse-glow">
                 <Play size={20} fill="currentColor" />
@@ -146,16 +141,16 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                     <div className="goal-item">
                       <div className="goal-info">
                         <span>Perder peso</span>
-                        <span className="goal-value">0%</span>
+                        <span className="goal-value">70%</span>
                       </div>
-                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
+                      <div className="progress-bar"><div className="progress" style={{ width: '70%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
                     </div>
                     <div className="goal-item">
                       <div className="goal-info">
                         <span>Aumentar fuerza</span>
-                        <span className="goal-value">0%</span>
+                        <span className="goal-value">45%</span>
                       </div>
-                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
+                      <div className="progress-bar"><div className="progress" style={{ width: '45%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
                     </div>
                   </div>
                 </div>
@@ -170,8 +165,8 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                   </div>
                   <div className="nutrition-info">
                     <div className="cals">
-                      <h4>0 <span>/ 2,100 kcal</span></h4>
-                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
+                      <h4>1,450 <span>/ 2,100 kcal</span></h4>
+                      <div className="progress-bar"><div className="progress" style={{ width: '69%', background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
                     </div>
                     <div className="macros">
                       <div className="macro"><CircleDot size={12} color="#ff6b35" /> Proteínas <b>95g</b></div>
@@ -193,15 +188,15 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                   <div className="metrics-list">
                     <div className="metric-row">
                       <span>Peso actual</span>
-                      <b>{clienteData.peso_kg ? `${clienteData.peso_kg} kg` : '0 kg'}</b>
+                      <b>76.5 kg</b>
                     </div>
                     <div className="metric-row">
                       <span>IMC</span>
-                      <b>{clienteData.imc ? clienteData.imc : '0.0'}</b>
+                      <b>24.1</b>
                     </div>
                     <div className="metric-row">
-                      <span>Altura</span>
-                      <b>{clienteData.altura_cm ? `${clienteData.altura_cm} cm` : '0 cm'}</b>
+                      <span>Grasa corporal</span>
+                      <b>18.2%</b>
                     </div>
                   </div>
                   <button className="secondary-btn full-width mt-1"><BarChart3 size={16} /> Historial Completo</button>
@@ -213,13 +208,13 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
       case 'rutina':
         return <RutinaTab />;
       case 'objetivos':
-        return <ObjetivosTab token={token} />;
+        return <ObjetivosTab />;
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab token={token} userData={userData} clienteData={clienteData} />;
+        return <PerfilEntrenadorTab />;
       default:
         return (
           <div className="placeholder-container glass-panel" style={{
@@ -279,8 +274,8 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
         </div>
         <div className="nav-user">
           <div className="user-info">
-            <span className="user-name">{userFirstName}</span>
-            <span className="user-level">Nivel Principiante</span>
+            <span className="user-name">Roberto Martín Gómez</span>
+            <span className="user-level">Entrenador</span>
           </div>
           <div className="user-avatar">
             <User color="#fff" size={20} />
@@ -289,7 +284,7 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
             className="secondary-btn"
             style={{ padding: '8px', marginLeft: '12px', border: '1px solid rgba(255,107,53,0.3)', color: '#ff6b35', background: 'rgba(255,107,53,0.1)' }}
             title="Cerrar Sesión"
-            onClick={onLogout || (() => setView('login'))}
+            onClick={() => setView('login')}
           >
             <LogOut size={18} />
           </button>
