@@ -9,14 +9,11 @@ import '../estilos/PanelClienteGYMTRACK.css';
 import AlimentacionTab from './tabs/AlimentacionTab';
 import ObjetivosTab from './tabs/ObjetivosTab';
 import EjerciciosTab from './tabs/EjerciciosTab';
-import PerfilTab from './tabs/PerfilTab';
+import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
 import RutinaTab from './tabs/RutinaTab';
 
-const PanelClienteGYMTRACK = ({ setView, token, userData, onLogout }) => {
+const PanelClienteGYMTRACK = ({ setView }) => {
   const [activeTab, setActiveTab] = useState('inicio');
-
-  const userName = userData ? `${userData.nombre} ${userData.apellido || ''}`.trim() : 'Usuario';
-  const userFirstName = userData?.nombre || 'Usuario';
 
   const metricCards = [
     { title: '7', subtitle: 'Días consecutivos', icon: Flame, stat: '+2', trend: 'up' },
@@ -41,8 +38,8 @@ const PanelClienteGYMTRACK = ({ setView, token, userData, onLogout }) => {
           <>
             <header className="dashboard-header" style={{ animation: 'fadeIn 0.5s ease' }}>
               <div>
-                <h1 className="glow-text">¡Hola, {userFirstName}!</h1>
-                <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <h1 className="glow-text">¡Hola, Juan Manuel!</h1>
+                <p className="subtitle-text">Jueves, 5 de marzo de 2026</p>
               </div>
               <button className="primary-btn pulse-glow">
                 <Play size={20} fill="currentColor" />
@@ -211,13 +208,13 @@ const PanelClienteGYMTRACK = ({ setView, token, userData, onLogout }) => {
       case 'rutina':
         return <RutinaTab />;
       case 'objetivos':
-        return <ObjetivosTab token={token} />;
+        return <ObjetivosTab />;
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab token={token} userData={userData} />;
+        return <PerfilEntrenadorTab />;
       default:
         return (
           <div className="placeholder-container glass-panel" style={{
@@ -277,8 +274,8 @@ const PanelClienteGYMTRACK = ({ setView, token, userData, onLogout }) => {
         </div>
         <div className="nav-user">
           <div className="user-info">
-            <span className="user-name">{userFirstName}</span>
-            <span className="user-level">Nivel Intermedio</span>
+            <span className="user-name">Roberto Martín Gómez</span>
+            <span className="user-level">Entrenador</span>
           </div>
           <div className="user-avatar">
             <User color="#fff" size={20} />
@@ -287,7 +284,7 @@ const PanelClienteGYMTRACK = ({ setView, token, userData, onLogout }) => {
             className="secondary-btn"
             style={{ padding: '8px', marginLeft: '12px', border: '1px solid rgba(255,107,53,0.3)', color: '#ff6b35', background: 'rgba(255,107,53,0.1)' }}
             title="Cerrar Sesión"
-            onClick={onLogout || (() => setView('login'))}
+            onClick={() => setView('login')}
           >
             <LogOut size={18} />
           </button>

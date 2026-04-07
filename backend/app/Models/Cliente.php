@@ -28,4 +28,19 @@ class Cliente extends Model
         'condicion_medica',
         'activo'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function metricas()
+    {
+        return $this->hasMany(MetricaCorporal::class);
+    }
+
+    public function hitos()
+    {
+        return $this->hasMany(Hito::class);
+    }
 }
