@@ -20,12 +20,22 @@ function App() {
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
-    sexo: '', peso: '', estatura: '',
+    sexo: '', peso: '', estatura: '', objetivo_principal: '',
     salud: 'Excelente', cirugia: 'No', cirugiaDetalle: '', condiciones: [], medicamentos: 'No', medicamentosDetalle: '', lesion: 'No', lesionDetalle: '', frecuencia: '3-4 veces por semana', sueno: '7-8',
     disclaimer: false
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+
+  const handleSetView = (newView) => {
+    if (newView === 'register') {
+      setFormData(initialFormData);
+      setStep(1);
+    }
+    setView(newView);
+  };
 
   // --- Restore session from localStorage ---
   useEffect(() => {
@@ -69,7 +79,7 @@ function App() {
     localStorage.removeItem('gymtrack_token');
     localStorage.removeItem('gymtrack_user');
     localStorage.removeItem('gymtrack_view');
-    setView('login');
+    handleSetView('login');
   };
 
   const handleInputChange = (e) => {
@@ -99,45 +109,45 @@ function App() {
 
   const handlePaymentConfirm = async () => {
     try {
-        const payload = {
-            nombre: formData.nombre.split(' ')[0] || 'Usuario',
-            apellido: formData.nombre.split(' ').slice(1).join(' ') || 'Prueba',
-            email: formData.correo || `user${Date.now()}@email.com`,
-            password: formData.pass || '123456',
-            rol: 'cliente',
-            edad: formData.edad,
-            sexo: formData.sexo,
-            peso_kg: formData.peso,
-            altura_cm: formData.estatura,
-            objetivo_principal: formData.salud
-        };
+      const payload = {
+        nombre: formData.nombre.split(' ')[0] || 'Usuario',
+        apellido: formData.nombre.split(' ').slice(1).join(' ') || 'Prueba',
+        email: formData.correo || `user${Date.now()}@email.com`,
+        password: formData.pass || '123456',
+        rol: 'cliente',
+        edad: formData.edad,
+        sexo: formData.sexo,
+        peso_kg: formData.peso,
+        altura_cm: formData.estatura,
+        objetivo_principal: formData.salud
+      };
 
-        const res = await fetch('http://127.0.0.1:8000/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (res.ok) {
-            setUserAuth({ token: data.access_token, user: data.user });
-        } else {
-            // Fallback to local form data if error from backend
-            setUserAuth({ token: 'mock-token', user: { ...payload, cliente: payload } });
-        }
+      const res = await fetch('http://127.0.0.1:8000/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserAuth({ token: data.access_token, user: data.user });
+      } else {
+        // Fallback to local form data if error from backend
+        setUserAuth({ token: 'mock-token', user: { ...payload, cliente: payload } });
+      }
     } catch {
-        // Fallback fake user if backend isn't running
-        let hm = parseFloat(formData.estatura) / 100;
-        let p = parseFloat(formData.peso);
-        let imc = (hm > 0 && p > 0) ? (p / (hm * hm)).toFixed(2) : 0;
-        setUserAuth({ 
-            token: 'mock-token', 
-            user: { 
-                nombre: formData.nombre || 'Usuario', 
-                apellido: '',
-                email: formData.correo, 
-                cliente: { peso_kg: formData.peso, altura_cm: formData.estatura, edad: formData.edad, imc: imc } 
-            } 
-        });
+      // Fallback fake user if backend isn't running
+      let hm = parseFloat(formData.estatura) / 100;
+      let p = parseFloat(formData.peso);
+      let imc = (hm > 0 && p > 0) ? (p / (hm * hm)).toFixed(2) : 0;
+      setUserAuth({
+        token: 'mock-token',
+        user: {
+          nombre: formData.nombre || 'Usuario',
+          apellido: '',
+          email: formData.correo,
+          cliente: { peso_kg: formData.peso, altura_cm: formData.estatura, edad: formData.edad, imc: imc }
+        }
+      });
     }
 
     alert('¡Pago completado!');
@@ -239,26 +249,26 @@ function App() {
   // --- View Rendering ---
   return (
     <div className="App">
-      {view === 'login' && <LoginView setView={setView} onLogin={handleLogin} setUserAuth={setUserAuth} />}
+      {view === 'login' && <LoginView setView={handleSetView} onLogin={handleLogin} setUserAuth={setUserAuth} />}
 
       {view === 'register' && (
-
         <RegisterView
           step={step}
           setStep={setStep}
           formData={formData}
           handleInputChange={handleInputChange}
           toggleCondition={toggleCondition}
-          setView={setView}
+          setView={handleSetView}
+          handleRegister={handleRegister}
         />
       )}
 
       {view === 'registerEntrenador' && (
-        <RegisterEntrenadorView setView={setView} handleRegister={handleRegisterEntrenador} />
+        <RegisterEntrenadorView setView={handleSetView} handleRegister={handleRegisterEntrenador} />
       )}
 
       {view === 'panelCliente' && (
-        <PanelClienteGYMTRACK setView={setView} token={token} userData={userData} userAuth={userAuth} onLogout={handleLogout} />
+        <PanelClienteGYMTRACK setView={handleSetView} token={token} userData={userData} userAuth={userAuth} onLogout={handleLogout} />
       )}
 
       {view === 'shop' && (
@@ -266,7 +276,7 @@ function App() {
           selectedPlan={selectedPlan}
           setSelectedPlan={setSelectedPlan}
           setShowPayment={setShowPayment}
-          setView={setView}
+          setView={handleSetView}
         />
       )}
 
