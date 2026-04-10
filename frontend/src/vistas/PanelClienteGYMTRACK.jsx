@@ -12,8 +12,7 @@ import EjerciciosTab from './tabs/EjerciciosTab';
 import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 
-const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAuth, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('inicio');
+const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAuth, onLogout, activeTab, setActiveTab }) => {
 
   const userData = remoteUserData || userAuth?.user || {};
   const clienteData = userData.cliente || {};
@@ -211,7 +210,7 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
           </>
         );
       case 'rutina':
-        return <RutinaTab />;
+        return <RutinaTab token={token} />;
       case 'objetivos':
         return <ObjetivosTab token={token} />;
       case 'alimentacion':
@@ -280,7 +279,7 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
         <div className="nav-user">
           <div className="user-info">
             <span className="user-name">{userFirstName}</span>
-            <span className="user-level">Nivel Principiante</span>
+            <span className="user-level">Nivel {clienteData.nivel_actividad || 'Principiante'}</span>
           </div>
           <div className="user-avatar">
             <User color="#fff" size={20} />

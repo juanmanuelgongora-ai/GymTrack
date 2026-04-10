@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 // Import Vistas (Components)
 import LoginView from './vistas/auth/LoginView';
@@ -12,11 +12,21 @@ const API_URL = 'http://127.0.0.1:8000/api';
 
 function App() {
   // --- Session State ---
-  const [view, setView] = useState('login'); // Por defecto iniciar en el login
-  const [token, setToken] = useState(null);
-  const [userData, setUserData] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('gymtrack_token') || null);
+  const [userData, setUserData] = useState(() => {
+    const saved = localStorage.getItem('gymtrack_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [view, setView] = useState(() => {
+    const savedToken = localStorage.getItem('gymtrack_token');
+    const savedUser = localStorage.getItem('gymtrack_user');
+    return (savedToken && savedUser) ? (localStorage.getItem('gymtrack_view') || 'panelCliente') : 'login';
+  });
   const [step, setStep] = useState(1);
   const [userAuth, setUserAuth] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [pendingNotification, setPendingNotification] = useState(false);
+  const [clientTab, setClientTab] = useState('inicio');
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -37,17 +47,7 @@ function App() {
     setView(newView);
   };
 
-  // --- Restore session from localStorage ---
-  useEffect(() => {
-    const savedToken = localStorage.getItem('gymtrack_token');
-    const savedUser = localStorage.getItem('gymtrack_user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUserData(JSON.parse(savedUser));
-      const savedView = localStorage.getItem('gymtrack_view') || 'panelCliente';
-      setView(savedView);
-    }
-  }, []);
+
 
   // --- Save session helper ---
   const saveSession = (accessToken, user, targetView) => {
@@ -152,7 +152,17 @@ function App() {
 
     alert('¡Pago completado!');
     setShowPayment(false);
+    setClientTab('inicio');
     setView('panelCliente');
+
+    if (pendingNotification) {
+      setNotification({
+        title: '¡Tu rutina está lista!',
+        message: 'La IA ha generado tu plan personalizado de entrenamiento.',
+        actionText: 'Ir a Mi Rutina'
+      });
+      setPendingNotification(false);
+    }
   };
 
   // --- Login ---
@@ -167,6 +177,7 @@ function App() {
       throw new Error(data.message || JSON.stringify(data.errors) || 'Credenciales incorrectas');
     }
     const targetView = data.user.rol === 'entrenador' ? 'panelEntrenador' : 'panelCliente';
+    setClientTab('inicio'); // Reiniciar pestaña siempre al iniciar sesión
     saveSession(data.access_token, data.user, targetView);
     return data;
   };
@@ -190,11 +201,41 @@ function App() {
           genero: formData.sexo,
           peso_kg: formData.peso,
           altura_cm: formData.estatura,
-          objetivo_principal: formData.objetivo_principal
+          objetivo_principal: formData.objetivo_principal,
+          frecuencia: formData.frecuencia
         })
       });
       const data = await response.json();
       if (response.ok) {
+        // Generate AI Routine
+        try {
+          const aiResponse = await fetch(`${API_URL}/rutinas/generar`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${data.access_token}`
+            },
+            body: JSON.stringify({
+              objetivo: formData.objetivo_principal,
+              frecuencia: formData.frecuencia,
+              equipamiento: 'Gimnasio completo',
+              salud: formData.salud,
+              lesiones: formData.lesion === 'Sí' ? formData.lesionDetalle : 'No',
+              condiciones: formData.condiciones,
+              genero: formData.sexo,
+              peso: formData.peso,
+              estatura: formData.estatura,
+              edad: formData.edad
+            })
+          });
+          if (aiResponse.ok) {
+            setPendingNotification(true);
+          }
+        } catch (e) {
+          console.error('Error generando rutina:', e);
+        }
+
         saveSession(data.access_token, data.user, 'shop');
       } else {
         alert('Error de registro: ' + (data.message || JSON.stringify(data.errors)));
@@ -268,7 +309,15 @@ function App() {
       )}
 
       {view === 'panelCliente' && (
-        <PanelClienteGYMTRACK setView={handleSetView} token={token} userData={userData} userAuth={userAuth} onLogout={handleLogout} />
+        <PanelClienteGYMTRACK
+          setView={handleSetView}
+          token={token}
+          userData={userData}
+          userAuth={userAuth}
+          onLogout={handleLogout}
+          activeTab={clientTab}
+          setActiveTab={setClientTab}
+        />
       )}
 
       {view === 'shop' && (
@@ -286,6 +335,40 @@ function App() {
           onClose={() => setShowPayment(false)}
           onConfirm={handlePaymentConfirm}
         />
+      )}
+
+      {notification && (
+        <div style={{
+          position: 'fixed', bottom: '20px', right: '20px', backgroundColor: 'rgba(20, 20, 22, 0.95)',
+          border: '1px solid #ff6b35', borderRadius: '12px', padding: '20px', zIndex: 9999,
+          boxShadow: '0 10px 30px rgba(255, 107, 53, 0.2)', color: 'white', maxWidth: '320px',
+          animation: 'fadeIn 0.5s ease'
+        }}>
+          <h3 style={{ margin: '0 0 8px 0', color: '#ff6b35', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>✨</span> {notification.title}
+          </h3>
+          <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#a1a1aa' }}>{notification.message}</p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="primary-btn"
+              style={{ flex: 1, padding: '8px' }}
+              onClick={() => {
+                setNotification(null);
+                setClientTab('rutina');
+                handleSetView('panelCliente');
+              }}
+            >
+              {notification.actionText}
+            </button>
+            <button
+              className="secondary-btn"
+              style={{ padding: '8px', border: 'none' }}
+              onClick={() => setNotification(null)}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="footer-text">© 2026 GYM TRACK. Todos los derechos reservados.</div>

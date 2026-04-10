@@ -29,24 +29,10 @@ const LoginView = ({ setView, onLogin, setUserAuth }) => {
         try {
             if (onLogin) await onLogin(email, password);
         } catch (error) {
-            // BACKEND OFFLINE FALLBACK
-            if (setUserAuth) {
-                setUserAuth({ 
-                    token: 'mock-token', 
-                    user: { 
-                        nombre: 'Samir', 
-                        apellido: 'Reyes',
-                        email: email || 'samir@gymtrack.com', 
-                        cliente: { peso_kg: 75, altura_cm: 180, edad: 25, imc: 23.15, objetivo_principal: "Ganar masa muscular", sexo: 'M' } 
-                    } 
-                });
-                setView('panelCliente');
+            if (error.message) {
+                setErrors({ general: error.message });
             } else {
-                if (error.message) {
-                    setErrors({ general: error.message });
-                } else {
-                    setErrors({ general: 'No se pudo conectar al servidor. Revisa que php artisan serve esté activo.' });
-                }
+                setErrors({ general: 'No se pudo conectar al servidor. Revisa que php artisan serve esté activo.' });
             }
         }
         setLoading(false);

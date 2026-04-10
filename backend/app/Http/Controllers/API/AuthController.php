@@ -47,6 +47,14 @@ class AuthController extends Controller
                 }
             }
 
+            $nivelActividad = 'Principiante';
+            if (in_array($request->frecuencia, ['3-4 veces'])) {
+                $nivelActividad = 'Intermedio';
+            }
+            elseif (in_array($request->frecuencia, ['5 o más'])) {
+                $nivelActividad = 'Avanzado';
+            }
+
             Cliente::create([
                 'user_id' => $user->id,
                 'fecha_nacimiento' => $fechaNacimiento,
@@ -54,7 +62,8 @@ class AuthController extends Controller
                 'peso_kg' => $request->peso_kg,
                 'altura_cm' => $request->altura_cm,
                 'imc' => $imc,
-                'objetivo_principal' => $request->objetivo_principal
+                'objetivo_principal' => $request->objetivo_principal,
+                'nivel_actividad' => $nivelActividad
             ]);
         }
         else if ($user->rol === 'entrenador') {
