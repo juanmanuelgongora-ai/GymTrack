@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Target, Flag, Zap, TrendingUp, Calendar, ArrowRight, Plus, X, Save, Trash2, Edit3 } from 'lucide-react';
 import '../../estilos/tabs.css';
 
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = '/api';
 
 const TIPO_CONFIG = {
   peso: { icon: <Target size={20} />, color: '#ff6b35', label: 'Peso' },

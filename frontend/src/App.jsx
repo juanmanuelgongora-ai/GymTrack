@@ -8,7 +8,7 @@ import ShopView from './vistas/shop/ShopView';
 import PaymentModal from './vistas/shop/PaymentModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = '/api';
 
 function App() {
   // --- Session State ---
