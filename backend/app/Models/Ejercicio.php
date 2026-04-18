@@ -26,6 +26,11 @@ class Ejercicio extends Model
     ];
 
     protected $casts = [
-        'series_sugeridas' => 'integer',
+        'id' => 'string'
     ];
+
+    public function usuariosFavoritos()
+    {
+        return $this->belongsToMany(User::class , 'ejercicio_favoritos', 'ejercicio_id', 'user_id')->withTimestamps();
+    }
 }

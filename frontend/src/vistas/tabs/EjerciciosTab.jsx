@@ -9,6 +9,7 @@ export default function EjerciciosTab({ token, userData }) {
   const [selectedMuscle, setSelectedMuscle] = useState('Todas');
   const [selectedLevel, setSelectedLevel] = useState('Cualquier Nivel');
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   const muscleGroups = ['Todas', 'Pecho', 'Espalda', 'Piernas', 'Bíceps', 'Tríceps', 'Hombros', 'Abdomen'];
   const levels = ['Cualquier Nivel', 'Principiante', 'Intermedio', 'Avanzado'];
@@ -17,38 +18,64 @@ export default function EjerciciosTab({ token, userData }) {
   const userGoal = clienteData.objetivo_principal || 'Mantenimiento';
   const userLevel = clienteData.nivel_actividad || 'Principiante';
 
-  useEffect(() => {
-    const fetchExercises = async () => {
-      setLoading(true);
-      try {
-        let url = `http://127.0.0.1:8000/api/ejercicios?search=${search}`;
-        if (selectedMuscle !== 'Todas') url += `&grupo_muscular=${selectedMuscle}`;
-        if (selectedLevel !== 'Cualquier Nivel') url += `&dificultad=${selectedLevel}`;
+  const fetchExercises = async () => {
+    setLoading(true);
+    try {
+      let url = `http://127.0.0.1:8000/api/ejercicios?search=${search}`;
+      if (selectedMuscle !== 'Todas') url += `&grupo_muscular=${selectedMuscle}`;
+      if (selectedLevel !== 'Cualquier Nivel') url += `&dificultad=${selectedLevel}`;
 
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setExercises(data.ejercicios || []);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         }
-      } catch (err) {
-        console.error('Error fetching exercises:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      });
 
+      if (response.ok) {
+        const data = await response.json();
+        setExercises(data.ejercicios || []);
+      }
+    } catch (err) {
+      console.error('Error fetching exercises:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchExercises();
     }, 300);
 
     return () => clearTimeout(timer);
   }, [search, selectedMuscle, selectedLevel, token]);
+
+  const toggleFavorite = async (ejercicioId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/ejercicios/${ejercicioId}/toggle-favorito`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Update local state for immediate feedback
+        setExercises(exercises.map(ex =>
+          ex.id === ejercicioId ? { ...ex, is_favorito: !ex.is_favorito } : ex
+        ));
+
+        // Also update selectedVideo if its technical ficha is open
+        if (selectedVideo?.id === ejercicioId) {
+          setSelectedVideo({ ...selectedVideo, is_favorito: !selectedVideo.is_favorito });
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+  };
 
   // Dynamic series and reps calculation
   const getDynamicStats = (ex) => {
@@ -77,6 +104,10 @@ export default function EjerciciosTab({ token, userData }) {
     return { series, reps, rest };
   };
 
+  const filteredExercises = showOnlyFavorites
+    ? exercises.filter(ex => ex.is_favorito)
+    : exercises;
+
   return (
     <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease' }}>
       <header className="tab-header">
@@ -85,7 +116,13 @@ export default function EjerciciosTab({ token, userData }) {
             <h1 className="glow-text">Biblioteca de Ejercicios</h1>
             <p className="subtitle-text">Personalizada para tu objetivo: <b>{userGoal}</b> ({userLevel})</p>
           </div>
-          <button className="secondary-btn"><Star size={16} /> Favoritos</button>
+          <button
+            className={`secondary-btn ${showOnlyFavorites ? 'active' : ''}`}
+            onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+            style={showOnlyFavorites ? { background: 'var(--brand-orange)', color: 'white' } : {}}
+          >
+            <Star size={16} fill={showOnlyFavorites ? "white" : "none"} /> Favoritos
+          </button>
         </div>
       </header>
 
@@ -131,12 +168,14 @@ export default function EjerciciosTab({ token, userData }) {
         </div>
       ) : (
         <div className="ejercicios-grid">
-          {exercises.length === 0 ? (
+          {filteredExercises.length === 0 ? (
             <div className="glass-panel p-24" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
-              <p className="text-secondary">No se encontraron ejercicios con estos filtros.</p>
+              <p className="text-secondary">
+                {showOnlyFavorites ? "No tienes ejercicios marcados como favoritos." : "No se encontraron ejercicios con estos filtros."}
+              </p>
             </div>
           ) : (
-            exercises.map((ex) => {
+            filteredExercises.map((ex) => {
               const stats = getDynamicStats(ex);
               return (
                 <div className="ejercicio-card glass-panel p-16" key={ex.id}>
@@ -145,7 +184,16 @@ export default function EjerciciosTab({ token, userData }) {
                       <span className="tag-sm tag-brand">{ex.grupo_muscular}</span>
                       <span className="tag-sm" style={{ background: 'rgba(255,255,255,0.05)' }}>{ex.dificultad}</span>
                     </div>
-                    <Star size={18} color="#a1a1aa" style={{ cursor: 'pointer' }} />
+                    <Star
+                      size={18}
+                      color={ex.is_favorito ? "#ff6f00" : "#a1a1aa"}
+                      fill={ex.is_favorito ? "#ff6f00" : "none"}
+                      style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(ex.id);
+                      }}
+                    />
                   </div>
 
                   <h3 className="mb-4 text-lg">{ex.nombre}</h3>
@@ -197,7 +245,16 @@ export default function EjerciciosTab({ token, userData }) {
             <div className="modal-grid">
               {/* Left side: Video */}
               <div className="modal-video-section">
-                <h2 className="mb-16 glow-text">{selectedVideo.nombre}</h2>
+                <div className="flex-align-center gap-12 mb-16">
+                  <h2 className="glow-text" style={{ margin: 0 }}>{selectedVideo.nombre}</h2>
+                  <Star
+                    size={20}
+                    color={selectedVideo.is_favorito ? "#ff6f00" : "#a1a1aa"}
+                    fill={selectedVideo.is_favorito ? "#ff6f00" : "none"}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => toggleFavorite(selectedVideo.id)}
+                  />
+                </div>
                 <div className="video-wrapper">
                   <iframe
                     src={selectedVideo.video_url}
@@ -337,6 +394,9 @@ export default function EjerciciosTab({ token, userData }) {
             padding: 16px;
             border-radius: 8px;
             border-left: 3px solid var(--brand-orange);
+        }
+        .secondary-btn.active {
+            border-color: var(--brand-orange);
         }
       `}</style>
     </div>

@@ -27,10 +27,25 @@ class EjercicioController extends Controller
             $query->where('dificultad', $request->dificultad);
         }
 
-        $ejercicios = $query->get();
+        $user = $request->user();
+        $ejercicios = $query->get()->map(function ($ex) use ($user) {
+            $ex->is_favorito = $user ? $user->favoritos()->where('ejercicio_id', $ex->id)->exists() : false;
+            return $ex;
+        });
 
         return response()->json([
             'ejercicios' => $ejercicios
+        ]);
+    }
+
+    public function toggleFavorito(Request $request, Ejercicio $ejercicio)
+    {
+        $user = $request->user();
+        $isFavorito = $user->favoritos()->toggle($ejercicio->id);
+
+        return response()->json([
+            'status' => 'success',
+            'is_favorito' => count($isFavorito['attached']) > 0
         ]);
     }
 }

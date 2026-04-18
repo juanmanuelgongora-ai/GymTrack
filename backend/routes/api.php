@@ -46,4 +46,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Ejercicios
         Route::get('/ejercicios', [EjercicioController::class , 'index']);
+        Route::post('/ejercicios/{ejercicio}/toggle-favorito', [EjercicioController::class , 'toggleFavorito']);
     });
