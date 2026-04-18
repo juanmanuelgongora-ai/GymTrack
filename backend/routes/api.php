@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\MetricaController;
 use App\Http\Controllers\API\HitoController;
 use App\Http\Controllers\API\RutinaController;
+use App\Http\Controllers\API\EjercicioController;
 
 Route::post('/register', [AuthController::class , 'register']);
 Route::post('/login', [AuthController::class , 'login']);
@@ -42,4 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Rutinas AI
         Route::post('/rutinas/generar', [RutinaController::class , 'generarRutinaInicial']);
         Route::get('/rutinas/latest', [RutinaController::class , 'getLatestRoutine']);
+
+        // Ejercicios
+        Route::get('/ejercicios', [EjercicioController::class , 'index']);
     });

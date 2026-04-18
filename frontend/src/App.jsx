@@ -26,7 +26,12 @@ function App() {
   const [userAuth, setUserAuth] = useState(null);
   const [notification, setNotification] = useState(null);
   const [pendingNotification, setPendingNotification] = useState(false);
-  const [clientTab, setClientTab] = useState('inicio');
+  const [clientTab, setClientTab] = useState(() => localStorage.getItem('gymtrack_tab') || 'inicio');
+
+  const handleSetClientTab = (tab) => {
+    setClientTab(tab);
+    localStorage.setItem('gymtrack_tab', tab);
+  };
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -316,7 +321,7 @@ function App() {
           userAuth={userAuth}
           onLogout={handleLogout}
           activeTab={clientTab}
-          setActiveTab={setClientTab}
+          setActiveTab={handleSetClientTab}
         />
       )}
 
