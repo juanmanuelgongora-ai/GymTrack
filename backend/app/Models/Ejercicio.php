@@ -15,12 +15,14 @@ class Ejercicio extends Model
     protected $fillable = [
         'nombre',
         'grupo_muscular',
+        'musculos_secundarios',
         'dificultad',
         'equipamiento',
         'descripcion',
         'video_url',
         'series_sugeridas',
-        'reps_sugeridas'
+        'reps_sugeridas',
+        'tiempo_descanso'
     ];
 
     protected $casts = [
