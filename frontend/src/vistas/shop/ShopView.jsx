@@ -1,7 +1,7 @@
 import React from 'react';
 import Icons from '../../logica/Icons';
 
-const ShopView = ({ selectedPlan, setSelectedPlan, setShowPayment, setView }) => {
+const ShopView = ({ selectedPlan, setSelectedPlan, setShowPayment, setView, onLogout }) => {
     const plans = [
         { name: 'Plan Mensual', price: 180000, duration: '1 mes', perks: ['Acceso completo', 'Clases grupales', 'Asesoría inicial', 'IA Recomendaciones', 'IA Plan entrenamiento'] },
         { name: 'Plan Trimestral', price: 480000, duration: '3 meses', popular: true, perks: ['Acceso completo', 'Clases grupales', 'IA Recomendaciones', 'IA Plan entrenamiento', '15% Descuento'] },
@@ -11,7 +11,7 @@ const ShopView = ({ selectedPlan, setSelectedPlan, setShowPayment, setView }) =>
     return (
         <div style={{ width: '100%', maxWidth: '1100px', animation: 'fadeIn 0.4s' }}>
             <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '32px' }}>
-                <button className="btn-secondary" style={{ padding: '12px 20px' }} onClick={() => setView('register')}>←</button>
+                <button className="btn-secondary" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => onLogout ? onLogout() : setView('register')}>← Cancelar e ir al Login</button>
                 <div><h1 style={{ fontSize: '2.4rem' }}>Pagos y Tienda</h1><p style={{ color: '#888' }}>Renueva tu membresía o compra productos del gimnasio</p></div>
             </div>
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>

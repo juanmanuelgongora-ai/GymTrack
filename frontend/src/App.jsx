@@ -331,6 +331,7 @@ function App() {
           setSelectedPlan={setSelectedPlan}
           setShowPayment={setShowPayment}
           setView={handleSetView}
+          onLogout={handleLogout}
         />
       )}
 
