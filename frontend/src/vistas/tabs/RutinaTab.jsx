@@ -14,6 +14,16 @@ export default function RutinaTab({ token }) {
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const [exerciseProgress, setExerciseProgress] = useState({});
+  const [isRoutineSequenceActive, setIsRoutineSequenceActive] = useState(false);
+  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
+  const [rutinaId, setRutinaId] = useState(null);
+
+  // Sync to localStorage
+  useEffect(() => {
+    if (rutinaId) {
+      localStorage.setItem(`gymtrack_rutina_${rutinaId}`, JSON.stringify(exerciseProgress));
+    }
+  }, [exerciseProgress, rutinaId]);
 
   useEffect(() => {
     let interval;
@@ -49,7 +59,7 @@ export default function RutinaTab({ token }) {
 
   const closeExercise = () => {
     if (activeExercise) {
-      const exId = activeExercise.id || activeExercise.nombre;
+      const exId = activeExercise.id || activeExercise.nombre || activeExercise.ejercicio_nombre;
       setExerciseProgress(prev => ({
         ...prev,
         [exId]: { currentSet, completedSets }
@@ -57,6 +67,35 @@ export default function RutinaTab({ token }) {
     }
     setActiveExercise(null);
     setIsResting(false);
+    setIsRoutineSequenceActive(false);
+  };
+
+  const startFullRoutine = (dayPlan) => {
+    if (!dayPlan.ejercicios || dayPlan.ejercicios.length === 0) return;
+    setActiveDay(dayPlan);
+    setIsRoutineSequenceActive(true);
+    setCurrentSequenceIndex(0);
+    startExercise(dayPlan.ejercicios[0]);
+  };
+
+  const nextExerciseInSequence = () => {
+    if (activeExercise) {
+      const exId = activeExercise.id || activeExercise.nombre || activeExercise.ejercicio_nombre;
+      setExerciseProgress(prev => ({
+        ...prev,
+        [exId]: { currentSet, completedSets }
+      }));
+    }
+
+    if (currentSequenceIndex < activeDay.ejercicios.length - 1) {
+      const nextIdx = currentSequenceIndex + 1;
+      setCurrentSequenceIndex(nextIdx);
+      startExercise(activeDay.ejercicios[nextIdx]);
+    } else {
+      setIsRoutineSequenceActive(false);
+      setActiveExercise(null);
+      setActiveDay(null);
+    }
   };
 
   const isDayCompleted = (dayPlan) => {
@@ -94,7 +133,18 @@ export default function RutinaTab({ token }) {
         if (response.ok) {
           const data = await response.json();
           if (data.rutina && data.rutina.plan_semanal) {
+            setRutinaId(data.rutina.id);
             setRutina(data.rutina.plan_semanal.dias || []);
+
+            // Load from localStorage if present
+            const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
+            if (saved) {
+              try {
+                setExerciseProgress(JSON.parse(saved));
+              } catch (e) {
+                console.error("Could not parse saved routine progress");
+              }
+            }
           }
         }
       } catch (e) {
@@ -199,14 +249,21 @@ export default function RutinaTab({ token }) {
                   </div>
                 </div>
 
-                <div className="card-actions mt-24">
+                <div className="card-actions" style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '24px' }}>
                   <button
-                    className="premium-action-btn"
-                    onClick={() => setActiveDay(dayPlan)}
-                    style={{ color: completed ? cardColor : 'auto', borderColor: completed ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)' }}
+                    className="primary-btn"
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5 }}
+                    onClick={() => startFullRoutine(dayPlan)}
+                    disabled={!dayPlan.ejercicios?.length}
                   >
-                    <span>Ver ejercicios del día</span>
-                    <ArrowRight size={16} />
+                    <Play size={16} /> {completed ? 'Repetir' : 'Comenzar'}
+                  </button>
+                  <button
+                    className="secondary-btn"
+                    onClick={() => setActiveDay(dayPlan)}
+                    style={{ flex: 1, borderColor: completed ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)' }}
+                  >
+                    Detalles
                   </button>
                 </div>
               </div>
@@ -220,7 +277,7 @@ export default function RutinaTab({ token }) {
       <div className="bg-glow" style={{ bottom: '10%', left: '-5%', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.03) 0%, transparent 70%)' }}></div>
 
       {/* Day Details Modal */}
-      {activeDay && !activeExercise && (
+      {activeDay && !activeExercise && !isRoutineSequenceActive && (
         <div className="modal-overlay" onClick={() => setActiveDay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
           <div className="glass-panel p-24" style={{ maxWidth: '600px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div className="flex-between mb-24">
@@ -286,7 +343,21 @@ export default function RutinaTab({ token }) {
                 <CheckCircle2 size={56} color="#10b981" className="mb-16 mx-auto" />
                 <h3 className="text-2xl font-bold text-white mb-8">¡Ejercicio Completado!</h3>
                 <p className="text-secondary mb-24">Has completado todas las series satisfactoriamente.</p>
-                <button className="primary-btn w-full py-16" style={{ background: '#10b981', color: 'white' }} onClick={closeExercise}>Continuar Rutina</button>
+                <button
+                  className="primary-btn w-full py-16"
+                  style={{ background: '#10b981', color: 'white' }}
+                  onClick={() => {
+                    if (isRoutineSequenceActive) {
+                      nextExerciseInSequence();
+                    } else {
+                      closeExercise();
+                    }
+                  }}
+                >
+                  {isRoutineSequenceActive
+                    ? (currentSequenceIndex < activeDay.ejercicios.length - 1 ? 'Siguiente Ejercicio' : 'Finalizar Rutina')
+                    : 'Continuar'}
+                </button>
               </div>
             ) : (
               <div className="execution-container mb-32">
