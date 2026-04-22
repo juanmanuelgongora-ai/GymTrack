@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target } from 'lucide-react';
+import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target, WifiOff, Wifi } from 'lucide-react';
 import '../../estilos/tabs.css';
 
 export default function RutinaTab({ token }) {
@@ -14,15 +14,27 @@ export default function RutinaTab({ token }) {
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const [exerciseProgress, setExerciseProgress] = useState({});
-  const [isRoutineSequenceActive, setIsRoutineSequenceActive] = useState(false);
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
+  const [isRoutineSequenceActive, setIsRoutineSequenceActive] = useState(false);
   const [rutinaId, setRutinaId] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Sync to localStorage
   useEffect(() => {
+    // Network listeners
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     if (rutinaId) {
       localStorage.setItem(`gymtrack_rutina_${rutinaId}`, JSON.stringify(exerciseProgress));
     }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [exerciseProgress, rutinaId]);
 
   useEffect(() => {
@@ -33,8 +45,6 @@ export default function RutinaTab({ token }) {
       }, 1000);
     } else if (isResting && restTimeLeft === 0 && activeExercise) {
       setIsResting(false);
-      // Wait for user to be ready for next set if we want manual start, but story says:
-      // "Al completar cada serie, el cliente la confirma y el sistema activa el temporizador de descanso automáticamente."
       if (currentSet < (activeExercise?.series || 3)) {
         setCurrentSet(prev => prev + 1);
       }
@@ -136,7 +146,6 @@ export default function RutinaTab({ token }) {
             setRutinaId(data.rutina.id);
             setRutina(data.rutina.plan_semanal.dias || []);
 
-            // Load from localStorage if present
             const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
             if (saved) {
               try {
@@ -312,6 +321,26 @@ export default function RutinaTab({ token }) {
       {activeExercise && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(15px)' }}>
           <div className="glass-panel p-32" style={{ maxWidth: '500px', width: '95%', textAlign: 'center', position: 'relative' }}>
+            {!isOnline && (
+              <div style={{
+                background: 'rgba(255, 68, 68, 0.15)',
+                border: '1px solid rgba(255, 68, 68, 0.4)',
+                color: '#ff4444',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '20px',
+                animation: 'fadeIn 0.3s ease'
+              }}>
+                <WifiOff size={20} />
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>Modo sin conexión</p>
+                  <p style={{ margin: 0, fontSize: '12px', opacity: 0.8 }}>Tu progreso se guarda localmente.</p>
+                </div>
+              </div>
+            )}
             <button onClick={closeExercise} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}><X size={24} /></button>
 
             <h2 className="glow-text mb-24" style={{ fontSize: '24px', paddingRight: '20px' }}>{activeExercise.nombre}</h2>
