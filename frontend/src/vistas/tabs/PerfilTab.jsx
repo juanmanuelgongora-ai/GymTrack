@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Activity, Edit3, Settings, Shield, ArrowRight, Plus, X, Save, BarChart3 } from 'lucide-react';
 import '../../estilos/tabs.css';
 
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = '/api';
 
 export default function PerfilTab({ token, userData, clienteData: fallbackCliente }) {
   const [perfil, setPerfil] = useState(null);

@@ -7,6 +7,7 @@ use App\Models\Cliente;
 use App\Models\MetricaCorporal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class MetricaController extends Controller
 {
@@ -82,17 +83,37 @@ class MetricaController extends Controller
             return response()->json(['message' => 'Perfil de cliente no encontrado.'], 404);
         }
 
-        // Calculate IMC if both weight and height are provided
+        // ---- CONSUMIENDO EL MICROSERVICIO MATEMATICO ----
         $imc = null;
         $pesoKg = $request->peso_kg;
         $alturaCm = $request->altura_cm ?? $cliente->altura_cm;
+        $detallesSalud = null;
 
         if ($pesoKg && $alturaCm) {
-            $alturaMetros = $alturaCm / 100;
-            if ($alturaMetros > 0) {
-                $imc = round($pesoKg / ($alturaMetros * $alturaMetros), 2);
+            try {
+                // Hacemos una petición HTTP a nuestro microservicio de Node.js
+                $response = Http::post('http://localhost:3000/api/calcular-metricas', [
+                    'peso_kg' => (float) $pesoKg,
+                    'altura_m' => $alturaCm / 100
+                ]);
+
+                if ($response->successful()) {
+                    $datosMicroservicio = $response->json();
+                    $imc = $datosMicroservicio['resultados']['imc_calculado'];
+                    $detallesSalud = "Microservicio: " . $datosMicroservicio['resultados']['categoria_actual'] . " - " . $datosMicroservicio['resultados']['sugerencia'];
+
+                } else {
+                    throw new \Exception("El microservicio respondió con error");
+                }
+            } catch (\Exception $e) {
+                // FALLBACK: Si el microservicio está apagado, Laravel hace el cálculo
+                $alturaMetros = $alturaCm / 100;
+                if ($alturaMetros > 0) {
+                    $imc = round($pesoKg / ($alturaMetros * $alturaMetros), 2);
+                }
             }
         }
+        // ------------------------------------------------
 
         $metrica = MetricaCorporal::create([
             'cliente_id' => $cliente->id,
@@ -107,7 +128,7 @@ class MetricaController extends Controller
             'cadera_cm' => $request->cadera_cm,
             'brazo_cm' => $request->brazo_cm,
             'muslo_cm' => $request->muslo_cm,
-            'notas' => $request->notas,
+            'notas' => $detallesSalud ? ($request->notas ? $request->notas . " | " . $detallesSalud : $detallesSalud) : $request->notas,
         ]);
 
         // Update latest values in clientes table

@@ -11,9 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('entrenadors', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::create('entrenadores', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
+            
+            $table->string('especialidad')->nullable();
+            $table->integer('experiencia_anios')->nullable();
+            $table->string('certificacion')->nullable();
+            $table->json('horarios')->nullable();
+            $table->json('tipos_entrenamiento')->nullable();
+            $table->integer('capacidad_maxima')->nullable();
+            $table->text('objetivos_profesionales')->nullable();
+
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 
@@ -22,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('entrenadors');
+        Schema::dropIfExists('entrenadores');
     }
 };

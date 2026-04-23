@@ -79,7 +79,11 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->load('cliente');
+        if ($user->rol === 'cliente') {
+            $user->load('cliente');
+        } elseif ($user->rol === 'entrenador') {
+            $user->load('entrenador');
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -105,7 +109,11 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->load('cliente');
+        if ($user->rol === 'cliente') {
+            $user->load('cliente');
+        } elseif ($user->rol === 'entrenador') {
+            $user->load('entrenador');
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

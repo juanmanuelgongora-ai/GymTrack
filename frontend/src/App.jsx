@@ -7,8 +7,9 @@ import RegisterEntrenadorView from './vistas/auth/RegisterEntrenadorView';
 import ShopView from './vistas/shop/ShopView';
 import PaymentModal from './vistas/shop/PaymentModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
+import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK'; // Import for trainer
 
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = '/api';
 
 function App() {
   // --- Session State ---
@@ -176,7 +177,14 @@ function App() {
     if (!response.ok) {
       throw new Error(data.message || JSON.stringify(data.errors) || 'Credenciales incorrectas');
     }
-    const targetView = data.user.rol === 'entrenador' ? 'panelEntrenador' : 'panelCliente';
+    
+    let targetView = 'panelCliente';
+    if (data.user.rol === 'entrenador') {
+        targetView = 'panelEntrenador';
+    } else if (data.user.rol === 'admin') {
+        targetView = 'panelAdmin';
+    }
+    
     setClientTab('inicio'); // Reiniciar pestaña siempre al iniciar sesión
     saveSession(data.access_token, data.user, targetView);
     return data;
@@ -318,6 +326,24 @@ function App() {
           activeTab={clientTab}
           setActiveTab={setClientTab}
         />
+      )}
+
+      {view === 'panelEntrenador' && (
+        <PanelEntrenadorGYMTRACK
+          setView={handleSetView}
+          token={token}
+          userData={userData}
+          userAuth={userAuth}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {view === 'panelAdmin' && (
+        <div className="placeholder-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>
+            <h1>Panel de Administrador en Construcción</h1>
+            <p>El rol admin fue detectado, pero la vista aún se está desarrollando.</p>
+            <button className="primary-btn" onClick={handleLogout} style={{ marginTop: '20px' }}>Cerrar Sesión</button>
+        </div>
       )}
 
       {view === 'shop' && (
