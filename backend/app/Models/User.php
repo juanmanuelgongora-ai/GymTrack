@@ -51,7 +51,12 @@ class User extends Authenticatable
 
     public function cliente()
     {
-        return $this->hasOne(Cliente::class, 'user_id');
+        return $this->hasOne(Cliente::class , 'user_id');
+    }
+
+    public function favoritos()
+    {
+        return $this->belongsToMany(Ejercicio::class , 'ejercicio_favoritos', 'user_id', 'ejercicio_id')->withTimestamps();
     }
 
     public function entrenador()

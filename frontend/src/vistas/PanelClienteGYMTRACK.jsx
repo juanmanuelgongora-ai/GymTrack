@@ -216,7 +216,7 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
-        return <EjerciciosTab />;
+        return <EjerciciosTab token={token} userData={userData} />;
       case 'perfil':
         return <PerfilTab token={token} userData={userData} clienteData={clienteData} />;
       default:

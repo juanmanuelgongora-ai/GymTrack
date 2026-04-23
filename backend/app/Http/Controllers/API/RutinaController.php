@@ -53,7 +53,7 @@ class RutinaController extends Controller
                 . "2. INSTRUCCIÓN DE GÉNERO: El análisis debe cambiar según el género si corresponde. Mujeres generalmente priorizan Tren Inferior (Glúteos/Isquios/Cuádriceps) unos 2-3 días, mientras que Hombres suelen darle más espacio al Tren Superior. Si la chica prioriza otra cosa en su 'Objetivo', hazle caso a eso, de lo contrario asume el estándar.\n"
                 . "3. Cuida el peso, edad y sobre todo lesiones: evita por completo la zona lesionada.\n\n"
                 . "El JSON debe tener la siguiente estructura estricta (y NO devuelvas NADA más que el JSON puro, sin tags de markdown):" . "\n"
-                . "{ \"dias\": [ { \"dia\": \"Día 1\", \"grupo_muscular\": \"Glúteos y Piernas (Enfoque Femenino)\", \"ejercicios\": [ { \"nombre\": \"Hip Thrust\", \"series\": 4, \"repeticiones\": \"10-12\", \"descanso\": \"90s\" } ] } ] }";
+                . "{ \"dias\": [ { \"dia\": \"Día 1\", \"grupo_muscular\": \"Pecho y Tríceps\", \"duracion_estimada\": \"60 min\", \"intensidad\": \"Alta\", \"semana_plan\": 1, \"ejercicios\": [ { \"nombre\": \"Press de banca\", \"series\": 4, \"repeticiones\": \"10-12\", \"descanso\": \"90s\" } ] } ] }";
 
             try {
                 $response = Http::withHeaders([
@@ -105,6 +105,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 1",
                     "grupo_muscular" => "Tren Inferior Enfoque Glúteos",
+                    "duracion_estimada" => "55 min",
+                    "intensidad" => "Media-Alta",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => $hasLegInjury ? "Puente de Glúteo (Isométrico)" : "Hip Thrust", "series" => $isBeginner ? 3 : 4, "repeticiones" => "12-15", "descanso" => "90s"],
                         ["nombre" => $hasLegInjury ? "Patada de glúteo en banda" : "Sentadilla Búlgara", "series" => $isBeginner ? 3 : 4, "repeticiones" => "10-12", "descanso" => "90s"],
@@ -116,6 +119,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 1",
                     "grupo_muscular" => "Parte Superior (Pecho y Espalda)",
+                    "duracion_estimada" => "60 min",
+                    "intensidad" => "Alta",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => "Press de Pecho en máquina / Push-ups", "series" => $isBeginner ? 3 : 4, "repeticiones" => "10-12", "descanso" => "60s"],
                         ["nombre" => "Jalón al pecho / Remo", "series" => $isBeginner ? 3 : 4, "repeticiones" => "10-12", "descanso" => "60s"]
@@ -128,6 +134,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 2",
                     "grupo_muscular" => "Tren Inferior (Piernas)",
+                    "duracion_estimada" => "70 min",
+                    "intensidad" => "Alta",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => "Sentadillas / Prensa de Piernas", "series" => $isBeginner ? 3 : 4, "repeticiones" => "12-15", "descanso" => "90s"],
                         ["nombre" => "Extensiones de Cuádriceps", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
@@ -138,6 +147,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 2",
                     "grupo_muscular" => "Tren Superior Tonificación Ligera",
+                    "duracion_estimada" => "45 min",
+                    "intensidad" => "Media",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => "Remo en polea", "series" => 3, "repeticiones" => "15", "descanso" => "60s"],
                         ["nombre" => "Elevaciones laterales ligeras", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
@@ -148,6 +160,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 2",
                     "grupo_muscular" => "Core y Movilidad (Evitando zona lesionada)",
+                    "duracion_estimada" => "40 min",
+                    "intensidad" => "Baja-Media",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => "Plancha abdominal (Plank)", "series" => 3, "repeticiones" => "30-45s", "descanso" => "45s"],
                         ["nombre" => "Elevaciones de tronco (Crunches)", "series" => 3, "repeticiones" => "15-20", "descanso" => "45s"]
@@ -160,6 +175,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 3",
                     "grupo_muscular" => "Isquiosurales y Core",
+                    "duracion_estimada" => "50 min",
+                    "intensidad" => "Media",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => $hasLegInjury ? "Bird Dog (Core)" : "Peso Muerto Rumano", "series" => 3, "repeticiones" => "12", "descanso" => "60s"],
                         ["nombre" => $hasLegInjury ? "Plancha lateral" : "Curl Femoral Acostado", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
@@ -170,6 +188,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 3",
                     "grupo_muscular" => "Hombros y Brazos",
+                    "duracion_estimada" => "55 min",
+                    "intensidad" => "Media",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => "Elevaciones laterales", "series" => 3, "repeticiones" => "12-15", "descanso" => "60s"],
                         ["nombre" => "Curl de Bíceps", "series" => 3, "repeticiones" => "12", "descanso" => "60s"],
@@ -183,6 +204,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 4",
                     "grupo_muscular" => "Cardio y Resistencia Metabólica",
+                    "duracion_estimada" => "30 min",
+                    "intensidad" => "Alta",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => $hasLegInjury ? "Natación o Bicicleta estática (suave)" : "Burpees / Saltos", "series" => 4, "repeticiones" => "10-15 min", "descanso" => "30s"],
                         ["nombre" => "Mountain Climbers", "series" => 4, "repeticiones" => "20", "descanso" => "30s"]
@@ -192,6 +216,9 @@ class RutinaController extends Controller
                 $dias[] = [
                     "dia" => "Día 5",
                     "grupo_muscular" => $isFemale ? "Glúteos y Piernas (Repaso Vol.)" : "Cuerpo Completo (Repaso)",
+                    "duracion_estimada" => "60 min",
+                    "intensidad" => "Alta",
+                    "semana_plan" => 1,
                     "ejercicios" => [
                         ["nombre" => $isFemale ? "Patada polea baja" : "Dominadas asistidas / Remo", "series" => 4, "repeticiones" => "8-10", "descanso" => "60s"],
                         ["nombre" => "Flexiones / Abdomen", "series" => 4, "repeticiones" => "Fallo", "descanso" => "60s"]
