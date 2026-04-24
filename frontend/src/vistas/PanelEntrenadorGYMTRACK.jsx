@@ -9,7 +9,7 @@ import '../estilos/PanelClienteGYMTRACK.css';
 // Import Tabs
 import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
 
-const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout }) => {
+const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const [activeTab, setActiveTab] = useState('inicio');
 
   const data = userData || userAuth?.user || {};
@@ -75,7 +75,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
 
             <div className="dashboard-split" style={{ animation: 'fadeIn 0.7s ease' }}>
               <section className="routine-section">
-                
+
                 {/* Resumen Semanal Chart Widget mockup */}
                 <div className="sidebar-card glass-panel" style={{ marginBottom: '20px' }}>
                   <div className="card-header">
@@ -87,14 +87,14 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
                   </div>
                   <div className="activity-days" style={{ height: '150px', alignItems: 'flex-end', paddingTop: '20px' }}>
                     {/* Simulated Bars */}
-                    {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, idx) => {
-                       const height = Math.random() * 80 + 20;
-                       return (
+                    {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day) => {
+                      const height = Math.random() * 80 + 20;
+                      return (
                         <div className="day active" key={day} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '8px', height: `${height}px`, background: 'linear-gradient(to top, #ff6b35, #ff8c42)', borderRadius: '4px' }}></div>
                           <span>{day}</span>
                         </div>
-                       )
+                      )
                     })}
                   </div>
                 </div>
@@ -102,14 +102,14 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
                 {/* Próximas Clases List */}
                 <div className="routine-card p-4">
                   <div className="card-header" style={{ marginBottom: '15px' }}>
-                     <div className="header-icon-box"><Calendar size={20} color="#ff6b35" /></div>
-                     <h3 style={{ color: 'white', fontWeight: 'bold' }}>Próximas Clases</h3>
+                    <div className="header-icon-box"><Calendar size={20} color="#ff6b35" /></div>
+                    <h3 style={{ color: 'white', fontWeight: 'bold' }}>Próximas Clases</h3>
                   </div>
                   <div className="exercise-list">
                     {proximasClases.map((clase) => (
                       <div className="exercise-item glass-panel" key={clase.id}>
                         <div className="exercise-icon" style={{ padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
-                           <Clock size={24} color="#ff6b35" />
+                          <Clock size={24} color="#ff6b35" />
                         </div>
                         <div className="exercise-info" style={{ marginLeft: '15px', flex: 1 }}>
                           <h3>{clase.name}</h3>
@@ -129,7 +129,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
               </section>
 
               <section className="sidebar-section">
-                
+
                 {/* Nuevos Clientes Widget */}
                 <div className="sidebar-card glass-panel">
                   <div className="card-header">
@@ -142,18 +142,18 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
                   </div>
                   <div className="metrics-list">
                     {nuevosClientes.map(cliente => (
-                       <div className="metric-row" key={cliente.id} style={{ alignItems: 'center' }}>
-                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                           <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <User size={16} color="#3b82f6" />
-                           </div>
-                           <div>
-                              <b style={{ display: 'block', fontSize: '14px' }}>{cliente.name}</b>
-                              <span style={{ fontSize: '12px', opacity: 0.7 }}>{cliente.goal}</span>
-                           </div>
-                         </div>
-                         <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px' }}>{cliente.joined}</span>
-                       </div>
+                      <div className="metric-row" key={cliente.id} style={{ alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={16} color="#3b82f6" />
+                          </div>
+                          <div>
+                            <b style={{ display: 'block', fontSize: '14px' }}>{cliente.name}</b>
+                            <span style={{ fontSize: '12px', opacity: 0.7 }}>{cliente.goal}</span>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px' }}>{cliente.joined}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -184,7 +184,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
             </div>
           </>
         );
-      
+
       // Placeholder para el resto de pestañas requeridas
       case 'clientes':
       case 'rutinas':
@@ -193,7 +193,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
       case 'finanzas':
       case 'ayuda':
       case 'configuracion':
-         return (
+        return (
           <div className="placeholder-container glass-panel" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             padding: '80px 20px', textAlign: 'center', marginTop: '40px', minHeight: '50vh', animation: 'fadeIn 0.4s ease'
@@ -217,7 +217,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
 
       case 'perfil':
         return <PerfilEntrenadorTab />;
-        
+
       default:
         return null;
     }
@@ -249,7 +249,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
             <Calendar size={18} /> Calendario
           </button>
           <button className={`nav-btn ${activeTab === 'clases' ? 'active' : ''}`} onClick={() => setActiveTab('clases')}>
-             <MonitorPlay size={18} /> Clases
+            <MonitorPlay size={18} /> Clases
           </button>
           <button className={`nav-btn ${activeTab === 'finanzas' ? 'active' : ''}`} onClick={() => setActiveTab('finanzas')}>
             <LineChart size={18} /> Finanzas
@@ -261,7 +261,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
             <HelpCircle size={18} /> Ayuda
           </button>
         </div>
-        
+
         <div className="nav-user">
           <div className="user-info">
             <span className="user-name">{userName}</span>
@@ -271,7 +271,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
             <User color="#fff" size={20} />
           </div>
           <button className={`nav-btn ${activeTab === 'configuracion' ? 'active' : ''}`} style={{ padding: '8px', marginLeft: '12px' }} title="Configuración" onClick={() => setActiveTab('configuracion')}>
-             <Settings size={18} />
+            <Settings size={18} />
           </button>
           <button
             className="secondary-btn"
