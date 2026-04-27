@@ -8,6 +8,7 @@ import '../estilos/PanelClienteGYMTRACK.css';
 
 // Import Tabs
 import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
+import HistorialEntrenamientosTab from './tabs-entrenador/HistorialEntrenamientosTab';
 
 const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout }) => {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -215,6 +216,9 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
           </div>
         );
 
+      case 'historial':
+        return <HistorialEntrenamientosTab />;
+
       case 'perfil':
         return <PerfilEntrenadorTab />;
         
@@ -238,6 +242,9 @@ const PanelEntrenadorGYMTRACK = ({ setView, token, userData, userAuth, onLogout 
         <div className="nav-links" style={{ overflowX: 'auto', flexWrap: 'nowrap' }}>
           <button className={`nav-btn ${activeTab === 'inicio' ? 'active' : ''}`} onClick={() => setActiveTab('inicio')}>
             <LayoutDashboard size={18} /> Panel
+          </button>
+          <button className={`nav-btn ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
+            <Activity size={18} /> Historial
           </button>
           <button className={`nav-btn ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
             <Users size={18} /> Clientes
