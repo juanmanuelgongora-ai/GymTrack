@@ -12,6 +12,18 @@ export default function AlimentacionTab() {
     { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
   ]);
 
+  const [recipeFilter, setRecipeFilter] = useState('Todas');
+  
+  const sugerencias = [
+    { id: 1, type: 'Desayuno', name: 'Avena Proteica con Frutos Rojos', diff: 'Fácil', time: '10 min', kcal: 350, p: 25, c: 45, g: 8, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+    { id: 2, type: 'Almuerzo', name: 'Bowl de Quinoa y Salmón', diff: 'Medio', time: '25 min', kcal: 520, p: 40, c: 50, g: 18, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+    { id: 3, type: 'Cena', name: 'Wrap de Pollo y Espinaca', diff: 'Fácil', time: '15 min', kcal: 400, p: 35, c: 30, g: 12, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+    { id: 4, type: 'Almuerzo', name: 'Pechuga Grillada con Batata', diff: 'Fácil', time: '20 min', kcal: 450, p: 45, c: 55, g: 5, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+    { id: 5, type: 'Desayuno', name: 'Smoothie Verde Proteico', diff: 'Muy Fácil', time: '5 min', kcal: 280, p: 30, c: 35, g: 5, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+  ];
+
+  const filteredRecetas = recipeFilter === 'Todas' ? sugerencias : sugerencias.filter(r => r.type === recipeFilter);
+
   // Metas Diarias
   const metaKcal = 2600;
   const metaP = 180;
@@ -196,20 +208,60 @@ export default function AlimentacionTab() {
         </div>
 
         <div className="alimentacion-side">
-          <h3 className="section-title mb-16">Recetas Sugeridas</h3>
-          {['Bowl de Quinoa y Salmón', 'Smoothie Proteico Verde', 'Wrap de Pollo y Vegetales'].map((receta, i) => (
-            <div className="recipe-card glass-panel mb-16" style={{ cursor: 'pointer', transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)'} }} key={i}>
-              <div className="recipe-img placeholder-img" style={{ background: 'linear-gradient(45deg, #2a2a2a, #333)' }}></div>
-              <div className="p-16">
-                <span className="text-xs text-brand mb-4 d-block" style={{ color: '#ff6b35' }}>Almuerzo / Cena</span>
-                <h4 className="mb-8">{receta}</h4>
-                <div className="flex-between text-xs text-secondary">
-                  <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Clock size={12}/> 25 min</span>
-                  <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Flame size={12}/> 450 kcal</span>
+          <div style={{ marginBottom: '16px' }}>
+            <h3 className="section-title" style={{ margin: '0 0 4px 0' }}>Sugerencias del Chef</h3>
+            <p style={{ margin: 0, fontSize: '12px', color: '#ff6b35' }}>Objetivo: Alta en Proteína (Ganancia Muscular)</p>
+          </div>
+          
+          {/* Filtros */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+             {['Todas', 'Desayuno', 'Almuerzo', 'Cena'].map(filtro => (
+                <button 
+                  key={filtro}
+                  onClick={() => setRecipeFilter(filtro)}
+                  style={{
+                    background: recipeFilter === filtro ? 'rgba(255, 107, 53, 0.2)' : 'rgba(255,255,255,0.05)',
+                    color: recipeFilter === filtro ? '#ff6b35' : '#aaa',
+                    border: recipeFilter === filtro ? '1px solid rgba(255, 107, 53, 0.5)' : '1px solid transparent',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {filtro}
+                </button>
+             ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {filteredRecetas.map((receta) => (
+              <div className="recipe-card glass-panel" style={{ cursor: 'pointer', transition: 'all 0.2s ease', border: '1px solid rgba(255,255,255,0.05)' }} key={receta.id}>
+                <div className="recipe-img placeholder-img" style={{ background: receta.img, height: '100px', borderRadius: '12px 12px 0 0' }}></div>
+                <div className="p-16" style={{ padding: '16px' }}>
+                  <div className="flex-between mb-4">
+                    <span className="text-xs" style={{ color: '#ff6b35', fontWeight: 'bold' }}>{receta.type}</span>
+                    <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px', color: '#ccc' }}>Dificultad: {receta.diff}</span>
+                  </div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#fff', lineHeight: 1.3 }}>{receta.name}</h4>
+                  
+                  {/* Macros distribucion horizontal */}
+                  <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: '#aaa', marginBottom: '12px', background: 'rgba(0,0,0,0.2)', padding: '6px 10px', borderRadius: '8px' }}>
+                    <span style={{ display: 'flex', gap: '4px' }}><b style={{color: '#ff6b35'}}>P</b>{receta.p}g</span>
+                    <span style={{ display: 'flex', gap: '4px' }}><b style={{color: '#3b82f6'}}>C</b>{receta.c}g</span>
+                    <span style={{ display: 'flex', gap: '4px' }}><b style={{color: '#eab308'}}>G</b>{receta.g}g</span>
+                  </div>
+
+                  <div className="flex-between text-xs text-secondary">
+                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Clock size={12} color="#aaa"/> {receta.time}</span>
+                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center', color: '#fff', fontWeight: 'bold' }}><Flame size={12} color="#ff6b35"/> {receta.kcal} kcal</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
