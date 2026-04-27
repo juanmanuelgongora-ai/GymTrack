@@ -2,13 +2,14 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, Activity, Calendar, MonitorPlay, LineChart, User,
   HelpCircle, Settings, Play, ChevronRight, CircleDollarSign, BarChart3, Clock,
-  LogOut, TrendingUp, Construction, Dumbbell
+  LogOut, TrendingUp, Construction, Dumbbell, Apple
 } from 'lucide-react';
 import '../estilos/PanelClienteGYMTRACK.css';
 
 // Import Tabs
 import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
 import HistorialEntrenamientosTab from './tabs-entrenador/HistorialEntrenamientosTab';
+import PlanNutricionalTab from './tabs-entrenador/PlanNutricionalTab';
 
 const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -219,6 +220,9 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
       case 'historial':
         return <HistorialEntrenamientosTab />;
 
+      case 'nutricion':
+        return <PlanNutricionalTab />;
+
       case 'perfil':
         return <PerfilEntrenadorTab />;
 
@@ -245,6 +249,9 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
           </button>
           <button className={`nav-btn ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
             <Activity size={18} /> Historial
+          </button>
+          <button className={`nav-btn ${activeTab === 'nutricion' ? 'active' : ''}`} onClick={() => setActiveTab('nutricion')}>
+            <Apple size={18} /> Nutrición
           </button>
           <button className={`nav-btn ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
             <Users size={18} /> Clientes
