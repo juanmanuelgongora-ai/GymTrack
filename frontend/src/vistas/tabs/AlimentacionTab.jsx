@@ -33,6 +33,11 @@ export default function AlimentacionTab() {
   const cPercent = Math.min(100, Math.round((consumido.c / metaC) * 100));
   const gPercent = Math.min(100, Math.round((consumido.g / metaG) * 100));
 
+  const totalGramos = consumido.p + consumido.c + consumido.g;
+  const pDist = totalGramos > 0 ? (consumido.p / totalGramos) * 100 : 0;
+  const cDist = totalGramos > 0 ? (consumido.c / totalGramos) * 100 : 0;
+  const gDist = totalGramos > 0 ? (consumido.g / totalGramos) * 100 : 0;
+
   const toggleMeal = (id) => {
     setMeals(meals.map(m => m.id === id ? { ...m, done: !m.done } : m));
   };
@@ -72,22 +77,67 @@ export default function AlimentacionTab() {
               </p>
             </div>
             
-            {/* Macros Actualizados en Tiempo Real */}
-            <div className="macros-grid">
-              <div className="macro-card">
-                <div className="flex-between text-sm mb-8"><span className="text-secondary">Proteínas</span> <span className="text-secondary">{consumido.p}g</span></div>
-                <div className="flex-between mb-8"><b className="text-lg">{metaP}g</b><span className="text-xs text-brand">{pPercent}% del total</span></div>
-                <div className="progress-bar"><div className="progress-fill bg-orange" style={{ width: `${pPercent}%` }}></div></div>
+            {/* Macros Actualizados en Tiempo Real (Gráfico Circular) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginTop: '30px', padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              {/* Donut Chart SVG */}
+              <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
+                <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                  <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                  {totalGramos > 0 && (
+                    <>
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#ff6b35" strokeWidth="4" strokeDasharray={`${pDist} 100`} strokeDashoffset="0" style={{ transition: 'all 0.5s ease', strokeLinecap: 'round' }} />
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray={`${cDist} 100`} strokeDashoffset={`-${pDist}`} style={{ transition: 'all 0.5s ease', strokeLinecap: 'round' }} />
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#eab308" strokeWidth="4" strokeDasharray={`${gDist} 100`} strokeDashoffset={`-${pDist + cDist}`} style={{ transition: 'all 0.5s ease', strokeLinecap: 'round' }} />
+                    </>
+                  )}
+                </svg>
+                {/* Center Text */}
+                <div style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', lineHeight: 1 }}>{totalGramos}g</span>
+                  <span style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>Consumidos</span>
+                </div>
               </div>
-              <div className="macro-card">
-                <div className="flex-between text-sm mb-8"><span className="text-secondary">Carbohidratos</span> <span className="text-secondary">{consumido.c}g</span></div>
-                <div className="flex-between mb-8"><b className="text-lg">{metaC}g</b><span className="text-xs text-brand">{cPercent}% del total</span></div>
-                <div className="progress-bar"><div className="progress-fill bg-blue" style={{ width: `${cPercent}%` }}></div></div>
-              </div>
-              <div className="macro-card">
-                <div className="flex-between text-sm mb-8"><span className="text-secondary">Grasas</span> <span className="text-secondary">{consumido.g}g</span></div>
-                <div className="flex-between mb-8"><b className="text-lg">{metaG}g</b><span className="text-xs text-brand">{gPercent}% del total</span></div>
-                <div className="progress-bar"><div className="progress-fill bg-yellow" style={{ width: `${gPercent}%` }}></div></div>
+
+              {/* Textual Breakdown */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Proteinas */}
+                <div>
+                  <div className="flex-between" style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff6b35' }}></span> Proteínas ({pDist.toFixed(1)}%)
+                    </span>
+                    <span style={{ color: '#fff' }}><b>{consumido.p}g</b> <span style={{ color: '#666' }}>/ {metaP}g</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${pPercent}%`, height: '100%', background: '#ff6b35', borderRadius: '2px', transition: 'width 0.5s ease' }}></div>
+                  </div>
+                </div>
+
+                {/* Carbos */}
+                <div>
+                  <div className="flex-between" style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }}></span> Carbohidratos ({cDist.toFixed(1)}%)
+                    </span>
+                    <span style={{ color: '#fff' }}><b>{consumido.c}g</b> <span style={{ color: '#666' }}>/ {metaC}g</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${cPercent}%`, height: '100%', background: '#3b82f6', borderRadius: '2px', transition: 'width 0.5s ease' }}></div>
+                  </div>
+                </div>
+
+                {/* Grasas */}
+                <div>
+                  <div className="flex-between" style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#eab308' }}></span> Grasas ({gDist.toFixed(1)}%)
+                    </span>
+                    <span style={{ color: '#fff' }}><b>{consumido.g}g</b> <span style={{ color: '#666' }}>/ {metaG}g</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${gPercent}%`, height: '100%', background: '#eab308', borderRadius: '2px', transition: 'width 0.5s ease' }}></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
