@@ -20,15 +20,9 @@ Route::middleware('auth:sanctum')->group(function () {
         );
 
         // Perfil completo: usuario + datos de cliente
-        Route::get('/me/perfil', function (Request $request) {
-            $user = $request->user();
-            $cliente = \App\Models\Cliente::where('user_id', $user->id)->first();
-            return response()->json([
-            'user' => $user,
-            'cliente' => $cliente,
-            ]);
-        }
-        );
+        Route::get('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'show']);
+        Route::put('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'update']);
+        Route::post('/me/perfil/foto', [\App\Http\Controllers\API\ProfileController::class, 'updatePhoto']);
 
         // Métricas corporales
         Route::get('/metricas', [MetricaController::class , 'index']);

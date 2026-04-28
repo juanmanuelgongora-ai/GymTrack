@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUser } from './logica/UserContext';
 
 // Import Vistas (Components)
 import LoginView from './vistas/auth/LoginView';
@@ -7,28 +8,13 @@ import RegisterEntrenadorView from './vistas/auth/RegisterEntrenadorView';
 import ShopView from './vistas/shop/ShopView';
 import PaymentModal from './vistas/shop/PaymentModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
-import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK'; // Import for trainer
+import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
 
 const API_URL = '/api';
 
 function App() {
-  // --- Session State ---
-  const [token, setToken] = useState(() => {
-    try {
-      return localStorage.getItem('gymtrack_token') || null;
-    } catch (e) {
-      return null;
-    }
-  });
-  const [userData, setUserData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('gymtrack_user');
-      return (saved && saved !== 'undefined') ? JSON.parse(saved) : null;
-    } catch (e) {
-      console.error('Error parsing user data:', e);
-      return null;
-    }
-  });
+  const { token, userData, saveSession, logout } = useUser();
+  
   const [view, setView] = useState(() => {
     try {
       const savedToken = localStorage.getItem('gymtrack_token');
@@ -41,8 +27,8 @@ function App() {
       return 'login';
     }
   });
+
   const [step, setStep] = useState(1);
-  const [userAuth, setUserAuth] = useState(null);
   const [notification, setNotification] = useState(null);
   const [pendingNotification, setPendingNotification] = useState(false);
   const [clientTab, setClientTab] = useState(() => localStorage.getItem('gymtrack_tab') || 'inicio');
@@ -55,6 +41,7 @@ function App() {
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  
   const initialFormData = {
     nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
     sexo: '', peso: '', estatura: '', objetivo_principal: '',
@@ -69,22 +56,10 @@ function App() {
       setFormData(initialFormData);
       setStep(1);
     }
+    localStorage.setItem('gymtrack_view', newView);
     setView(newView);
   };
 
-
-
-  // --- Save session helper ---
-  const saveSession = (accessToken, user, targetView) => {
-    setToken(accessToken);
-    setUserData(user);
-    localStorage.setItem('gymtrack_token', accessToken);
-    localStorage.setItem('gymtrack_user', JSON.stringify(user));
-    localStorage.setItem('gymtrack_view', targetView);
-    setView(targetView);
-  };
-
-  // --- Logout ---
   const handleLogout = async () => {
     try {
       if (token) {
@@ -99,11 +74,7 @@ function App() {
     } catch (err) {
       console.error('Error al cerrar sesión:', err);
     }
-    setToken(null);
-    setUserData(null);
-    localStorage.removeItem('gymtrack_token');
-    localStorage.removeItem('gymtrack_user');
-    localStorage.removeItem('gymtrack_view');
+    logout();
     handleSetView('login');
   };
 
@@ -136,7 +107,7 @@ function App() {
     alert('¡Pago completado!');
     setShowPayment(false);
     setClientTab('inicio');
-    setView('panelCliente');
+    handleSetView('panelCliente');
 
     if (pendingNotification) {
       setNotification({
@@ -148,7 +119,6 @@ function App() {
     }
   };
 
-  // --- Login ---
   const handleLogin = async (email, password) => {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -167,12 +137,12 @@ function App() {
       targetView = 'panelAdmin';
     }
 
-    setClientTab('inicio'); // Reiniciar pestaña siempre al iniciar sesión
-    saveSession(data.access_token, data.user, targetView);
+    setClientTab('inicio');
+    saveSession(data.access_token, data.user);
+    handleSetView(targetView);
     return data;
   };
 
-  // --- Register Cliente ---
   const handleRegister = async () => {
     try {
       const nameParts = formData.nombre.trim().split(' ');
@@ -205,9 +175,8 @@ function App() {
       });
       const data = await response.json();
       if (response.ok) {
-        // Generate AI Routine
         try {
-          const aiResponse = await fetch(`${API_URL}/rutinas/generar`, {
+          await fetch(`${API_URL}/rutinas/generar`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -227,24 +196,22 @@ function App() {
               edad: formData.edad
             })
           });
-          if (aiResponse.ok) {
-            setPendingNotification(true);
-          }
+          setPendingNotification(true);
         } catch (e) {
           console.error('Error generando rutina:', e);
         }
 
-        saveSession(data.access_token, data.user, 'shop');
+        saveSession(data.access_token, data.user);
+        handleSetView('shop');
       } else {
         alert('Error de registro: ' + (data.message || JSON.stringify(data.errors)));
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('No se pudo conectar al servidor de Laravel. Asegúrate de que php artisan serve esté corriendo.');
+      alert('No se pudo conectar al servidor.');
     }
   };
 
-  // --- Register Entrenador ---
   const handleRegisterEntrenador = async (entrenadorData) => {
     try {
       const nameParts = entrenadorData.nombre.trim().split(' ');
@@ -275,20 +242,20 @@ function App() {
       });
       const data = await response.json();
       if (response.ok) {
-        saveSession(data.access_token, data.user, 'panelEntrenador');
+        saveSession(data.access_token, data.user);
+        handleSetView('panelEntrenador');
       } else {
         alert('Error de registro: ' + (data.message || JSON.stringify(data.errors)));
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('No se pudo conectar al servidor de Laravel.');
+      alert('No se pudo conectar al servidor.');
     }
   };
 
-  // --- View Rendering ---
   return (
     <div className="App">
-      {view === 'login' && <LoginView setView={handleSetView} onLogin={handleLogin} setUserAuth={setUserAuth} />}
+      {view === 'login' && <LoginView setView={handleSetView} onLogin={handleLogin} />}
 
       {view === 'register' && (
         <RegisterView
@@ -309,9 +276,6 @@ function App() {
       {view === 'panelCliente' && (
         <PanelClienteGYMTRACK
           setView={handleSetView}
-          token={token}
-          userData={userData}
-          userAuth={userAuth}
           onLogout={handleLogout}
           activeTab={clientTab}
           setActiveTab={handleSetClientTab}
@@ -323,9 +287,6 @@ function App() {
       {view === 'panelEntrenador' && (
         <PanelEntrenadorGYMTRACK
           setView={handleSetView}
-          token={token}
-          userData={userData}
-          userAuth={userAuth}
           onLogout={handleLogout}
         />
       )}
@@ -333,7 +294,6 @@ function App() {
       {view === 'panelAdmin' && (
         <div className="placeholder-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>
           <h1>Panel de Administrador en Construcción</h1>
-          <p>El rol admin fue detectado, pero la vista aún se está desarrollando.</p>
           <button className="primary-btn" onClick={handleLogout} style={{ marginTop: '20px' }}>Cerrar Sesión</button>
         </div>
       )}
@@ -357,35 +317,14 @@ function App() {
       )}
 
       {notification && (
-        <div style={{
-          position: 'fixed', bottom: '20px', right: '20px', backgroundColor: 'rgba(20, 20, 22, 0.95)',
-          border: '1px solid #ff6b35', borderRadius: '12px', padding: '20px', zIndex: 9999,
-          boxShadow: '0 10px 30px rgba(255, 107, 53, 0.2)', color: 'white', maxWidth: '320px',
-          animation: 'fadeIn 0.5s ease'
-        }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#ff6b35', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>✨</span> {notification.title}
-          </h3>
-          <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#a1a1aa' }}>{notification.message}</p>
+        <div className="notification-toast">
+          <h3>✨ {notification.title}</h3>
+          <p>{notification.message}</p>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              className="primary-btn"
-              style={{ flex: 1, padding: '8px' }}
-              onClick={() => {
-                setNotification(null);
-                setClientTab('rutina');
-                handleSetView('panelCliente');
-              }}
-            >
+            <button className="primary-btn" onClick={() => { setNotification(null); setClientTab('rutina'); handleSetView('panelCliente'); }}>
               {notification.actionText}
             </button>
-            <button
-              className="secondary-btn"
-              style={{ padding: '8px', border: 'none' }}
-              onClick={() => setNotification(null)}
-            >
-              ✕
-            </button>
+            <button className="secondary-btn" onClick={() => setNotification(null)}>✕</button>
           </div>
         </div>
       )}

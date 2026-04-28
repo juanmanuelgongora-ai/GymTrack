@@ -18,6 +18,7 @@ class Cliente extends Model
         'id',
         'user_id',
         'gimnasio_id',
+        'ubicacion',
         'fecha_nacimiento',
         'genero',
         'peso_kg',

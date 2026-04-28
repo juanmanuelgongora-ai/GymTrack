@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useUser } from '../logica/UserContext';
 import {
   Play, Dumbbell, Activity, Target, Flame,
   BookOpen, ChevronRight, Award, Apple, BarChart3, CircleDot, User, Construction, LogOut
@@ -12,13 +13,14 @@ import EjerciciosTab from './tabs/EjerciciosTab';
 import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 
-const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAuth, onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
+const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
+  const { token, userData } = useUser();
+  const clienteData = userData?.cliente || {};
 
-  const userData = remoteUserData || userAuth?.user || {};
-  const clienteData = userData.cliente || {};
-
-  const userName = `${userData.nombre || 'Usuario'} ${userData.apellido || ''}`.trim();
-  const userFirstName = userData.nombre || 'Usuario';
+  const userName = `${userData?.nombre || 'Usuario'} ${userData?.apellido || ''}`.trim();
+  const userFirstName = userData?.nombre || 'Usuario';
+  const [navImgError, setNavImgError] = useState(false);
+  const userInitials = `${userData?.nombre?.charAt(0) || ''}${userData?.apellido?.charAt(0) || ''}`.toUpperCase();
   const [stats, setStats] = useState({ entrenamientos_mes: 0, racha_dias: 0, progreso_fuerza: 0, progreso_peso: 0, variacion_peso: 0 });
   const [todayRoutine, setTodayRoutine] = useState(null);
   const [rutinaData, setRutinaData] = useState(null);
@@ -40,11 +42,8 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
             if (data.rutina?.plan_semanal?.dias) {
               setRutinaData(data.rutina);
               const dias = data.rutina.plan_semanal.dias;
-              // Map current day of week to Día 1, Día 2, etc. (Simplification: Day index 0=Mon, 1=Tue...)
               let dayIndex = (new Date().getDay() + 6) % 7;
-              if (dayIndex >= dias.length) {
-                dayIndex = dias.length - 1; // Fallback to last day
-              }
+              if (dayIndex >= dias.length) dayIndex = dias.length - 1;
               setTodayRoutine(dias[dayIndex]);
             }
           }
@@ -79,15 +78,6 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
     { title: hitos.length.toString(), subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
   ];
 
-  const exercises = [
-    { id: 1, name: 'Press de Banca Plano', sets: '4 x 8-10', weight: '80 kg', rest: '90s', note: '1RM: 100kg' },
-    { id: 2, name: 'Press Inclinado', sets: '3 x 10-12', weight: '32 kg', rest: '60s', note: '+5kg última vez' },
-    { id: 3, name: 'Aperturas', sets: '3 x 12-15', weight: '18 kg', rest: '45s', note: 'Hipertrofia' },
-    { id: 4, name: 'Fondos', sets: '3 x 10-12', weight: 'Peso', rest: '60s', note: 'Volumen' },
-    { id: 5, name: 'Extensión Tríceps', sets: '3 x 12-15', weight: '35 kg', rest: '45s', note: 'Pump' },
-    { id: 6, name: 'Press Francés', sets: '3 x 10-12', weight: '25 kg', rest: '45s', note: 'Aislamiento' },
-  ];
-
   const renderContent = () => {
     switch (activeTab) {
       case 'inicio':
@@ -100,7 +90,6 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
               </div>
               <button className="primary-btn pulse-glow" onClick={() => {
                 if (todayRoutine) {
-                  // eslint-disable-next-line react/prop-types
                   setAutoStartPlan(todayRoutine);
                   setActiveTab('rutina');
                 }
@@ -256,28 +245,6 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
 
                 <div className="sidebar-card glass-panel">
                   <div className="card-header">
-                    <div className="header-icon-box"><Apple size={20} color="#42ff6e" /></div>
-                    <div>
-                      <h3>Nutrición Hoy</h3>
-                      <p>Plan de volumen</p>
-                    </div>
-                  </div>
-                  <div className="nutrition-info">
-                    <div className="cals">
-                      <h4>0 <span>/ 2,100 kcal</span></h4>
-                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
-                    </div>
-                    <div className="macros">
-                      <div className="macro"><CircleDot size={12} color="#ff6b35" /> Proteínas <b>95g</b></div>
-                      <div className="macro"><CircleDot size={12} color="#3b82f6" /> Carbos <b>180g</b></div>
-                      <div className="macro"><CircleDot size={12} color="#eab308" /> Grasas <b>45g</b></div>
-                    </div>
-                  </div>
-                  <button className="secondary-btn full-width mt-1"><Apple size={16} /> Ver Plan Completo</button>
-                </div>
-
-                <div className="sidebar-card glass-panel">
-                  <div className="card-header">
                     <div className="header-icon-box"><BarChart3 size={20} color="#a855f7" /></div>
                     <div>
                       <h3>Métricas Corporales</h3>
@@ -298,42 +265,27 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                       <b>{clienteData.altura_cm ? `${clienteData.altura_cm} cm` : '0 cm'}</b>
                     </div>
                   </div>
-                  <button className="secondary-btn full-width mt-1"><BarChart3 size={16} /> Historial Completo</button>
                 </div>
               </section>
             </div>
           </>
         );
       case 'rutina':
-        return <RutinaTab token={token} autoStartPlan={autoStartPlan} setAutoStartPlan={setAutoStartPlan} rutinaActivaData={rutinaData} />;
+        return <RutinaTab autoStartPlan={autoStartPlan} setAutoStartPlan={setAutoStartPlan} rutinaActivaData={rutinaData} />;
       case 'objetivos':
-        return <ObjetivosTab token={token} />;
+        return <ObjetivosTab />;
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
-        return <EjerciciosTab token={token} userData={userData} />;
+        return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab token={token} userData={userData} clienteData={clienteData} />;
+        return <PerfilTab />;
       default:
         return (
-          <div className="placeholder-container glass-panel" style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: '80px 20px', textAlign: 'center', marginTop: '40px', minHeight: '50vh', animation: 'fadeIn 0.4s ease'
-          }}>
-            <div style={{
-              width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255, 107, 53, 0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px',
-              border: '1px solid rgba(255, 107, 53, 0.3)', boxShadow: '0 0 30px rgba(255, 107, 53, 0.2)'
-            }}>
-              <Construction size={40} color="#ff6b35" />
-            </div>
-            <h2 className="glow-text" style={{ fontSize: '32px', marginBottom: '16px' }}>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} en Construcción</h2>
-            <p className="subtitle-text" style={{ maxWidth: '400px', margin: '0 auto 32px auto', lineHeight: '1.6' }}>
-              Este módulo será diseñado e implementado próximamente siguiendo la paleta de colores y el estilo de la vista principal.
-            </p>
-            <button className="secondary-btn" onClick={() => setActiveTab('inicio')}>
-              <Dumbbell size={18} /> Volver al Inicio
-            </button>
+          <div className="placeholder-container glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', marginTop: '40px', minHeight: '50vh' }}>
+            <Construction size={40} color="#ff6b35" />
+            <h2 className="glow-text">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} en Construcción</h2>
+            <button className="secondary-btn" onClick={() => setActiveTab('inicio')}>Volver al Inicio</button>
           </div>
         );
     }
@@ -343,56 +295,48 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
     <div className="panel-cliente-wrapper">
       <nav className="navbar">
         <div className="nav-brand" onClick={() => setActiveTab('inicio')} style={{ cursor: 'pointer' }}>
-          <div className="nav-logo-icon">
-            <Activity color="#fff" size={24} />
-          </div>
+          <div className="nav-logo-icon"><Activity color="#fff" size={24} /></div>
           <div className="brand-text">
             <h2>GYM TRACK</h2>
             <p>Entrena con datos, mejora con resultados</p>
           </div>
         </div>
         <div className="nav-links">
-          <button className={`nav-btn ${activeTab === 'inicio' ? 'active' : ''}`} onClick={() => setActiveTab('inicio')}>
-            <Dumbbell size={18} /> Inicio
-          </button>
-          <button className={`nav-btn ${activeTab === 'rutina' ? 'active' : ''}`} onClick={() => setActiveTab('rutina')}>
-            <Activity size={18} /> Mi Rutina
-          </button>
-          <button className={`nav-btn ${activeTab === 'objetivos' ? 'active' : ''}`} onClick={() => setActiveTab('objetivos')}>
-            <Target size={18} /> Objetivos
-          </button>
-          <button className={`nav-btn ${activeTab === 'alimentacion' ? 'active' : ''}`} onClick={() => setActiveTab('alimentacion')}>
-            <Apple size={18} /> Alimentación
-          </button>
-          <button className={`nav-btn ${activeTab === 'ejercicios' ? 'active' : ''}`} onClick={() => setActiveTab('ejercicios')}>
-            <Dumbbell size={18} /> Ejercicios
-          </button>
-          <button className={`nav-btn ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}>
-            <CircleDot size={18} /> Perfil
-          </button>
+          {['inicio', 'rutina', 'objetivos', 'alimentacion', 'ejercicios', 'perfil'].map(tab => (
+            <button key={tab} className={`nav-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              {tab === 'inicio' && <Dumbbell size={18} />}
+              {tab === 'rutina' && <Activity size={18} />}
+              {tab === 'objetivos' && <Target size={18} />}
+              {tab === 'alimentacion' && <Apple size={18} />}
+              {tab === 'ejercicios' && <Dumbbell size={18} />}
+              {tab === 'perfil' && <CircleDot size={18} />}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
         <div className="nav-user">
           <div className="user-info">
             <span className="user-name">{userFirstName}</span>
             <span className="user-level">Nivel {clienteData.nivel_actividad || 'Principiante'}</span>
           </div>
-          <div className="user-avatar">
-            <User color="#fff" size={20} />
+          <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: userData?.foto_url && !navImgError ? 'transparent' : '#ff6b35', fontWeight: 'bold', fontSize: '0.9rem', color: 'white' }}>
+            {userData?.foto_url && !navImgError ? (
+              <img 
+                src={userData.foto_url} 
+                alt="" 
+                onError={() => setNavImgError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            ) : (
+              userInitials || <User color="#fff" size={20} />
+            )}
           </div>
-          <button
-            className="secondary-btn"
-            style={{ padding: '8px', marginLeft: '12px', border: '1px solid rgba(255,107,53,0.3)', color: '#ff6b35', background: 'rgba(255,107,53,0.1)' }}
-            title="Cerrar Sesión"
-            onClick={onLogout || (() => setView('login'))}
-          >
+          <button className="secondary-btn" style={{ padding: '8px', marginLeft: '12px', color: '#ff6b35' }} onClick={onLogout} title="Cerrar Sesión">
             <LogOut size={18} />
           </button>
         </div>
       </nav>
-
-      <main className="dashboard-main">
-        {renderContent()}
-      </main>
+      <main className="dashboard-main">{renderContent()}</main>
     </div>
   );
 };
