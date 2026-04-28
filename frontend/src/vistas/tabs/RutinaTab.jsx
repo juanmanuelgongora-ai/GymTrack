@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target, WifiOff, Wifi } from 'lucide-react';
 import '../../estilos/tabs.css';
 
-export default function RutinaTab({ token }) {
-  const [rutina, setRutina] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function RutinaTab({ token, autoStartPlan, setAutoStartPlan, rutinaActivaData }) {
+  const [rutina, setRutina] = useState(rutinaActivaData?.plan_semanal?.dias || []);
+  const [loading, setLoading] = useState(!rutinaActivaData);
 
   // States for exercise execution
   const [activeDay, setActiveDay] = useState(null);
@@ -16,8 +16,9 @@ export default function RutinaTab({ token }) {
   const [exerciseProgress, setExerciseProgress] = useState({});
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
   const [isRoutineSequenceActive, setIsRoutineSequenceActive] = useState(false);
-  const [rutinaId, setRutinaId] = useState(null);
+  const [rutinaId, setRutinaId] = useState(rutinaActivaData?.id || null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [sessionStartTime, setSessionStartTime] = useState(null);
 
   // Sync to localStorage
   useEffect(() => {
@@ -85,8 +86,25 @@ export default function RutinaTab({ token }) {
     setActiveDay(dayPlan);
     setIsRoutineSequenceActive(true);
     setCurrentSequenceIndex(0);
+    setSessionStartTime(Date.now());
     startExercise(dayPlan.ejercicios[0]);
   };
+
+  useEffect(() => {
+    if (autoStartPlan) {
+      if (autoStartPlan.ejercicios && autoStartPlan.ejercicios.length === 1 && autoStartPlan.grupo_muscular) {
+        // Only one exercise requested from the dashboard
+        setActiveDay(autoStartPlan);
+        setIsRoutineSequenceActive(false);
+        setSessionStartTime(Date.now());
+        startExercise(autoStartPlan.ejercicios[0]);
+      } else {
+        // Full day routine
+        startFullRoutine(autoStartPlan);
+      }
+      if (setAutoStartPlan) setAutoStartPlan(null);
+    }
+  }, [autoStartPlan, setAutoStartPlan]);
 
   const nextExerciseInSequence = () => {
     if (activeExercise) {
@@ -102,10 +120,70 @@ export default function RutinaTab({ token }) {
       setCurrentSequenceIndex(nextIdx);
       startExercise(activeDay.ejercicios[nextIdx]);
     } else {
-      setIsRoutineSequenceActive(false);
-      setActiveExercise(null);
-      setActiveDay(null);
+      finishAndSaveRoutine();
     }
+  };
+
+  const finishAndSaveRoutine = async () => {
+    if (!activeDay) return;
+
+    let finalProgress = { ...exerciseProgress };
+    if (activeExercise) {
+      const exId = activeExercise.id || activeExercise.nombre || activeExercise.ejercicio_nombre;
+      finalProgress[exId] = { currentSet, completedSets };
+      setExerciseProgress(finalProgress);
+    }
+
+    // Save to backend
+    const duracionMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
+    const duracionMinutos = Math.max(1, Math.round(duracionMs / 60000));
+
+    try {
+      console.log("Saving session...", {
+        rutina_id: rutinaId,
+        dia_rutina: activeDay.dia,
+        duracion_minutos: duracionMinutos,
+        detalles_sesion: finalProgress
+      });
+
+      const response = await fetch('/api/entrenamientos/registrar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          rutina_id: rutinaId,
+          dia_rutina: activeDay.dia,
+          duracion_minutos: duracionMinutos,
+          detalles_sesion: finalProgress
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Session saved successfully:", result);
+        alert("¡Entrenamiento guardado con éxito!");
+        
+        // Limpiar progreso local una vez guardado con éxito
+        if (rutinaId) {
+          localStorage.removeItem(`gymtrack_rutina_${rutinaId}`);
+        }
+        setExerciseProgress({});
+      } else {
+        const errorData = await response.json();
+        console.error("Error saving session:", errorData);
+        alert("Error al guardar el entrenamiento: " + (errorData.message || "Error desconocido"));
+      }
+    } catch (e) {
+      console.error("Error saving routine session", e);
+      alert("No se pudo conectar con el servidor para guardar el entrenamiento.");
+    }
+
+    setIsRoutineSequenceActive(false);
+    setActiveExercise(null);
+    setActiveDay(null);
   };
 
   const isDayCompleted = (dayPlan) => {
@@ -132,9 +210,11 @@ export default function RutinaTab({ token }) {
   };
 
   useEffect(() => {
+    if (rutinaActivaData) return; // Ya se pasó por props, no hacer fetch
+
     const fetchRutina = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/rutinas/latest', {
+        const response = await fetch('/api/rutinas/latest', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -162,8 +242,8 @@ export default function RutinaTab({ token }) {
         setLoading(false);
       }
     };
-    if (token) fetchRutina();
-  }, [token]);
+    if (token && !rutinaActivaData) fetchRutina();
+  }, [token, rutinaActivaData]);
 
   if (loading) {
     return (
@@ -379,7 +459,7 @@ export default function RutinaTab({ token }) {
                     if (isRoutineSequenceActive) {
                       nextExerciseInSequence();
                     } else {
-                      closeExercise();
+                      finishAndSaveRoutine();
                     }
                   }}
                 >

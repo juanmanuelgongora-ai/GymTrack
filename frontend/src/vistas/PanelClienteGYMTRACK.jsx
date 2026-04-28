@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Play, Dumbbell, Activity, Target, Flame,
   BookOpen, ChevronRight, Award, Apple, BarChart3, CircleDot, User, Construction, LogOut
@@ -12,18 +12,71 @@ import EjerciciosTab from './tabs/EjerciciosTab';
 import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 
-const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAuth, onLogout, activeTab, setActiveTab }) => {
+const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAuth, onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
 
   const userData = remoteUserData || userAuth?.user || {};
   const clienteData = userData.cliente || {};
 
   const userName = `${userData.nombre || 'Usuario'} ${userData.apellido || ''}`.trim();
   const userFirstName = userData.nombre || 'Usuario';
+  const [stats, setStats] = useState({ entrenamientos_mes: 0, racha_dias: 0, progreso_fuerza: 0, progreso_peso: 0, variacion_peso: 0 });
+  const [todayRoutine, setTodayRoutine] = useState(null);
+  const [rutinaData, setRutinaData] = useState(null);
+  const [hitos, setHitos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (activeTab === 'inicio' && token) {
+      const fetchData = async () => {
+        try {
+          const [routineRes, statsRes, hitosRes] = await Promise.all([
+            fetch('/api/rutinas/latest', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }),
+            fetch('/api/entrenamientos/stats', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }),
+            fetch('/api/hitos', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } })
+          ]);
+
+          if (routineRes.ok) {
+            const data = await routineRes.json();
+            if (data.rutina?.plan_semanal?.dias) {
+              setRutinaData(data.rutina);
+              const dias = data.rutina.plan_semanal.dias;
+              // Map current day of week to Día 1, Día 2, etc. (Simplification: Day index 0=Mon, 1=Tue...)
+              let dayIndex = (new Date().getDay() + 6) % 7;
+              if (dayIndex >= dias.length) {
+                dayIndex = dias.length - 1; // Fallback to last day
+              }
+              setTodayRoutine(dias[dayIndex]);
+            }
+          }
+          if (statsRes.ok) {
+            const dataStats = await statsRes.json();
+            setStats({
+              entrenamientos_mes: dataStats.entrenamientos_mes,
+              racha_dias: dataStats.racha_dias,
+              progreso_fuerza: dataStats.progreso_fuerza || 0,
+              progreso_peso: dataStats.progreso_peso || 0,
+              variacion_peso: dataStats.variacion_peso || 0
+            });
+          }
+          if (hitosRes.ok) {
+            const dataHitos = await hitosRes.json();
+            setHitos(Array.isArray(dataHitos) ? dataHitos : []);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }
+  }, [activeTab, token]);
+
   const metricCards = [
-    { title: '0', subtitle: 'Días consecutivos', icon: Flame, stat: '-', trend: 'neutral' },
-    { title: '0', subtitle: 'Entrenamientos este mes', icon: Activity, stat: '0%', trend: 'neutral' },
-    { title: '0', subtitle: 'kg perdidos en 30 días', icon: Target, stat: '0%', trend: 'neutral' },
-    { title: '0', subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
+    { title: stats.racha_dias.toString(), subtitle: 'Días consecutivos', icon: Flame, stat: '-', trend: 'neutral' },
+    { title: stats.entrenamientos_mes.toString(), subtitle: 'Entrenamientos este mes', icon: Activity, stat: `${stats.progreso_fuerza}%`, trend: stats.progreso_fuerza > 50 ? 'up' : 'neutral' },
+    { title: stats.variacion_peso.toString(), subtitle: 'kg variados este mes', icon: Target, stat: stats.variacion_peso <= 0 ? 'Meta' : 'Aviso', trend: stats.variacion_peso <= 0 ? 'up' : 'down' },
+    { title: hitos.length.toString(), subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
   ];
 
   const exercises = [
@@ -45,7 +98,13 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                 <h1 className="glow-text">¡Hola, {userFirstName}!</h1>
                 <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
-              <button className="primary-btn pulse-glow">
+              <button className="primary-btn pulse-glow" onClick={() => {
+                if (todayRoutine) {
+                  // eslint-disable-next-line react/prop-types
+                  setAutoStartPlan(todayRoutine);
+                  setActiveTab('rutina');
+                }
+              }}>
                 <Play size={20} fill="currentColor" />
                 Iniciar Entrenamiento
               </button>
@@ -76,40 +135,51 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                 <div className="routine-card">
                   <div className="routine-banner">
                     <div className="banner-details">
-                      <span className="badge glass-badge">Hoy - Semana 4</span>
-                      <span className="badge glass-badge">45-60 min</span>
+                      <span className="badge glass-badge">Hoy - {todayRoutine?.dia || 'Día 1'}</span>
+                      <span className="badge glass-badge">{todayRoutine?.duracion_estimada || '45-60 min'}</span>
                     </div>
-                    <h2>Pecho & Tríceps</h2>
-                    <p>6 ejercicios • Fuerza e hipertrofia</p>
+                    <h2>{todayRoutine?.grupo_muscular || 'Día de descanso'}</h2>
+                    <p>{todayRoutine?.ejercicios?.length || 0} ejercicios • {todayRoutine?.intensidad || 'Baja'}</p>
                   </div>
 
                   <div className="exercise-list">
-                    {exercises.map((ex) => (
-                      <div className="exercise-item glass-panel" key={ex.id}>
-                        <div className="exercise-number">{ex.id}</div>
+                    {todayRoutine?.ejercicios?.map((ex, idx) => (
+                      <div className="exercise-item glass-panel" key={idx}>
+                        <div className="exercise-number">{idx + 1}</div>
                         <div className="exercise-info">
-                          <h3>{ex.name}</h3>
+                          <h3>{ex.nombre}</h3>
                           <div className="exercise-details">
-                            <span><Dumbbell size={14} /> {ex.sets}</span>
+                            <span><Dumbbell size={14} /> {ex.series} x {ex.repeticiones}</span>
                             <span>•</span>
-                            <span><Target size={14} /> {ex.weight}</span>
-                            <span>•</span>
-                            <span><Activity size={14} /> {ex.rest}</span>
+                            <span><Activity size={14} /> {ex.descanso || '60s'}</span>
                           </div>
-                          <p className="exercise-note">{ex.note}</p>
                         </div>
-                        <button className="secondary-btn">
+                        <button className="secondary-btn" onClick={() => {
+                          setAutoStartPlan({ ...todayRoutine, ejercicios: [ex] });
+                          setActiveTab('rutina');
+                        }}>
                           <Play size={16} fill="currentColor" /> Iniciar
                         </button>
                       </div>
                     ))}
+                    {!todayRoutine && !loading && (
+                      <p className="text-secondary text-center py-24">No tienes rutina asignada para hoy.</p>
+                    )}
+                    {loading && (
+                      <p className="text-secondary text-center py-24">Cargando tu rutina de hoy...</p>
+                    )}
                   </div>
 
                   <div className="routine-actions">
-                    <button className="primary-btn full-width">
+                    <button className="primary-btn full-width" onClick={() => {
+                      if (todayRoutine) {
+                        setAutoStartPlan(todayRoutine);
+                        setActiveTab('rutina');
+                      }
+                    }}>
                       <Play size={18} fill="currentColor" /> Comenzar Rutina
                     </button>
-                    <button className="secondary-btn full-width">
+                    <button className="secondary-btn full-width" onClick={() => setActiveTab('rutina')}>
                       <BookOpen size={18} /> Ver Detalles
                     </button>
                   </div>
@@ -142,21 +212,46 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
                     <h3>Mis Objetivos</h3>
                   </div>
                   <div className="goal-list">
-                    <div className="goal-item">
-                      <div className="goal-info">
-                        <span>Perder peso</span>
-                        <span className="goal-value">0%</span>
+                    {hitos.length > 0 ? hitos.slice(0, 3).map((hito, idx) => (
+                      <div className="goal-item" key={idx}>
+                        <div className="goal-info">
+                          <span>{hito.titulo}</span>
+                          <span className="goal-value">{hito.progreso_porcentaje}%</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div
+                            className="progress"
+                            style={{
+                              width: `${Math.min(100, hito.progreso_porcentaje)}%`,
+                              background: hito.progreso_porcentaje >= 100
+                                ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                                : 'linear-gradient(90deg, #ff6b35, #ff8c42)'
+                            }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
-                    </div>
-                    <div className="goal-item">
-                      <div className="goal-info">
-                        <span>Aumentar fuerza</span>
-                        <span className="goal-value">0%</span>
-                      </div>
-                      <div className="progress-bar"><div className="progress" style={{ width: '0%', background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
-                    </div>
+                    )) : (
+                      <>
+                        <div className="goal-item">
+                          <div className="goal-info">
+                            <span>Perder peso</span>
+                            <span className="goal-value">{stats.progreso_peso}%</span>
+                          </div>
+                          <div className="progress-bar"><div className="progress" style={{ width: `${stats.progreso_peso}%`, background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
+                        </div>
+                        <div className="goal-item">
+                          <div className="goal-info">
+                            <span>Aumentar fuerza</span>
+                            <span className="goal-value">{stats.progreso_fuerza}%</span>
+                          </div>
+                          <div className="progress-bar"><div className="progress" style={{ width: `${stats.progreso_fuerza}%`, background: 'linear-gradient(90deg, #ff6b35, #ff8c42)' }}></div></div>
+                        </div>
+                      </>
+                    )}
                   </div>
+                  <button className="link-btn mt-1" onClick={() => setActiveTab('objetivos')}>
+                    Ver todos los hitos <ChevronRight size={16} />
+                  </button>
                 </div>
 
                 <div className="sidebar-card glass-panel">
@@ -210,7 +305,7 @@ const PanelClienteGYMTRACK = ({ setView, token, userData: remoteUserData, userAu
           </>
         );
       case 'rutina':
-        return <RutinaTab token={token} />;
+        return <RutinaTab token={token} autoStartPlan={autoStartPlan} setAutoStartPlan={setAutoStartPlan} rutinaActivaData={rutinaData} />;
       case 'objetivos':
         return <ObjetivosTab token={token} />;
       case 'alimentacion':

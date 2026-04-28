@@ -63,7 +63,8 @@ class AuthController extends Controller
                 'altura_cm' => $request->altura_cm,
                 'imc' => $imc,
                 'objetivo_principal' => $request->objetivo_principal,
-                'nivel_actividad' => $nivelActividad
+                'nivel_actividad' => $nivelActividad,
+                'condicion_medica' => $request->condicion_medica
             ]);
         }
         else if ($user->rol === 'entrenador') {

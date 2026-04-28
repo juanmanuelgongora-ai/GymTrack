@@ -13,21 +13,40 @@ const API_URL = '/api';
 
 function App() {
   // --- Session State ---
-  const [token, setToken] = useState(() => localStorage.getItem('gymtrack_token') || null);
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('gymtrack_token') || null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [userData, setUserData] = useState(() => {
-    const saved = localStorage.getItem('gymtrack_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('gymtrack_user');
+      return (saved && saved !== 'undefined') ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Error parsing user data:', e);
+      return null;
+    }
   });
   const [view, setView] = useState(() => {
-    const savedToken = localStorage.getItem('gymtrack_token');
-    const savedUser = localStorage.getItem('gymtrack_user');
-    return (savedToken && savedUser) ? (localStorage.getItem('gymtrack_view') || 'panelCliente') : 'login';
+    try {
+      const savedToken = localStorage.getItem('gymtrack_token');
+      const savedUser = localStorage.getItem('gymtrack_user');
+      if (savedToken && savedUser && savedUser !== 'undefined') {
+        return localStorage.getItem('gymtrack_view') || 'panelCliente';
+      }
+      return 'login';
+    } catch (e) {
+      return 'login';
+    }
   });
   const [step, setStep] = useState(1);
   const [userAuth, setUserAuth] = useState(null);
   const [notification, setNotification] = useState(null);
   const [pendingNotification, setPendingNotification] = useState(false);
   const [clientTab, setClientTab] = useState(() => localStorage.getItem('gymtrack_tab') || 'inicio');
+  const [autoStartPlan, setAutoStartPlan] = useState(null);
 
   const handleSetClientTab = (tab) => {
     setClientTab(tab);
@@ -114,48 +133,6 @@ function App() {
   };
 
   const handlePaymentConfirm = async () => {
-    try {
-      const payload = {
-        nombre: formData.nombre.split(' ')[0] || 'Usuario',
-        apellido: formData.nombre.split(' ').slice(1).join(' ') || 'Prueba',
-        email: formData.correo || `user${Date.now()}@email.com`,
-        password: formData.pass || '123456',
-        rol: 'cliente',
-        edad: formData.edad,
-        sexo: formData.sexo,
-        peso_kg: formData.peso,
-        altura_cm: formData.estatura,
-        objetivo_principal: formData.salud
-      };
-
-      const res = await fetch('http://127.0.0.1:8000/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setUserAuth({ token: data.access_token, user: data.user });
-      } else {
-        // Fallback to local form data if error from backend
-        setUserAuth({ token: 'mock-token', user: { ...payload, cliente: payload } });
-      }
-    } catch {
-      // Fallback fake user if backend isn't running
-      let hm = parseFloat(formData.estatura) / 100;
-      let p = parseFloat(formData.peso);
-      let imc = (hm > 0 && p > 0) ? (p / (hm * hm)).toFixed(2) : 0;
-      setUserAuth({
-        token: 'mock-token',
-        user: {
-          nombre: formData.nombre || 'Usuario',
-          apellido: '',
-          email: formData.correo,
-          cliente: { peso_kg: formData.peso, altura_cm: formData.estatura, edad: formData.edad, imc: imc }
-        }
-      });
-    }
-
     alert('¡Pago completado!');
     setShowPayment(false);
     setClientTab('inicio');
@@ -182,14 +159,14 @@ function App() {
     if (!response.ok) {
       throw new Error(data.message || JSON.stringify(data.errors) || 'Credenciales incorrectas');
     }
-    
+
     let targetView = 'panelCliente';
     if (data.user.rol === 'entrenador') {
-        targetView = 'panelEntrenador';
+      targetView = 'panelEntrenador';
     } else if (data.user.rol === 'admin') {
-        targetView = 'panelAdmin';
+      targetView = 'panelAdmin';
     }
-    
+
     setClientTab('inicio'); // Reiniciar pestaña siempre al iniciar sesión
     saveSession(data.access_token, data.user, targetView);
     return data;
@@ -215,7 +192,15 @@ function App() {
           peso_kg: formData.peso,
           altura_cm: formData.estatura,
           objetivo_principal: formData.objetivo_principal,
-          frecuencia: formData.frecuencia
+          frecuencia: formData.frecuencia,
+          condicion_medica: JSON.stringify({
+            salud: formData.salud,
+            cirugia: formData.cirugia === 'Sí' ? formData.cirugiaDetalle : 'No',
+            medicamentos: formData.medicamentos === 'Sí' ? formData.medicamentosDetalle : 'No',
+            condiciones: formData.condiciones,
+            lesion: formData.lesion === 'Sí' ? formData.lesionDetalle : 'No',
+            sueno: formData.sueno
+          })
         })
       });
       const data = await response.json();
@@ -330,6 +315,8 @@ function App() {
           onLogout={handleLogout}
           activeTab={clientTab}
           setActiveTab={handleSetClientTab}
+          autoStartPlan={autoStartPlan}
+          setAutoStartPlan={setAutoStartPlan}
         />
       )}
 
@@ -345,9 +332,9 @@ function App() {
 
       {view === 'panelAdmin' && (
         <div className="placeholder-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>
-            <h1>Panel de Administrador en Construcción</h1>
-            <p>El rol admin fue detectado, pero la vista aún se está desarrollando.</p>
-            <button className="primary-btn" onClick={handleLogout} style={{ marginTop: '20px' }}>Cerrar Sesión</button>
+          <h1>Panel de Administrador en Construcción</h1>
+          <p>El rol admin fue detectado, pero la vista aún se está desarrollando.</p>
+          <button className="primary-btn" onClick={handleLogout} style={{ marginTop: '20px' }}>Cerrar Sesión</button>
         </div>
       )}
 
