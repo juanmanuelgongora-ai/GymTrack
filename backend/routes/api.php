@@ -25,7 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/logros', [LogroController::class, 'index']);
         Route::get('/logros/recientes', [LogroController::class, 'recentlyUnlocked']);
 
-        // Perfil completo: usuario + datos de cliente
+        // Perfil completo: usuario + datos de cliente/entrenador
         Route::get('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'show']);
         Route::put('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'update']);
         Route::post('/me/perfil/foto', [\App\Http\Controllers\API\ProfileController::class, 'updatePhoto']);
