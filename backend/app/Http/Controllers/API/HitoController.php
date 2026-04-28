@@ -45,11 +45,12 @@ class HitoController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:150',
             'descripcion' => 'nullable|string|max:500',
-            'tipo' => 'required|in:peso,fuerza,hipertrofia,habito,resistencia',
-            'meta_valor' => 'required|numeric|min:0.1',
-            'valor_actual' => 'nullable|numeric|min:0',
+            'tipo' => 'required|string', // peso, fuerza, hipertrofia, habito, resistencia, composicion
+            'meta_valor' => 'required|numeric',
+            'valor_inicial' => 'nullable|numeric',
+            'valor_actual' => 'nullable|numeric',
             'unidad' => 'required|string|max:30',
-            'fecha_limite' => 'nullable|date|after:today',
+            'fecha_limite' => 'nullable|date',
         ]);
 
         $cliente = Cliente::where('user_id', $request->user()->id)->first();
@@ -58,15 +59,23 @@ class HitoController extends Controller
             return response()->json(['message' => 'Perfil de cliente no encontrado.'], 404);
         }
 
-        $valorActual = $request->valor_actual ?? 0;
+        $valorInicial = $request->valor_inicial ?? 0;
+        $valorActual = $request->valor_actual ?? $valorInicial;
         $metaValor = $request->meta_valor;
-        $progreso = $metaValor > 0 ? min(100, round(($valorActual / $metaValor) * 100)) : 0;
+        
+        $denominador = $metaValor - $valorInicial;
+        $progreso = 0;
+        
+        if ($denominador != 0) {
+            $progreso = min(100, max(0, round((($valorActual - $valorInicial) / $denominador) * 100)));
+        }
 
         $hito = Hito::create([
             'cliente_id' => $cliente->id,
             'titulo' => $request->titulo,
             'descripcion' => $request->descripcion,
             'tipo' => $request->tipo,
+            'valor_inicial' => $valorInicial,
             'meta_valor' => $metaValor,
             'valor_actual' => $valorActual,
             'unidad' => $request->unidad,
@@ -98,28 +107,31 @@ class HitoController extends Controller
         $request->validate([
             'titulo' => 'nullable|string|max:150',
             'descripcion' => 'nullable|string|max:500',
-            'valor_actual' => 'nullable|numeric|min:0',
+            'valor_actual' => 'nullable|numeric',
+            'meta_valor' => 'nullable|numeric',
             'estado' => 'nullable|in:en_progreso,completado,abandonado',
             'fecha_limite' => 'nullable|date',
         ]);
 
-        if ($request->has('titulo'))
-            $hito->titulo = $request->titulo;
-        if ($request->has('descripcion'))
-            $hito->descripcion = $request->descripcion;
-        if ($request->has('fecha_limite'))
-            $hito->fecha_limite = $request->fecha_limite;
+        if ($request->has('titulo')) $hito->titulo = $request->titulo;
+        if ($request->has('descripcion')) $hito->descripcion = $request->descripcion;
+        if ($request->has('fecha_limite')) $hito->fecha_limite = $request->fecha_limite;
+        if ($request->has('meta_valor')) $hito->meta_valor = $request->meta_valor;
 
         if ($request->has('valor_actual')) {
             $hito->valor_actual = $request->valor_actual;
-            $hito->progreso_porcentaje = $hito->meta_valor > 0
-                ? min(100, round(($request->valor_actual / $hito->meta_valor) * 100))
-                : 0;
+        }
 
-            // Auto-complete if progress reaches 100%
-            if ($hito->progreso_porcentaje >= 100) {
-                $hito->estado = 'completado';
-            }
+        // Recalcular progreso
+        $denominador = $hito->meta_valor - $hito->valor_inicial;
+        if ($denominador != 0) {
+            $hito->progreso_porcentaje = min(100, max(0, round((($hito->valor_actual - $hito->valor_inicial) / $denominador) * 100)));
+        } else {
+            $hito->progreso_porcentaje = $hito->valor_actual >= $hito->meta_valor ? 100 : 0;
+        }
+
+        if ($hito->progreso_porcentaje >= 100) {
+            $hito->estado = 'completado';
         }
 
         if ($request->has('estado')) {
