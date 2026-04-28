@@ -5,7 +5,7 @@ import '../../estilos/tabs.css';
 
 const API_URL = '/api';
 
-export default function PerfilTab() {
+export default function PerfilTab({ onLogrosUnlocked }) {
   const { token, userData, updateUser } = useUser();
   const clienteData = userData?.cliente || {};
   
@@ -151,9 +151,23 @@ export default function PerfilTab() {
       Object.entries(metricaFormData).forEach(([k, v]) => { if (v !== '') body[k] = v; });
       const res = await fetch(`${API_URL}/metricas`, { method: 'POST', headers, body: JSON.stringify(body) });
       if (res.ok) {
+        const data = await res.json();
+        setMetricaFormData({
+          peso_kg: '', altura_cm: '', grasa_corporal: '', masa_muscular: '',
+          pecho_cm: '', cintura_cm: '', cadera_cm: '', brazo_cm: '', muslo_cm: '', notas: ''
+        });
         setShowMetricaForm(false);
-        setMetricaFormData({ peso_kg: '', altura_cm: '', grasa_corporal: '', masa_muscular: '', pecho_cm: '', cintura_cm: '', cadera_cm: '', brazo_cm: '', muslo_cm: '', notas: '' });
         fetchData();
+        
+        // Notificar logros si los hay
+        if (data.logros_desbloqueados && data.logros_desbloqueados.length > 0) {
+          if (onLogrosUnlocked) onLogrosUnlocked(data.logros_desbloqueados);
+        } else {
+          alert('Métrica guardada correctamente.');
+        }
+      } else {
+        const err = await res.json();
+        alert('Error al guardar: ' + (err.message || 'Error desconocido'));
       }
     } catch (e) {
       alert('Error de conexión.');

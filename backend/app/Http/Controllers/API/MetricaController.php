@@ -140,6 +140,12 @@ class MetricaController extends Controller
             $cliente->imc = $imc;
         $cliente->save();
 
-        return response()->json($metrica, 201);
+        // Verificar logros
+        $unlocked = \App\Services\AchievementService::checkMetricsAchievements($request->user());
+
+        return response()->json([
+            'metrica' => $metrica,
+            'logros_desbloqueados' => $unlocked
+        ], 201);
     }
 }

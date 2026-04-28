@@ -629,11 +629,92 @@
   box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
 }
 
-.bg-glow {
+/* Logros / Achievements */
+.logros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.logro-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.logro-card.locked {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.logro-card.unlocked {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 107, 53, 0.02) 100%);
+  border-color: rgba(255, 107, 53, 0.2);
+}
+
+.logro-card:hover:not(.locked) {
+  transform: translateY(-5px) scale(1.02);
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 10px 25px rgba(255, 107, 53, 0.15);
+}
+
+.logro-badge-container {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.unlocked .logro-badge-container {
+  background: var(--color-brand-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+}
+
+.logro-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.logro-info p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.logro-date {
+  font-size: 9px;
+  color: var(--color-brand-primary);
+  margin-top: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.lock-icon {
   position: absolute;
-  width: 400px;
-  height: 400px;
-  filter: blur(80px);
-  z-index: -1;
-  pointer-events: none;
+  top: -8px;
+  right: -8px;
+  background: #1a1a1d;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

@@ -9,6 +9,8 @@ use App\Http\Controllers\API\RutinaController;
 use App\Http\Controllers\API\EjercicioController;
 use App\Http\Controllers\API\EntrenamientoController;
 
+use App\Http\Controllers\API\LogroController;
+
 Route::post('/register', [AuthController::class , 'register']);
 Route::post('/login', [AuthController::class , 'login']);
 
@@ -18,6 +20,10 @@ Route::middleware('auth:sanctum')->group(function () {
             return $request->user()->load('cliente');
         }
         );
+
+        // Logros
+        Route::get('/logros', [LogroController::class, 'index']);
+        Route::get('/logros/recientes', [LogroController::class, 'recentlyUnlocked']);
 
         // Perfil completo: usuario + datos de cliente
         Route::get('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'show']);

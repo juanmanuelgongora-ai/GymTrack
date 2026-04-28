@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target, WifiOff, Wifi } from 'lucide-react';
+import { useUser } from '../../logica/UserContext';
 import '../../estilos/tabs.css';
 
-export default function RutinaTab({ token, autoStartPlan, setAutoStartPlan, rutinaActivaData }) {
+export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActivaData, onLogrosUnlocked }) {
+  const { token } = useUser();
   const [rutina, setRutina] = useState(rutinaActivaData?.plan_semanal?.dias || []);
   const [loading, setLoading] = useState(!rutinaActivaData);
 
@@ -164,7 +166,13 @@ export default function RutinaTab({ token, autoStartPlan, setAutoStartPlan, ruti
       if (response.ok) {
         const result = await response.json();
         console.log("Session saved successfully:", result);
-        alert("¡Entrenamiento guardado con éxito!");
+        
+        // Verificar si se desbloquearon logros
+        if (result.logros_desbloqueados && result.logros_desbloqueados.length > 0) {
+          if (onLogrosUnlocked) onLogrosUnlocked(result.logros_desbloqueados);
+        } else {
+          alert("¡Entrenamiento guardado con éxito!");
+        }
         
         // Limpiar progreso local una vez guardado con éxito
         if (rutinaId) {
@@ -213,6 +221,7 @@ export default function RutinaTab({ token, autoStartPlan, setAutoStartPlan, ruti
     if (rutinaActivaData) return; // Ya se pasó por props, no hacer fetch
 
     const fetchRutina = async () => {
+      if (!token) return;
       try {
         const response = await fetch('/api/rutinas/latest', {
           headers: {

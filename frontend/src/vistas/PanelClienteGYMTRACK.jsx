@@ -12,6 +12,8 @@ import ObjetivosTab from './tabs/ObjetivosTab';
 import EjerciciosTab from './tabs/EjerciciosTab';
 import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
+import LogrosTab from './tabs/LogrosTab';
+import AchievementNotification from '../componentes/AchievementNotification';
 
 const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
   const { token, userData } = useUser();
@@ -25,16 +27,19 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
   const [todayRoutine, setTodayRoutine] = useState(null);
   const [rutinaData, setRutinaData] = useState(null);
   const [hitos, setHitos] = useState([]);
+  const [logrosCount, setLogrosCount] = useState(0);
+  const [newLogros, setNewLogros] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (activeTab === 'inicio' && token) {
       const fetchData = async () => {
         try {
-          const [routineRes, statsRes, hitosRes] = await Promise.all([
+          const [routineRes, statsRes, hitosRes, logrosRes] = await Promise.all([
             fetch('/api/rutinas/latest', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }),
             fetch('/api/entrenamientos/stats', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }),
-            fetch('/api/hitos', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } })
+            fetch('/api/hitos', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }),
+            fetch('/api/logros', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } })
           ]);
 
           if (routineRes.ok) {
@@ -61,6 +66,10 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
             const dataHitos = await hitosRes.json();
             setHitos(Array.isArray(dataHitos) ? dataHitos : []);
           }
+          if (logrosRes.ok) {
+            const dataLogros = await logrosRes.json();
+            setLogrosCount(dataLogros.filter(l => l.obtenido).length);
+          }
         } catch (e) {
           console.error(e);
         } finally {
@@ -75,7 +84,7 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
     { title: stats.racha_dias.toString(), subtitle: 'Días consecutivos', icon: Flame, stat: '-', trend: 'neutral' },
     { title: stats.entrenamientos_mes.toString(), subtitle: 'Entrenamientos este mes', icon: Activity, stat: `${stats.progreso_fuerza}%`, trend: stats.progreso_fuerza > 50 ? 'up' : 'neutral' },
     { title: stats.variacion_peso.toString(), subtitle: 'kg variados este mes', icon: Target, stat: stats.variacion_peso <= 0 ? 'Meta' : 'Aviso', trend: stats.variacion_peso <= 0 ? 'up' : 'down' },
-    { title: hitos.length.toString(), subtitle: 'Logros desbloqueados', icon: Award, stat: 'Nuevo', trend: 'neutral' },
+    { title: logrosCount.toString(), subtitle: 'Logros desbloqueados', icon: Award, stat: 'Estatus', trend: 'neutral' },
   ];
 
   const renderContent = () => {
@@ -271,15 +280,22 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
           </>
         );
       case 'rutina':
-        return <RutinaTab autoStartPlan={autoStartPlan} setAutoStartPlan={setAutoStartPlan} rutinaActivaData={rutinaData} />;
+        return <RutinaTab 
+          autoStartPlan={autoStartPlan} 
+          setAutoStartPlan={setAutoStartPlan} 
+          rutinaActivaData={rutinaData} 
+          onLogrosUnlocked={setNewLogros}
+        />;
       case 'objetivos':
-        return <ObjetivosTab />;
+        return <ObjetivosTab onLogrosUnlocked={setNewLogros} />;
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab />;
+        return <PerfilTab onLogrosUnlocked={setNewLogros} />;
+      case 'logros':
+        return <LogrosTab />;
       default:
         return (
           <div className="placeholder-container glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', marginTop: '40px', minHeight: '50vh' }}>
@@ -302,11 +318,12 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
           </div>
         </div>
         <div className="nav-links">
-          {['inicio', 'rutina', 'objetivos', 'alimentacion', 'ejercicios', 'perfil'].map(tab => (
+          {['inicio', 'rutina', 'objetivos', 'logros', 'alimentacion', 'ejercicios', 'perfil'].map(tab => (
             <button key={tab} className={`nav-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               {tab === 'inicio' && <Dumbbell size={18} />}
               {tab === 'rutina' && <Activity size={18} />}
               {tab === 'objetivos' && <Target size={18} />}
+              {tab === 'logros' && <Award size={18} />}
               {tab === 'alimentacion' && <Apple size={18} />}
               {tab === 'ejercicios' && <Dumbbell size={18} />}
               {tab === 'perfil' && <CircleDot size={18} />}
@@ -337,6 +354,10 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
         </div>
       </nav>
       <main className="dashboard-main">{renderContent()}</main>
+      <AchievementNotification 
+        achievements={newLogros} 
+        onClose={() => setNewLogros([])} 
+      />
     </div>
   );
 };

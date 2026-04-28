@@ -32,9 +32,16 @@ class EntrenamientoController extends Controller
             'detalles_sesion' => $data['detalles_sesion']
         ]);
 
+        // Verificar logros
+        $unlocked = array_merge(
+            \App\Services\AchievementService::checkStreakAchievements($user),
+            \App\Services\AchievementService::checkTrainingCountAchievements($user)
+        );
+
         return response()->json([
             'message' => 'Sesión guardada correctamente',
-            'sesion' => $sesion
+            'sesion' => $sesion,
+            'logros_desbloqueados' => $unlocked
         ], 201);
     }
 
