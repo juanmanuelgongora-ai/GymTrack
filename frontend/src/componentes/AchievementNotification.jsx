@@ -4,6 +4,11 @@ import { Trophy, X, Star } from 'lucide-react';
 export default function AchievementNotification({ achievements, onClose }) {
   const [visible, setVisible] = useState(false);
 
+  const handleClose = React.useCallback(() => {
+    setVisible(false);
+    setTimeout(onClose, 500);
+  }, [onClose]);
+
   useEffect(() => {
     if (achievements && achievements.length > 0) {
       setVisible(true);
@@ -12,13 +17,7 @@ export default function AchievementNotification({ achievements, onClose }) {
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [achievements]);
-
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(onClose, 500);
-  };
-
+  }, [achievements, handleClose]);
   if (!achievements || achievements.length === 0) return null;
 
   return (

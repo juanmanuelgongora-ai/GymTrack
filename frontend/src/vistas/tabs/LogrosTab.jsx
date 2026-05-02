@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../logica/UserContext';
-import { 
-  Trophy, Zap, Flame, TrendingUp, Activity, Award, Lock, 
+import {
+  Trophy, Zap, Flame, TrendingUp, Activity, Award, Lock,
   Loader2, Star, CheckCircle2, Calendar
 } from 'lucide-react';
 import '../../estilos/tabs.css';
@@ -21,11 +21,7 @@ export default function LogrosTab() {
   const [logros, setLogros] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLogros();
-  }, []);
-
-  const fetchLogros = async () => {
+  const fetchLogros = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/logros', {
@@ -41,7 +37,11 @@ export default function LogrosTab() {
       console.error('Error cargando logros:', err);
     }
     setLoading(false);
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchLogros();
+  }, [fetchLogros]);
 
   if (loading) {
     return (
@@ -52,7 +52,6 @@ export default function LogrosTab() {
   }
 
   const obtenidos = logros.filter(l => l.obtenido);
-  const pendientes = logros.filter(l => !l.obtenido);
 
   return (
     <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease' }}>
@@ -87,13 +86,13 @@ export default function LogrosTab() {
 
       <section>
         <h3 className="mb-24 flex-align-center gap-12">
-          <Award size={20} color="#ff6b35" /> 
+          <Award size={20} color="#ff6b35" />
           Tus Insignias
         </h3>
         <div className="logros-grid">
           {logros.map(logro => (
-            <div 
-              key={logro.id} 
+            <div
+              key={logro.id}
               className={`logro-card ${logro.obtenido ? 'unlocked' : 'locked'}`}
               title={logro.descripcion}
             >

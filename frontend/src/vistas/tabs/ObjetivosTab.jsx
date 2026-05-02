@@ -25,15 +25,15 @@ export default function ObjetivosTab() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
-  
+
   const [formData, setFormData] = useState({
-    titulo: '', 
-    descripcion: '', 
-    tipo: 'peso', 
+    titulo: '',
+    descripcion: '',
+    tipo: 'peso',
     valor_inicial: '',
-    meta_valor: '', 
-    valor_actual: '', 
-    unidad: 'kg', 
+    meta_valor: '',
+    valor_actual: '',
+    unidad: 'kg',
     fecha_limite: ''
   });
 
@@ -41,9 +41,9 @@ export default function ObjetivosTab() {
     if (!token) return;
     setLoading(true);
     try {
-      const headers = { 
-        'Authorization': `Bearer ${token}`, 
-        'Accept': 'application/json' 
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
       };
       const url = filtroTipo ? `${API_URL}/hitos?tipo=${filtroTipo}` : `${API_URL}/hitos`;
       const res = await fetch(url, { headers });
@@ -61,6 +61,7 @@ export default function ObjetivosTab() {
   }, [token, filtroTipo]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHitos();
   }, [fetchHitos]);
 
@@ -68,21 +69,21 @@ export default function ObjetivosTab() {
     if (!formData.titulo || !formData.meta_valor) return alert('Título y meta son obligatorios.');
     setSaving(true);
     try {
-      const headers = { 
-        'Authorization': `Bearer ${token}`, 
-        'Accept': 'application/json', 
-        'Content-Type': 'application/json' 
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       };
-      
-      const body = { 
+
+      const body = {
         ...formData,
         valor_inicial: parseFloat(formData.valor_inicial) || 0,
         meta_valor: parseFloat(formData.meta_valor),
         valor_actual: parseFloat(formData.valor_actual) || parseFloat(formData.valor_inicial) || 0
       };
-      
+
       if (!body.fecha_limite) delete body.fecha_limite;
-      
+
       const res = await fetch(`${API_URL}/hitos`, { method: 'POST', headers, body: JSON.stringify(body) });
       if (res.ok) {
         setShowForm(false);
@@ -92,7 +93,7 @@ export default function ObjetivosTab() {
         const e = await res.json();
         alert('Error: ' + (e.message || JSON.stringify(e.errors)));
       }
-    } catch (e) {
+    } catch (err) {
       alert('Error de conexión.');
     }
     setSaving(false);
@@ -101,10 +102,10 @@ export default function ObjetivosTab() {
   const handleUpdateProgress = async (id) => {
     if (!editValue || isNaN(editValue)) return;
     try {
-      const headers = { 
-        'Authorization': `Bearer ${token}`, 
-        'Accept': 'application/json', 
-        'Content-Type': 'application/json' 
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       };
       const res = await fetch(`${API_URL}/hitos/${id}`, { method: 'PUT', headers, body: JSON.stringify({ valor_actual: parseFloat(editValue) }) });
       if (res.ok) {
@@ -112,7 +113,7 @@ export default function ObjetivosTab() {
         setEditValue('');
         fetchHitos();
       }
-    } catch (e) {
+    } catch (err) {
       alert('Error al actualizar.');
     }
   };
@@ -123,7 +124,7 @@ export default function ObjetivosTab() {
       const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
       const res = await fetch(`${API_URL}/hitos/${id}`, { method: 'DELETE', headers });
       if (res.ok) fetchHitos();
-    } catch (e) {
+    } catch (err) {
       alert('Error al eliminar.');
     }
   };
@@ -270,10 +271,10 @@ export default function ObjetivosTab() {
                     <span className="text-brand font-bold">{hito.valor_actual} / {hito.meta_valor} <span className="text-secondary font-normal">{hito.unidad}</span></span>
                   </div>
                   <div className="progress-bar-lg" style={{ height: 10, background: 'rgba(255,255,255,0.05)' }}>
-                    <div className={`progress-fill ${isDone ? 'bg-green' : 'bg-orange'}`} 
-                      style={{ 
+                    <div className={`progress-fill ${isDone ? 'bg-green' : 'bg-orange'}`}
+                      style={{
                         width: `${Math.min(100, hito.progreso_porcentaje)}%`,
-                        boxShadow: `0 0 10px ${isDone ? '#4ade8050' : '#ff6b3550'}` 
+                        boxShadow: `0 0 10px ${isDone ? '#4ade8050' : '#ff6b3550'}`
                       }}>
                     </div>
                   </div>

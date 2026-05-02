@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../logica/UserContext';
 import {
-  Play, Dumbbell, Activity, Target, Flame,
+  Play, Dumbbell, Activity, Target, Flame, CheckCircle2,
   BookOpen, ChevronRight, Award, Apple, BarChart3, CircleDot, User, Construction, LogOut
 } from 'lucide-react';
 import '../estilos/PanelClienteGYMTRACK.css';
@@ -15,11 +15,10 @@ import RutinaTab from './tabs/RutinaTab';
 import LogrosTab from './tabs/LogrosTab';
 import AchievementNotification from '../componentes/AchievementNotification';
 
-const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
+const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
   const { token, userData } = useUser();
   const clienteData = userData?.cliente || {};
 
-  const userName = `${userData?.nombre || 'Usuario'} ${userData?.apellido || ''}`.trim();
   const userFirstName = userData?.nombre || 'Usuario';
   const [navImgError, setNavImgError] = useState(false);
   const userInitials = `${userData?.nombre?.charAt(0) || ''}${userData?.apellido?.charAt(0) || ''}`.toUpperCase();
@@ -30,6 +29,35 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
   const [logrosCount, setLogrosCount] = useState(0);
   const [newLogros, setNewLogros] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exerciseProgress, setExerciseProgress] = useState({});
+
+  useEffect(() => {
+    if (rutinaData && rutinaData.id) {
+      // progreso_guardado from DB takes priority; fallback to localStorage
+      if (rutinaData._progreso_guardado && Object.keys(rutinaData._progreso_guardado).length > 0) {
+        setExerciseProgress(rutinaData._progreso_guardado);
+      } else {
+        const saved = localStorage.getItem(`gymtrack_rutina_${rutinaData.id}`);
+        if (saved) {
+          try {
+            setExerciseProgress(JSON.parse(saved));
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+  }, [rutinaData]);
+
+  const isTodayCompleted = (dayPlan) => {
+    if (!dayPlan || !dayPlan.ejercicios || dayPlan.ejercicios.length === 0) return false;
+    return dayPlan.ejercicios.every(ej => {
+      const exId = ej.id || ej.nombre || ej.ejercicio_nombre;
+      const progress = exerciseProgress[exId];
+      if (!progress) return false;
+      return progress.completedSets.length >= (ej.series || 3);
+    });
+  };
 
   useEffect(() => {
     if (activeTab === 'inicio' && token) {
@@ -45,7 +73,9 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
           if (routineRes.ok) {
             const data = await routineRes.json();
             if (data.rutina?.plan_semanal?.dias) {
-              setRutinaData(data.rutina);
+              // Attach progreso_guardado from DB to the rutina object
+              const rutinaWithProgress = { ...data.rutina, _progreso_guardado: data.progreso_guardado || null };
+              setRutinaData(rutinaWithProgress);
               const dias = data.rutina.plan_semanal.dias;
               let dayIndex = (new Date().getDay() + 6) % 7;
               if (dayIndex >= dias.length) dayIndex = dias.length - 1;
@@ -130,13 +160,18 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
 
             <div className="dashboard-split" style={{ animation: 'fadeIn 0.7s ease' }}>
               <section className="routine-section">
-                <div className="routine-card">
+                <div
+                  className={`routine-card ${isTodayCompleted(todayRoutine) ? 'day-completed' : ''}`}
+                  style={isTodayCompleted(todayRoutine) ? { borderColor: 'rgba(16,185,129,0.5)', background: 'linear-gradient(145deg, rgba(16,185,129,0.1) 0%, rgba(20,20,20,0.8) 100%)' } : {}}
+                >
                   <div className="routine-banner">
                     <div className="banner-details">
-                      <span className="badge glass-badge">Hoy - {todayRoutine?.dia || 'Día 1'}</span>
+                      <span className="badge glass-badge" style={isTodayCompleted(todayRoutine) ? { background: '#10b981', color: 'white' } : {}}>Hoy - {todayRoutine?.dia || 'Día 1'}</span>
                       <span className="badge glass-badge">{todayRoutine?.duracion_estimada || '45-60 min'}</span>
                     </div>
-                    <h2>{todayRoutine?.grupo_muscular || 'Día de descanso'}</h2>
+                    <h2>
+                      {todayRoutine?.grupo_muscular || 'Día de descanso'}
+                    </h2>
                     <p>{todayRoutine?.ejercicios?.length || 0} ejercicios • {todayRoutine?.intensidad || 'Baja'}</p>
                   </div>
 
@@ -152,12 +187,18 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
                             <span><Activity size={14} /> {ex.descanso || '60s'}</span>
                           </div>
                         </div>
-                        <button className="secondary-btn" onClick={() => {
-                          setAutoStartPlan({ ...todayRoutine, ejercicios: [ex] });
-                          setActiveTab('rutina');
-                        }}>
-                          <Play size={16} fill="currentColor" /> Iniciar
-                        </button>
+                        {exerciseProgress[ex.id || ex.nombre || ex.ejercicio_nombre]?.completedSets?.length >= (ex.series || 3) ? (
+                          <div className="completed-badge" style={{ padding: '8px', color: '#10b981' }}>
+                            <CheckCircle2 size={20} />
+                          </div>
+                        ) : (
+                          <button className="secondary-btn" onClick={() => {
+                            setAutoStartPlan({ ...todayRoutine, ejercicios: [ex] });
+                            setActiveTab('rutina');
+                          }}>
+                            <Play size={16} fill="currentColor" /> Iniciar
+                          </button>
+                        )}
                       </div>
                     ))}
                     {!todayRoutine && !loading && (
@@ -174,8 +215,8 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
                         setAutoStartPlan(todayRoutine);
                         setActiveTab('rutina');
                       }
-                    }}>
-                      <Play size={18} fill="currentColor" /> Comenzar Rutina
+                    }} style={isTodayCompleted(todayRoutine) ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}}>
+                      {isTodayCompleted(todayRoutine) ? <CheckCircle2 size={18} /> : <Play size={18} fill="currentColor" />} {isTodayCompleted(todayRoutine) ? 'Repetir Rutina' : 'Comenzar Rutina'}
                     </button>
                     <button className="secondary-btn full-width" onClick={() => setActiveTab('rutina')}>
                       <BookOpen size={18} /> Ver Detalles
@@ -280,10 +321,10 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
           </>
         );
       case 'rutina':
-        return <RutinaTab 
-          autoStartPlan={autoStartPlan} 
-          setAutoStartPlan={setAutoStartPlan} 
-          rutinaActivaData={rutinaData} 
+        return <RutinaTab
+          autoStartPlan={autoStartPlan}
+          setAutoStartPlan={setAutoStartPlan}
+          rutinaActivaData={rutinaData}
           onLogrosUnlocked={setNewLogros}
         />;
       case 'objetivos':
@@ -338,11 +379,11 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
           </div>
           <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: userData?.foto_url && !navImgError ? 'transparent' : '#ff6b35', fontWeight: 'bold', fontSize: '0.9rem', color: 'white' }}>
             {userData?.foto_url && !navImgError ? (
-              <img 
-                src={userData.foto_url} 
-                alt="" 
+              <img
+                src={userData.foto_url}
+                alt=""
                 onError={() => setNavImgError(true)}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
               userInitials || <User color="#fff" size={20} />
@@ -354,9 +395,9 @@ const PanelClienteGYMTRACK = ({ setView, onLogout, activeTab, setActiveTab, auto
         </div>
       </nav>
       <main className="dashboard-main">{renderContent()}</main>
-      <AchievementNotification 
-        achievements={newLogros} 
-        onClose={() => setNewLogros([])} 
+      <AchievementNotification
+        achievements={newLogros}
+        onClose={() => setNewLogros([])}
       />
     </div>
   );

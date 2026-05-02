@@ -13,17 +13,19 @@ import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
 const API_URL = '/api';
 
 function App() {
-  const { token, userData, saveSession, logout } = useUser();
-  
+  const { token, saveSession, logout } = useUser();
+
   const [view, setView] = useState(() => {
     try {
       const savedToken = localStorage.getItem('gymtrack_token');
       const savedUser = localStorage.getItem('gymtrack_user');
       if (savedToken && savedUser && savedUser !== 'undefined') {
-        return localStorage.getItem('gymtrack_view') || 'panelCliente';
+        const savedView = localStorage.getItem('gymtrack_view');
+        return savedView ? savedView : 'panelCliente';
       }
       return 'login';
-    } catch (e) {
+    } catch (error) {
+      console.error('Error accessing local storage:', error);
       return 'login';
     }
   });
@@ -41,7 +43,7 @@ function App() {
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  
+
   const initialFormData = {
     nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
     sexo: '', peso: '', estatura: '', objetivo_principal: '',

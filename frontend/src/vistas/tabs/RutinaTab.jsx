@@ -22,23 +22,46 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [sessionStartTime, setSessionStartTime] = useState(null);
 
-  // Sync to localStorage
+  // Load progress from DB when rutinaActivaData is provided via props
   useEffect(() => {
-    // Network listeners
+    if (rutinaActivaData?._progreso_guardado && Object.keys(rutinaActivaData._progreso_guardado).length > 0) {
+      setExerciseProgress(rutinaActivaData._progreso_guardado);
+    }
+  }, [rutinaActivaData]);
+
+  // Sync progress to backend database
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Also keep localStorage as a fallback
     if (rutinaId) {
       localStorage.setItem(`gymtrack_rutina_${rutinaId}`, JSON.stringify(exerciseProgress));
+    }
+
+    // Sync to backend DB if we have data
+    if (rutinaId && token && Object.keys(exerciseProgress).length > 0) {
+      fetch('/api/rutinas/sync-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          rutina_id: rutinaId,
+          progreso_json: exerciseProgress
+        })
+      }).catch(err => console.error('Sync progress error:', err));
     }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [exerciseProgress, rutinaId]);
+  }, [exerciseProgress, rutinaId, token]);
 
   useEffect(() => {
     let interval;
@@ -166,19 +189,15 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
       if (response.ok) {
         const result = await response.json();
         console.log("Session saved successfully:", result);
-        
+
         // Verificar si se desbloquearon logros
         if (result.logros_desbloqueados && result.logros_desbloqueados.length > 0) {
           if (onLogrosUnlocked) onLogrosUnlocked(result.logros_desbloqueados);
         } else {
           alert("¡Entrenamiento guardado con éxito!");
         }
-        
-        // Limpiar progreso local una vez guardado con éxito
-        if (rutinaId) {
-          localStorage.removeItem(`gymtrack_rutina_${rutinaId}`);
-        }
-        setExerciseProgress({});
+
+        // Progreso local se mantiene intencionalmente
       } else {
         const errorData = await response.json();
         console.error("Error saving session:", errorData);
@@ -218,7 +237,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   };
 
   useEffect(() => {
-    if (rutinaActivaData) return; // Ya se pasó por props, no hacer fetch
+    if (rutinaActivaData) return;
 
     const fetchRutina = async () => {
       if (!token) return;
@@ -235,18 +254,23 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
             setRutinaId(data.rutina.id);
             setRutina(data.rutina.plan_semanal.dias || []);
 
-            const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
-            if (saved) {
-              try {
-                setExerciseProgress(JSON.parse(saved));
-              } catch (e) {
-                console.error("Could not parse saved routine progress");
+            // Load progress from backend DB first, fallback to localStorage
+            if (data.progreso_guardado && Object.keys(data.progreso_guardado).length > 0) {
+              setExerciseProgress(data.progreso_guardado);
+            } else {
+              const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
+              if (saved) {
+                try {
+                  setExerciseProgress(JSON.parse(saved));
+                } catch (err) {
+                  console.error("Could not parse saved routine progress", err);
+                }
               }
             }
           }
         }
-      } catch (e) {
-        console.error('Error fetching routine', e);
+      } catch (err) {
+        console.error('Error fetching routine', err);
       } finally {
         setLoading(false);
       }
@@ -350,11 +374,11 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                 <div className="card-actions" style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '24px' }}>
                   <button
                     className="primary-btn"
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5 }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5, ...(completed ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}) }}
                     onClick={() => startFullRoutine(dayPlan)}
                     disabled={!dayPlan.ejercicios?.length}
                   >
-                    <Play size={16} /> {completed ? 'Repetir' : 'Comenzar'}
+                    {completed ? <CheckCircle2 size={16} /> : <Play size={16} />} {completed ? 'Rutina completada' : 'Comenzar'}
                   </button>
                   <button
                     className="secondary-btn"
@@ -394,8 +418,8 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                       <span className="flex-align-center gap-4"><Target size={14} /> {ej.repeticiones || '10-12'} Reps</span>
                     </div>
                   </div>
-                  <button className="primary-btn flex-align-center gap-8" onClick={() => startExercise({ ...ej, nombre: ej.nombre || ej.ejercicio_nombre || 'Ejercicio', series: ej.series || 3, repeticiones: ej.repeticiones || '10-12', tiempo_descanso: ej.tiempo_descanso || 60, peso_sugerido: ej.peso_sugerido || 'Moderado' })} style={{ padding: '8px 16px' }}>
-                    <Play size={16} /> Iniciar
+                  <button className="primary-btn flex-align-center gap-8" onClick={() => startExercise({ ...ej, nombre: ej.nombre || ej.ejercicio_nombre || 'Ejercicio', series: ej.series || 3, repeticiones: ej.repeticiones || '10-12', tiempo_descanso: ej.tiempo_descanso || 60, peso_sugerido: ej.peso_sugerido || 'Moderado' })} style={{ padding: '8px 16px', ...((exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}) }}>
+                    {(exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? <CheckCircle2 size={16} /> : <Play size={16} />} {(exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? 'Completado' : 'Iniciar'}
                   </button>
                 </div>
               )) : (
