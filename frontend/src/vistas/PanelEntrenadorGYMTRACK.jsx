@@ -224,7 +224,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
         return <PlanNutricionalTab />;
 
       case 'perfil':
-        return <PerfilEntrenadorTab />;
+        return <PerfilEntrenadorTab userData={data} token={userAuth?.access_token || localStorage.getItem('gymtrack_token')} />;
 
       default:
         return null;
