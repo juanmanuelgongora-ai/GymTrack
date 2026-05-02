@@ -50,8 +50,7 @@ class AuthController extends Controller
             $nivelActividad = 'Principiante';
             if (in_array($request->frecuencia, ['3-4 veces'])) {
                 $nivelActividad = 'Intermedio';
-            }
-            elseif (in_array($request->frecuencia, ['5 o más'])) {
+            } elseif (in_array($request->frecuencia, ['5 o más'])) {
                 $nivelActividad = 'Avanzado';
             }
 
@@ -66,15 +65,22 @@ class AuthController extends Controller
                 'nivel_actividad' => $nivelActividad,
                 'condicion_medica' => $request->condicion_medica
             ]);
-        }
-        else if ($user->rol === 'entrenador') {
+        } else if ($user->rol === 'entrenador') {
+            $certificadoPath = null;
+            if ($request->hasFile('certificacion_archivo')) {
+                $file = $request->file('certificacion_archivo');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $certificadoPath = $file->storeAs('certificados', $filename, 'public');
+            }
+
             Entrenador::create([
                 'user_id' => $user->id,
                 'especialidad' => $request->especialidad,
                 'experiencia_anios' => $request->experiencia,
                 'certificacion' => $request->certificacion,
-                'horarios' => $request->horarios,
-                'tipos_entrenamiento' => $request->tipos_entrenamiento,
+                'certificado_path' => $certificadoPath,
+                'horarios' => is_string($request->horarios) ? json_decode($request->horarios, true) : $request->horarios,
+                'tipos_entrenamiento' => is_string($request->tipos_entrenamiento) ? json_decode($request->tipos_entrenamiento, true) : $request->tipos_entrenamiento,
                 'capacidad_maxima' => $request->capacidad_maxima,
                 'objetivos_profesionales' => $request->objetivos
             ]);
