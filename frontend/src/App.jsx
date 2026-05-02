@@ -6,6 +6,7 @@ import LoginView from './vistas/auth/LoginView';
 import RegisterView from './vistas/auth/RegisterView';
 import RegisterEntrenadorView from './vistas/auth/RegisterEntrenadorView';
 import ShopView from './vistas/shop/ShopView';
+import PanelAdminGYMTRACK from './vistas/PanelAdminGYMTRACK';
 import PaymentModal from './vistas/shop/PaymentModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
@@ -300,10 +301,7 @@ function App() {
       )}
 
       {view === 'panelAdmin' && (
-        <div className="placeholder-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>
-          <h1>Panel de Administrador en Construcción</h1>
-          <button className="primary-btn" onClick={handleLogout} style={{ marginTop: '20px' }}>Cerrar Sesión</button>
-        </div>
+        <PanelAdminGYMTRACK onLogout={handleLogout} />
       )}
 
       {view === 'shop' && (
