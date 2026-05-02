@@ -220,27 +220,33 @@ function App() {
       const nombre = nameParts[0] || 'Desconocido';
       const apellido = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '.';
 
+      const formData = new FormData();
+      formData.append('nombre', nombre);
+      formData.append('apellido', apellido);
+      formData.append('email', entrenadorData.correo);
+      formData.append('password', entrenadorData.password);
+      formData.append('rol', 'entrenador');
+      formData.append('edad', entrenadorData.edad);
+      formData.append('genero', entrenadorData.sexo);
+      formData.append('contacto', entrenadorData.contacto);
+      formData.append('direccion', entrenadorData.direccion);
+      formData.append('emergencia', entrenadorData.emergencia);
+      formData.append('especialidad', entrenadorData.especialidad);
+      formData.append('experiencia', entrenadorData.experiencia);
+      formData.append('certificacion', entrenadorData.certificacion);
+      formData.append('capacidad_maxima', entrenadorData.capacidad_maxima);
+      formData.append('objetivos', entrenadorData.objetivos);
+
+      if (entrenadorData.certificacion_archivo) {
+        formData.append('certificacion_archivo', entrenadorData.certificacion_archivo);
+      }
+      formData.append('horarios', JSON.stringify(entrenadorData.horarios));
+      formData.append('tipos_entrenamiento', JSON.stringify(entrenadorData.tipos_entrenamiento));
+
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          nombre, apellido,
-          email: entrenadorData.correo,
-          password: entrenadorData.password,
-          rol: 'entrenador',
-          edad: entrenadorData.edad,
-          genero: entrenadorData.sexo,
-          contacto: entrenadorData.contacto,
-          direccion: entrenadorData.direccion,
-          emergencia: entrenadorData.emergencia,
-          especialidad: entrenadorData.especialidad,
-          experiencia: entrenadorData.experiencia,
-          certificacion: entrenadorData.certificacion,
-          horarios: entrenadorData.horarios,
-          tipos_entrenamiento: entrenadorData.tipos_entrenamiento,
-          capacidad_maxima: entrenadorData.capacidad_maxima,
-          objetivos: entrenadorData.objetivos
-        })
+        headers: { 'Accept': 'application/json' },
+        body: formData
       });
       const data = await response.json();
       if (response.ok) {

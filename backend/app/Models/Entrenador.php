@@ -21,6 +21,7 @@ class Entrenador extends Model
         'especialidad',
         'experiencia_anios',
         'certificacion',
+        'certificado_path',
         'horarios',
         'tipos_entrenamiento',
         'capacidad_maxima',
