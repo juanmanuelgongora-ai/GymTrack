@@ -1,0 +1,6 @@
+{
+  "appId": "com.GYMTRACK.app",
+  "appName": "com.gymtrack.app",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
