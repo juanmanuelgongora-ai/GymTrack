@@ -31,44 +31,44 @@ const IngresosAdminTab = () => {
     ];
 
     return (
-        <div style={{ animation: 'fadeIn 0.5s ease' }}>
+        <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
             {/* Header Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <h1 className="glow-text" style={{ fontSize: '3rem', margin: 0 }}>Ingresos</h1>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="glass-panel" style={{ padding: '10px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: '1px solid rgba(255,140,66,0.3)', color: '#ff8c42', background: 'rgba(255,140,66,0.05)' }}>
-                        <Filter size={18} /> Filtrar
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
+                <h1 className="glow-text" style={{ fontSize: '3.5rem', margin: 0 }}>Ingresos</h1>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                    <button className="glass-panel" style={{ padding: '12px 24px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', border: '1px solid rgba(255,140,66,0.3)', color: '#ff8c42', background: 'rgba(255,140,66,0.05)', fontWeight: '600' }}>
+                        <Filter size={20} /> Filtrar
                     </button>
-                    <button className="glass-panel" style={{ padding: '10px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: '1px solid rgba(255,140,66,0.3)', color: '#ff8c42', background: 'rgba(255,140,66,0.05)' }}>
-                        <Download size={18} /> Exportar
+                    <button className="glass-panel" style={{ padding: '12px 24px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', border: '1px solid rgba(255,140,66,0.3)', color: '#ff8c42', background: 'rgba(255,140,66,0.05)', fontWeight: '600' }}>
+                        <Download size={20} /> Exportar
                     </button>
                 </div>
             </div>
 
             {/* Financial Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '32px', marginBottom: '48px' }}>
                 {financialCards.map((card, idx) => (
-                    <div key={idx} className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                            <div style={{ color: card.color, background: `${card.color}15`, padding: '10px', borderRadius: '12px' }}>
-                                <DollarSign size={20} />
+                    <div key={idx} className="glass-panel" style={{ padding: '32px', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
+                            <div style={{ color: card.color, background: `${card.color}15`, padding: '14px', borderRadius: '16px' }}>
+                                <DollarSign size={24} />
                             </div>
-                            <span style={{ color: '#888', fontSize: '13px' }}>{card.label}</span>
+                            <span style={{ color: '#888', fontSize: '15px', fontWeight: '500' }}>{card.label}</span>
                         </div>
-                        <h2 style={{ fontSize: '28px', margin: '0 0 8px 0' }}>{card.value}</h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: card.color, fontSize: '12px', fontWeight: '600' }}>
+                        <h2 style={{ fontSize: '36px', margin: '0 0 12px 0', fontWeight: '800' }}>{card.value}</h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: card.color, fontSize: '14px', fontWeight: '700' }}>
                             {card.icon} {card.trend}
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px', marginBottom: '48px' }}>
                 {/* Distribution Chart */}
-                <div className="glass-panel" style={{ padding: '32px', borderRadius: '16px' }}>
-                    <h3 style={{ margin: '0 0 24px 0', fontSize: '18px' }}>Distribución de Ingresos</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="glass-panel" style={{ padding: '40px', borderRadius: '24px' }}>
+                    <h3 style={{ margin: '0 0 32px 0', fontSize: '22px', fontWeight: '700' }}>Distribución de Ingresos</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '60px' }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             {[
                                 { label: 'Premium', value: '€3,399.55', perc: '45%', color: '#ff8c42' },
                                 { label: 'Básica', value: '€2,799.30', perc: '35%', color: '#ffcc33' },
@@ -76,93 +76,92 @@ const IngresosAdminTab = () => {
                                 { label: 'Otros', value: '€400.00', perc: '5%', color: '#2ecc71' }
                             ].map((cat, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2px solid ${cat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', color: cat.color }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: `2.5px solid ${cat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', color: cat.color }}>
                                             {cat.perc}
                                         </div>
                                         <div>
-                                            <p style={{ margin: 0, fontSize: '13px', fontWeight: '600' }}>{cat.label}</p>
-                                            <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>{cat.value}</p>
+                                            <p style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>{cat.label}</p>
+                                            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#666' }}>{cat.value}</p>
                                         </div>
                                     </div>
-                                    <span style={{ color: '#2ecc71', fontSize: '11px', fontWeight: 'bold' }}>↗ 8%</span>
+                                    <span style={{ color: '#2ecc71', fontSize: '13px', fontWeight: '800' }}>↗ 8%</span>
                                 </div>
                             ))}
                         </div>
-                        <div style={{ position: 'relative', width: '200px', height: '200px' }}>
-                            <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2c2c2e" strokeWidth="15" />
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ff8c42" strokeWidth="15" strokeDasharray="251.2" strokeDashoffset="138.16" />
+                        <div style={{ position: 'relative', width: '240px', height: '240px' }}>
+                            <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }}>
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="15" />
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ff8c42" strokeWidth="15" strokeDasharray="251.2" strokeDashoffset="138.16" strokeLinecap="round" />
                             </svg>
                             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                                <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>Total</p>
-                                <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '4px 0 0 0' }}>€7,999</p>
+                                <p style={{ fontSize: '12px', color: '#888', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Total</p>
+                                <p style={{ fontSize: '24px', fontWeight: '900', margin: '4px 0 0 0' }}>€7,999</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Info Card / Secondary Stat */}
-                <div className="glass-panel" style={{ padding: '32px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-gradient)', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)' }}></div>
-                    <div style={{ position: 'relative', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '40px', margin: 0 }}>+25%</h2>
-                        <p style={{ fontSize: '16px', opacity: 0.8 }}>Incremento proyectado</p>
-                        <p style={{ fontSize: '12px', opacity: 0.6, marginTop: '16px' }}>Basado en el crecimiento actual de suscripciones Premium.</p>
+                <div className="glass-panel" style={{ padding: '40px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,140,66,0.1)', border: '1px solid rgba(255,140,66,0.2)', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}>
+                        <h2 style={{ fontSize: '64px', margin: 0, fontWeight: '900', color: '#ff8c42' }}>+25%</h2>
+                        <p style={{ fontSize: '18px', fontWeight: '700', color: '#fff', marginTop: '8px' }}>Incremento proyectado</p>
+                        <p style={{ fontSize: '14px', color: '#aaa', marginTop: '16px', lineHeight: '1.6', maxWidth: '300px' }}>Basado en el crecimiento actual de suscripciones Premium y membresías corporativas.</p>
                     </div>
                 </div>
             </div>
 
             {/* Transactions Table */}
-            <div className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-                <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px' }}>Transacciones Recientes</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>Últimas 10 operaciones</p>
+            <div className="glass-panel" style={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+                <div style={{ padding: '32px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)' }}>
+                    <h3 style={{ margin: 0, fontSize: '22px', fontWeight: '700' }}>Transacciones Recientes</h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: '#666' }}>Últimas 10 operaciones del sistema</p>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ background: 'rgba(255,255,255,0.01)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <th style={{ padding: '16px 24px', fontSize: '11px', color: '#666', fontWeight: '700', textTransform: 'uppercase' }}>Miembro</th>
-                            <th style={{ padding: '16px 24px', fontSize: '11px', color: '#666', fontWeight: '700', textTransform: 'uppercase' }}>Concepto</th>
-                            <th style={{ padding: '16px 24px', fontSize: '11px', color: '#666', fontWeight: '700', textTransform: 'uppercase' }}>Monto</th>
-                            <th style={{ padding: '16px 24px', fontSize: '11px', color: '#666', fontWeight: '700', textTransform: 'uppercase' }}>Método</th>
-                            <th style={{ padding: '16px 24px', fontSize: '11px', color: '#666', fontWeight: '700', textTransform: 'uppercase' }}>Fecha</th>
-                            <th style={{ padding: '16px 24px', fontSize: '11px', color: '#666', fontWeight: '700', textTransform: 'uppercase' }}>Estado</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Miembro</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Concepto</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Monto</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Método</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Fecha</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         {transactions.map((tx) => (
-                            <tr key={tx.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                <td style={{ padding: '16px 24px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <tr key={tx.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                         {tx.initial ? (
-                                            <div style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: '#ff8c42' }}>
+                                            <div style={{ width: '40px', height: '40px', background: 'rgba(255,140,66,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: '#ff8c42' }}>
                                                 {tx.initial}
                                             </div>
                                         ) : (
-                                            <div style={{ width: '32px', height: '32px', background: 'rgba(255,77,77,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4d4d' }}>
+                                            <div style={{ width: '40px', height: '40px', background: 'rgba(255,77,77,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4d4d' }}>
                                                 {tx.icon}
                                             </div>
                                         )}
-                                        <span style={{ fontSize: '13px', fontWeight: '500' }}>{tx.name || 'Gasto Operativo'}</span>
+                                        <span style={{ fontSize: '15px', fontWeight: '600' }}>{tx.name || 'Gasto Operativo'}</span>
                                     </div>
                                 </td>
-                                <td style={{ padding: '16px 24px', color: '#888', fontSize: '13px' }}>{tx.concepto}</td>
-                                <td style={{ padding: '16px 24px', fontWeight: '600', color: tx.monto.startsWith('+') ? '#2ecc71' : '#ff4d4d', fontSize: '13px' }}>
+                                <td style={{ padding: '24px', color: '#aaa', fontSize: '14px' }}>{tx.concepto}</td>
+                                <td style={{ padding: '24px', fontWeight: '700', color: tx.monto.startsWith('+') ? '#2ecc71' : '#ff4d4d', fontSize: '15px' }}>
                                     {tx.monto}
                                 </td>
-                                <td style={{ padding: '16px 24px', color: '#888', fontSize: '13px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <CreditCard size={14} /> {tx.metodo}
+                                <td style={{ padding: '24px', color: '#aaa', fontSize: '14px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <CreditCard size={16} /> {tx.metodo}
                                     </div>
                                 </td>
-                                <td style={{ padding: '16px 24px', color: '#666', fontSize: '12px' }}>{tx.fecha}</td>
-                                <td style={{ padding: '16px 24px' }}>
+                                <td style={{ padding: '24px', color: '#666', fontSize: '13px' }}>{tx.fecha}</td>
+                                <td style={{ padding: '24px' }}>
                                     <span style={{
-                                        padding: '4px 10px',
+                                        padding: '6px 12px',
                                         borderRadius: '100px',
-                                        fontSize: '11px',
-                                        fontWeight: '600',
+                                        fontSize: '12px',
+                                        fontWeight: '700',
                                         background: tx.estado === 'Completado' ? 'rgba(46,204,113,0.1)' : 'rgba(255,140,66,0.1)',
                                         color: tx.estado === 'Completado' ? '#2ecc71' : '#ff8c42'
                                     }}>

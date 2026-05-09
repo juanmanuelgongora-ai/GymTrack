@@ -29,6 +29,7 @@ class AuthController extends Controller
             'email' => $request->email,
             'password_hash' => Hash::make($request->password),
             'rol' => $request->rol ?? 'cliente',
+            'activo' => ($request->rol === 'entrenador') ? false : true,
         ]);
 
         if ($user->rol === 'cliente') {
@@ -82,7 +83,13 @@ class AuthController extends Controller
                 'horarios' => is_string($request->horarios) ? json_decode($request->horarios, true) : $request->horarios,
                 'tipos_entrenamiento' => is_string($request->tipos_entrenamiento) ? json_decode($request->tipos_entrenamiento, true) : $request->tipos_entrenamiento,
                 'capacidad_maxima' => $request->capacidad_maxima,
-                'objetivos_profesionales' => $request->objetivos
+                'objetivos_profesionales' => $request->objetivos,
+                'estado' => 'pendiente',
+                'edad' => $request->edad,
+                'genero' => $request->genero,
+                'contacto' => $request->contacto,
+                'direccion' => $request->direccion,
+                'emergencia' => $request->emergencia
             ]);
         }
 
@@ -109,10 +116,16 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // Validamos la contraseña contra el hash de la BD
         if (!$user || !Hash::check($request->password, $user->password_hash)) {
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales proporcionadas son incorrectas.'],
+            ]);
+        }
+
+        // Verificamos si el usuario no ha sido aprobado (inactivo)
+        if (!$user->activo) {
+            throw ValidationException::withMessages([
+                'email' => ['Tu cuenta no está activa. Si eres entrenador, espera a que el administrador apruebe tu solicitud.'],
             ]);
         }
 

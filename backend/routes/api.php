@@ -10,6 +10,8 @@ use App\Http\Controllers\API\EjercicioController;
 use App\Http\Controllers\API\EntrenamientoController;
 
 use App\Http\Controllers\API\LogroController;
+use App\Http\Controllers\API\AdminUserController;
+use App\Http\Controllers\API\AdminEntrenadorController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -56,4 +58,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Ejercicios
     Route::get('/ejercicios', [EjercicioController::class, 'index']);
     Route::post('/ejercicios/{ejercicio}/toggle-favorito', [EjercicioController::class, 'toggleFavorito']);
+
+    // Admin: Gestión de Usuarios
+    Route::get('/admin/users', [AdminUserController::class, 'index']);
+    Route::post('/admin/users', [AdminUserController::class, 'store']);
+    Route::patch('/admin/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus']);
+
+    // Admin: Gestión de Entrenadores
+    Route::get('/admin/entrenadores/pendientes', [AdminEntrenadorController::class, 'getPending']);
+    Route::post('/admin/entrenadores/{id}/aprobar', [AdminEntrenadorController::class, 'approve']);
+    Route::post('/admin/entrenadores/{id}/rechazar', [AdminEntrenadorController::class, 'reject']);
+    Route::get('/admin/entrenadores/{id}/certificado', [AdminEntrenadorController::class, 'downloadCertificado']);
 });

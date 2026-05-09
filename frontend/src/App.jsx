@@ -251,8 +251,8 @@ function App() {
       });
       const data = await response.json();
       if (response.ok) {
-        saveSession(data.access_token, data.user);
-        handleSetView('panelEntrenador');
+        alert('Registro completado. Tu solicitud ha sido enviada al administrador y se encuentra pendiente de aprobación. Serás notificado cuando se tome una decisión.');
+        handleSetView('login');
       } else {
         alert('Error de registro: ' + (data.message || JSON.stringify(data.errors)));
       }

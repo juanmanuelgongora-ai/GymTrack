@@ -25,11 +25,23 @@ class Entrenador extends Model
         'horarios',
         'tipos_entrenamiento',
         'capacidad_maxima',
-        'objetivos_profesionales'
+        'objetivos_profesionales',
+        'estado',
+        'motivo_rechazo',
+        'edad',
+        'genero',
+        'contacto',
+        'direccion',
+        'emergencia'
     ];
 
     protected $casts = [
         'horarios' => 'array',
         'tipos_entrenamiento' => 'array'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
