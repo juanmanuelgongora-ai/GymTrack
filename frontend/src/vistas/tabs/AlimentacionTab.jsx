@@ -1,16 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Apple, Flame, Droplet, Wheat, CheckCircle2, Circle, Clock } from 'lucide-react';
 import '../../estilos/tabs.css';
+import { useUser } from '../../logica/UserContext';
+
+const defaultMeals = [
+  { id: 1, time: '07:00 AM', name: 'Desayuno', kcal: 620, p: 35, c: 65, g: 18, done: false, icon: Flame, iconColor: '#ff6b35' },
+  { id: 2, time: '10:30 AM', name: 'Media Mañana', kcal: 280, p: 25, c: 30, g: 8, done: false, icon: Apple, iconColor: '#4ade80' },
+  { id: 3, time: '01:00 PM', name: 'Almuerzo', kcal: 850, p: 55, c: 70, g: 18, done: false, icon: Droplet, iconColor: '#3b82f6' },
+  { id: 4, time: '05:00 PM', name: 'Merienda Pre-Entreno', kcal: 320, p: 20, c: 45, g: 6, done: false, icon: Wheat, iconColor: '#eab308' },
+  { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
+];
 
 export default function AlimentacionTab() {
-  
-  const [meals, setMeals] = useState([
-    { id: 1, time: '07:00 AM', name: 'Desayuno', kcal: 620, p: 35, c: 65, g: 18, done: true, icon: Flame, iconColor: '#ff6b35' },
-    { id: 2, time: '10:30 AM', name: 'Media Mañana', kcal: 280, p: 25, c: 30, g: 8, done: false, icon: Apple, iconColor: '#4ade80' },
-    { id: 3, time: '01:00 PM', name: 'Almuerzo', kcal: 850, p: 55, c: 70, g: 18, done: false, icon: Droplet, iconColor: '#3b82f6' },
-    { id: 4, time: '05:00 PM', name: 'Merienda Pre-Entreno', kcal: 320, p: 20, c: 45, g: 6, done: false, icon: Wheat, iconColor: '#eab308' },
-    { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
-  ]);
+  const { userData } = useUser();
+  const userId = userData?.id || 'guest';
+  const storageKey = `gymtrack_meals_${userId}`;
+  const today = new Date().toDateString();
+
+  const [meals, setMeals] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === today) {
+          return defaultMeals.map(meal => {
+            const savedMeal = parsed.meals.find(m => m.id === meal.id);
+            return savedMeal ? { ...meal, done: savedMeal.done } : meal;
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing meals", e);
+      }
+    }
+    return defaultMeals;
+  });
+
+  useEffect(() => {
+    const dataToSave = meals.map(m => ({ id: m.id, done: m.done }));
+    localStorage.setItem(storageKey, JSON.stringify({
+      date: today,
+      meals: dataToSave
+    }));
+  }, [meals, today, storageKey]);
 
   const [recipeFilter, setRecipeFilter] = useState('Todas');
   
