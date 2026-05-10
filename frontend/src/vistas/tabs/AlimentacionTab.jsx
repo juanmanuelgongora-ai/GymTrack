@@ -46,11 +46,11 @@ export default function AlimentacionTab() {
   const [recipeFilter, setRecipeFilter] = useState('Todas');
   
   const sugerencias = [
-    { id: 1, type: 'Desayuno', name: 'Avena Proteica con Frutos Rojos', diff: 'Fácil', time: '10 min', kcal: 350, p: 25, c: 45, g: 8, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 2, type: 'Almuerzo', name: 'Bowl de Quinoa y Salmón', diff: 'Medio', time: '25 min', kcal: 520, p: 40, c: 50, g: 18, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 3, type: 'Cena', name: 'Wrap de Pollo y Espinaca', diff: 'Fácil', time: '15 min', kcal: 400, p: 35, c: 30, g: 12, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 4, type: 'Almuerzo', name: 'Pechuga Grillada con Batata', diff: 'Fácil', time: '20 min', kcal: 450, p: 45, c: 55, g: 5, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 5, type: 'Desayuno', name: 'Smoothie Verde Proteico', diff: 'Muy Fácil', time: '5 min', kcal: 280, p: 30, c: 35, g: 5, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+    { id: 1, type: 'Desayuno', name: 'Avena Proteica con Frutos Rojos', diff: 'Fácil', time: '10 min', kcal: 350, p: 25, c: 45, g: 8, img: '/images/avena.png' },
+    { id: 2, type: 'Almuerzo', name: 'Bowl de Quinoa y Salmón', diff: 'Medio', time: '25 min', kcal: 520, p: 40, c: 50, g: 18, img: '/images/quinoa.png' },
+    { id: 3, type: 'Cena', name: 'Wrap de Pollo y Espinaca', diff: 'Fácil', time: '15 min', kcal: 400, p: 35, c: 30, g: 12, img: '/images/wrap.png' },
+    { id: 4, type: 'Almuerzo', name: 'Pechuga Grillada con Batata', diff: 'Fácil', time: '20 min', kcal: 450, p: 45, c: 55, g: 5, img: '/images/pechuga.png' },
+    { id: 5, type: 'Desayuno', name: 'Smoothie Verde Proteico', diff: 'Muy Fácil', time: '5 min', kcal: 280, p: 30, c: 35, g: 5, img: '/images/smoothie.png' },
   ];
 
   const filteredRecetas = recipeFilter === 'Todas' ? sugerencias : sugerencias.filter(r => r.type === recipeFilter);
@@ -270,7 +270,7 @@ export default function AlimentacionTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {filteredRecetas.map((receta) => (
               <div className="recipe-card glass-panel" style={{ cursor: 'pointer', transition: 'all 0.2s ease', border: '1px solid rgba(255,255,255,0.05)' }} key={receta.id}>
-                <div className="recipe-img placeholder-img" style={{ background: receta.img, height: '100px', borderRadius: '12px 12px 0 0' }}></div>
+                <div className="recipe-img placeholder-img" style={{ backgroundImage: `url(${receta.img})`, backgroundSize: 'cover', backgroundPosition: 'center', height: '140px', borderRadius: '12px 12px 0 0' }}></div>
                 <div className="p-16" style={{ padding: '16px' }}>
                   <div className="flex-between mb-4">
                     <span className="text-xs" style={{ color: '#ff6b35', fontWeight: 'bold' }}>{receta.type}</span>
