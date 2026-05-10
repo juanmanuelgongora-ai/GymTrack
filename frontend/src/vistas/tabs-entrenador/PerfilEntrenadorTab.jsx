@@ -39,6 +39,28 @@ const PerfilEntrenadorTab = ({ userData, token }) => {
     const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim() || 'Entrenador';
     const initials = nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'E';
 
+    const renderTiposEntrenamiento = (tipos) => {
+        if (!tipos) return <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>--</span>;
+        let arr = [];
+        try {
+            arr = JSON.parse(tipos);
+        } catch {
+            arr = tipos.toString().split(',').map(t => t.trim());
+        }
+        
+        if (!Array.isArray(arr) || arr.length === 0) return <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>--</span>;
+        
+        return (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '280px' }}>
+                {arr.map((tipo, idx) => (
+                    <span key={idx} style={{ background: 'rgba(255, 107, 53, 0.1)', color: '#ff6b35', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', border: '1px solid rgba(255, 107, 53, 0.2)' }}>
+                        {tipo}
+                    </span>
+                ))}
+            </div>
+        );
+    };
+
     if (loading) {
         return (
           <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
@@ -159,9 +181,9 @@ const PerfilEntrenadorTab = ({ userData, token }) => {
                                 <span style={{ color: '#888', fontSize: '14px' }}>Horario de Trabajo</span>
                                 <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.horarios || '--'}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Tipos de Entrenamiento</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.tipos_entrenamiento || '--'}</span>
+                                {renderTiposEntrenamiento(entrenador.tipos_entrenamiento)}
                             </div>
                         </div>
                     </div>

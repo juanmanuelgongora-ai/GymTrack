@@ -59,6 +59,67 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ejercicios', [EjercicioController::class, 'index']);
     Route::post('/ejercicios/{ejercicio}/toggle-favorito', [EjercicioController::class, 'toggleFavorito']);
 
+    // Entrenador Dashboard Stats
+    Route::get('/entrenador/dashboard', function (Request $request) {
+        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->get();
+        $ingresos = $clientes->count() * 100; // Simular $100 por cliente usando clientes reales
+        return response()->json([
+            'ingresos_mes' => $ingresos,
+            'clientes_activos' => $clientes->count(),
+            'clases_pendientes' => rand(2, 8),
+            'retencion' => 95,
+            'nuevos_clientes' => $clientes->sortByDesc('created_at')->take(3)->map(function($c) {
+                return [
+                    'id' => $c->id,
+                    'name' => trim($c->nombre . ' ' . $c->apellido),
+                    'goal' => 'Mejorar condición',
+                    'joined' => $c->created_at->diffForHumans()
+                ];
+            })->values()
+        ]);
+    });
+
+    // Entrenador: Gestión de Clientes (Consultar todos los clientes activos como proxy de mis clientes)
+    Route::get('/entrenador/clientes', function (Request $request) {
+        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->with('cliente')->get();
+        return response()->json($clientes->map(function($user) {
+            $clienteInfo = $user->cliente;
+            $healthInfo = $clienteInfo && $clienteInfo->condicion_medica 
+                          ? json_decode($clienteInfo->condicion_medica, true) 
+                          : [];
+                          
+            return [
+                'id' => $user->id,
+                'name' => trim($user->nombre . ' ' . $user->apellido) ?: 'Usuario sin nombre',
+                'email' => $user->email,
+                'age' => $clienteInfo && $clienteInfo->fecha_nacimiento ? \Carbon\Carbon::parse($clienteInfo->fecha_nacimiento)->age : '--',
+                'plan' => 'Básico', // Plan por defecto si no hay modelo de pago
+                'healthInfo' => [
+                    'condiciones_medicas' => $healthInfo['estado_general'] ?? 'Ninguna registrada',
+                    'lesiones_activas' => $healthInfo['lesiones'] ?? 'Ninguna registrada',
+                    'restricciones_movimiento' => $healthInfo['restricciones_movimiento'] ?? 'Ninguna registrada',
+                    'objetivos_acordados' => $clienteInfo->objetivo_principal ?? 'Ninguno registrado'
+                ]
+            ];
+        }));
+    });
+
+    Route::put('/entrenador/clientes/{id}/health', function (Request $request, $id) {
+        $user = \App\Models\User::findOrFail($id);
+        $cliente = $user->cliente;
+        if ($cliente) {
+            $currentHealth = $cliente->condicion_medica ? json_decode($cliente->condicion_medica, true) : [];
+            $currentHealth['estado_general'] = $request->input('condiciones_medicas');
+            $currentHealth['lesiones'] = $request->input('lesiones_activas');
+            $currentHealth['restricciones_movimiento'] = $request->input('restricciones_movimiento');
+            
+            $cliente->condicion_medica = json_encode($currentHealth);
+            $cliente->objetivo_principal = $request->input('objetivos_acordados');
+            $cliente->save();
+        }
+        return response()->json(['success' => true]);
+    });
+
     // Admin: Gestión de Usuarios
     Route::get('/admin/users', [AdminUserController::class, 'index']);
     Route::post('/admin/users', [AdminUserController::class, 'store']);
