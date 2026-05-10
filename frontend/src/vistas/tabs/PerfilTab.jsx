@@ -199,6 +199,25 @@ export default function PerfilTab({ onLogrosUnlocked }) {
     );
   }
 
+  const renderCondicionMedica = (condicion) => {
+    if (!condicion) return <div className="data-row"><span className="data-label">Salud</span><span className="data-value">Sin reporte</span></div>;
+    try {
+      const parsed = typeof condicion === 'string' ? JSON.parse(condicion) : condicion;
+      return (
+        <>
+          <div className="data-row"><span className="data-label">Estado de Salud</span><span className="data-value">{parsed.salud || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Cirugías Previas</span><span className="data-value">{parsed.cirugia || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Medicamentos</span><span className="data-value">{parsed.medicamentos || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Condiciones</span><span className="data-value">{parsed.condiciones && parsed.condiciones.length > 0 ? parsed.condiciones.join(', ') : 'Ninguna'}</span></div>
+          <div className="data-row"><span className="data-label">Lesiones</span><span className="data-value">{parsed.lesion || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Horas de Sueño</span><span className="data-value">{parsed.sueno || 'N/A'} hrs</span></div>
+        </>
+      );
+    } catch (e) {
+      return <div className="data-row"><span className="data-label">Salud</span><span className="data-value">{condicion}</span></div>;
+    }
+  };
+
   return (
     <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease' }}>
       <div className="perfil-header p-24">
@@ -297,7 +316,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
               <div className="data-row"><span className="data-label">Peso Actual</span><span className="data-value">{clienteData.peso_kg || latestMetrica?.peso_kg || '--'} kg</span></div>
               <div className="data-row"><span className="data-label">IMC</span><span className="data-value">{clienteData.imc || latestMetrica?.imc || '--'}</span></div>
               <div className="data-row"><span className="data-label">Objetivo</span><span className="data-value">{clienteData.objetivo_principal || '--'}</span></div>
-              <div className="data-row"><span className="data-label">Salud</span><span className="data-value">{clienteData.condicion_medica || 'Sin reporte'}</span></div>
+              {renderCondicionMedica(clienteData.condicion_medica)}
             </div>
           </div>
         </div>
