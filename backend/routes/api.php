@@ -10,46 +10,124 @@ use App\Http\Controllers\API\EjercicioController;
 use App\Http\Controllers\API\EntrenamientoController;
 
 use App\Http\Controllers\API\LogroController;
+use App\Http\Controllers\API\AdminUserController;
+use App\Http\Controllers\API\AdminEntrenadorController;
 
-Route::post('/register', [AuthController::class , 'register']);
-Route::post('/login', [AuthController::class , 'login']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class , 'logout']);
-    Route::get('/user', function (Request $request) {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get(
+        '/user',
+        function (Request $request) {
             return $request->user()->load('cliente');
         }
-        );
+    );
 
-        // Logros
-        Route::get('/logros', [LogroController::class, 'index']);
-        Route::get('/logros/recientes', [LogroController::class, 'recentlyUnlocked']);
+    // Logros
+    Route::get('/logros', [LogroController::class, 'index']);
+    Route::get('/logros/recientes', [LogroController::class, 'recentlyUnlocked']);
 
-        // Perfil completo: usuario + datos de cliente/entrenador
-        Route::get('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'show']);
-        Route::put('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'update']);
-        Route::post('/me/perfil/foto', [\App\Http\Controllers\API\ProfileController::class, 'updatePhoto']);
+    // Perfil completo: usuario + datos de cliente/entrenador
+    Route::get('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'show']);
+    Route::put('/me/perfil', [\App\Http\Controllers\API\ProfileController::class, 'update']);
+    Route::post('/me/perfil/foto', [\App\Http\Controllers\API\ProfileController::class, 'updatePhoto']);
 
-        // Métricas corporales
-        Route::get('/metricas', [MetricaController::class , 'index']);
-        Route::get('/metricas/latest', [MetricaController::class , 'latest']);
-        Route::post('/metricas', [MetricaController::class , 'store']);
+    // Métricas corporales
+    Route::get('/metricas', [MetricaController::class, 'index']);
+    Route::get('/metricas/latest', [MetricaController::class, 'latest']);
+    Route::post('/metricas', [MetricaController::class, 'store']);
 
-        // Hitos físicos
-        Route::get('/hitos', [HitoController::class , 'index']);
-        Route::post('/hitos', [HitoController::class , 'store']);
-        Route::put('/hitos/{id}', [HitoController::class , 'update']);
-        Route::delete('/hitos/{id}', [HitoController::class , 'destroy']);
+    // Hitos físicos
+    Route::get('/hitos', [HitoController::class, 'index']);
+    Route::post('/hitos', [HitoController::class, 'store']);
+    Route::put('/hitos/{id}', [HitoController::class, 'update']);
+    Route::delete('/hitos/{id}', [HitoController::class, 'destroy']);
 
-        // Rutinas AI
-        Route::post('/rutinas/generar', [RutinaController::class , 'generarRutinaInicial']);
-        Route::get('/rutinas/latest', [RutinaController::class , 'getLatestRoutine']);
+    // Rutinas AI
+    Route::post('/rutinas/generar', [RutinaController::class, 'generarRutinaInicial']);
+    Route::get('/rutinas/latest', [RutinaController::class, 'getLatestRoutine']);
+    Route::post('/rutinas/sync-progress', [RutinaController::class, 'syncProgress']);
+    Route::get('/rutinas/{rutinaId}/progress', [RutinaController::class, 'getProgress']);
 
-        // Entrenamientos (Sesiones reales)
-        Route::post('/entrenamientos/registrar', [EntrenamientoController::class, 'registrar']);
-        Route::get('/entrenamientos/stats', [EntrenamientoController::class, 'stats']);
+    // Entrenamientos (Sesiones reales)
+    Route::post('/entrenamientos/registrar', [EntrenamientoController::class, 'registrar']);
+    Route::get('/entrenamientos/stats', [EntrenamientoController::class, 'stats']);
 
-        // Ejercicios
-        Route::get('/ejercicios', [EjercicioController::class , 'index']);
-        Route::post('/ejercicios/{ejercicio}/toggle-favorito', [EjercicioController::class , 'toggleFavorito']);
+    // Ejercicios
+    Route::get('/ejercicios', [EjercicioController::class, 'index']);
+    Route::post('/ejercicios/{ejercicio}/toggle-favorito', [EjercicioController::class, 'toggleFavorito']);
+
+    // Entrenador Dashboard Stats
+    Route::get('/entrenador/dashboard', function (Request $request) {
+        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->get();
+        $ingresos = $clientes->count() * 100; // Simular $100 por cliente usando clientes reales
+        return response()->json([
+            'ingresos_mes' => $ingresos,
+            'clientes_activos' => $clientes->count(),
+            'clases_pendientes' => rand(2, 8),
+            'retencion' => 95,
+            'nuevos_clientes' => $clientes->sortByDesc('created_at')->take(3)->map(function($c) {
+                return [
+                    'id' => $c->id,
+                    'name' => trim($c->nombre . ' ' . $c->apellido),
+                    'goal' => 'Mejorar condición',
+                    'joined' => $c->created_at->diffForHumans()
+                ];
+            })->values()
+        ]);
     });
+
+    // Entrenador: Gestión de Clientes (Consultar todos los clientes activos como proxy de mis clientes)
+    Route::get('/entrenador/clientes', function (Request $request) {
+        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->with('cliente')->get();
+        return response()->json($clientes->map(function($user) {
+            $clienteInfo = $user->cliente;
+            $healthInfo = $clienteInfo && $clienteInfo->condicion_medica 
+                          ? json_decode($clienteInfo->condicion_medica, true) 
+                          : [];
+                          
+            return [
+                'id' => $user->id,
+                'name' => trim($user->nombre . ' ' . $user->apellido) ?: 'Usuario sin nombre',
+                'email' => $user->email,
+                'age' => $clienteInfo && $clienteInfo->fecha_nacimiento ? \Carbon\Carbon::parse($clienteInfo->fecha_nacimiento)->age : '--',
+                'plan' => 'Básico', // Plan por defecto si no hay modelo de pago
+                'healthInfo' => [
+                    'condiciones_medicas' => $healthInfo['estado_general'] ?? 'Ninguna registrada',
+                    'lesiones_activas' => $healthInfo['lesiones'] ?? 'Ninguna registrada',
+                    'restricciones_movimiento' => $healthInfo['restricciones_movimiento'] ?? 'Ninguna registrada',
+                    'objetivos_acordados' => $clienteInfo->objetivo_principal ?? 'Ninguno registrado'
+                ]
+            ];
+        }));
+    });
+
+    Route::put('/entrenador/clientes/{id}/health', function (Request $request, $id) {
+        $user = \App\Models\User::findOrFail($id);
+        $cliente = $user->cliente;
+        if ($cliente) {
+            $currentHealth = $cliente->condicion_medica ? json_decode($cliente->condicion_medica, true) : [];
+            $currentHealth['estado_general'] = $request->input('condiciones_medicas');
+            $currentHealth['lesiones'] = $request->input('lesiones_activas');
+            $currentHealth['restricciones_movimiento'] = $request->input('restricciones_movimiento');
+            
+            $cliente->condicion_medica = json_encode($currentHealth);
+            $cliente->objetivo_principal = $request->input('objetivos_acordados');
+            $cliente->save();
+        }
+        return response()->json(['success' => true]);
+    });
+
+    // Admin: Gestión de Usuarios
+    Route::get('/admin/users', [AdminUserController::class, 'index']);
+    Route::post('/admin/users', [AdminUserController::class, 'store']);
+    Route::patch('/admin/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus']);
+
+    // Admin: Gestión de Entrenadores
+    Route::get('/admin/entrenadores/pendientes', [AdminEntrenadorController::class, 'getPending']);
+    Route::post('/admin/entrenadores/{id}/aprobar', [AdminEntrenadorController::class, 'approve']);
+    Route::post('/admin/entrenadores/{id}/rechazar', [AdminEntrenadorController::class, 'reject']);
+    Route::get('/admin/entrenadores/{id}/certificado', [AdminEntrenadorController::class, 'downloadCertificado']);
+});

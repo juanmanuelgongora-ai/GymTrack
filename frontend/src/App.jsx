@@ -6,6 +6,7 @@ import LoginView from './vistas/auth/LoginView';
 import RegisterView from './vistas/auth/RegisterView';
 import RegisterEntrenadorView from './vistas/auth/RegisterEntrenadorView';
 import ShopView from './vistas/shop/ShopView';
+import PanelAdminGYMTRACK from './vistas/PanelAdminGYMTRACK';
 import PaymentModal from './vistas/shop/PaymentModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
@@ -13,17 +14,19 @@ import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
 const API_URL = '/api';
 
 function App() {
-  const { token, userData, saveSession, logout } = useUser();
-  
+  const { token, saveSession, logout } = useUser();
+
   const [view, setView] = useState(() => {
     try {
       const savedToken = localStorage.getItem('gymtrack_token');
       const savedUser = localStorage.getItem('gymtrack_user');
       if (savedToken && savedUser && savedUser !== 'undefined') {
-        return localStorage.getItem('gymtrack_view') || 'panelCliente';
+        const savedView = localStorage.getItem('gymtrack_view');
+        return savedView ? savedView : 'panelCliente';
       }
       return 'login';
-    } catch (e) {
+    } catch (error) {
+      console.error('Error accessing local storage:', error);
       return 'login';
     }
   });
@@ -41,7 +44,7 @@ function App() {
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  
+
   const initialFormData = {
     nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
     sexo: '', peso: '', estatura: '', objetivo_principal: '',
@@ -218,32 +221,38 @@ function App() {
       const nombre = nameParts[0] || 'Desconocido';
       const apellido = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '.';
 
+      const formData = new FormData();
+      formData.append('nombre', nombre);
+      formData.append('apellido', apellido);
+      formData.append('email', entrenadorData.correo);
+      formData.append('password', entrenadorData.password);
+      formData.append('rol', 'entrenador');
+      formData.append('edad', entrenadorData.edad);
+      formData.append('genero', entrenadorData.sexo);
+      formData.append('contacto', entrenadorData.contacto);
+      formData.append('direccion', entrenadorData.direccion);
+      formData.append('emergencia', entrenadorData.emergencia);
+      formData.append('especialidad', entrenadorData.especialidad);
+      formData.append('experiencia', entrenadorData.experiencia);
+      formData.append('certificacion', entrenadorData.certificacion);
+      formData.append('capacidad_maxima', entrenadorData.capacidad_maxima);
+      formData.append('objetivos', entrenadorData.objetivos);
+
+      if (entrenadorData.certificacion_archivo) {
+        formData.append('certificacion_archivo', entrenadorData.certificacion_archivo);
+      }
+      formData.append('horarios', JSON.stringify(entrenadorData.horarios));
+      formData.append('tipos_entrenamiento', JSON.stringify(entrenadorData.tipos_entrenamiento));
+
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          nombre, apellido,
-          email: entrenadorData.correo,
-          password: entrenadorData.password,
-          rol: 'entrenador',
-          edad: entrenadorData.edad,
-          genero: entrenadorData.sexo,
-          contacto: entrenadorData.contacto,
-          direccion: entrenadorData.direccion,
-          emergencia: entrenadorData.emergencia,
-          especialidad: entrenadorData.especialidad,
-          experiencia: entrenadorData.experiencia,
-          certificacion: entrenadorData.certificacion,
-          horarios: entrenadorData.horarios,
-          tipos_entrenamiento: entrenadorData.tipos_entrenamiento,
-          capacidad_maxima: entrenadorData.capacidad_maxima,
-          objetivos: entrenadorData.objetivos
-        })
+        headers: { 'Accept': 'application/json' },
+        body: formData
       });
       const data = await response.json();
       if (response.ok) {
-        saveSession(data.access_token, data.user);
-        handleSetView('panelEntrenador');
+        alert('Registro completado. Tu solicitud ha sido enviada al administrador y se encuentra pendiente de aprobación. Serás notificado cuando se tome una decisión.');
+        handleSetView('login');
       } else {
         alert('Error de registro: ' + (data.message || JSON.stringify(data.errors)));
       }
@@ -292,10 +301,7 @@ function App() {
       )}
 
       {view === 'panelAdmin' && (
-        <div className="placeholder-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>
-          <h1>Panel de Administrador en Construcción</h1>
-          <button className="primary-btn" onClick={handleLogout} style={{ marginTop: '20px' }}>Cerrar Sesión</button>
-        </div>
+        <PanelAdminGYMTRACK onLogout={handleLogout} />
       )}
 
       {view === 'shop' && (

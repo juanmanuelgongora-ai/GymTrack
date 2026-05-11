@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rutina;
+use App\Models\RutinaProgreso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -11,7 +12,6 @@ class RutinaController extends Controller
 {
     public function generarRutinaInicial(Request $request)
     {
-        // Require at least base data since it may come from the onboarding flow
         $data = $request->validate([
             'objetivo' => 'nullable|string',
             'frecuencia' => 'nullable|string',
@@ -28,12 +28,10 @@ class RutinaController extends Controller
 
         $user = $request->user();
 
-        // Check if there is an AI API Key
         $apiKey = env('GEMINI_API_KEY');
         $planJson = null;
 
         if ($apiKey) {
-            // Attempt to call Gemini API to generate the plan
             $prompt = "Actúa como un entrenador personal experto de vanguardia. Tu trabajo es diseñar minuciosamente una rutina semanal detallada en formato estrictamente JSON." . "\n"
                 . "PERFIL BIOLÓGICO DEL CLIENTE:\n"
                 . "- Género: " . ($data['genero'] ?? 'No especificado') . "\n"
@@ -59,21 +57,20 @@ class RutinaController extends Controller
                 $response = Http::withHeaders([
                     'Content-Type' => 'application/json'
                 ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={$apiKey}", [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => $prompt]
+                            'contents' => [
+                                [
+                                    'parts' => [
+                                        ['text' => $prompt]
+                                    ]
+                                ]
                             ]
-                        ]
-                    ]
-                ]);
+                        ]);
 
                 if ($response->successful()) {
                     $result = $response->json();
                     $textResponse = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
                     if ($textResponse) {
-                        // Strip markdown parsing if it was wrapped in ```json
                         $textResponse = preg_replace('/```(?:json)?\n?(.*?)\n?```/ms', '$1', $textResponse);
                         $parsedJson = json_decode(trim($textResponse), true);
                         if (json_last_error() === JSON_ERROR_NONE && isset($parsedJson['dias'])) {
@@ -81,26 +78,21 @@ class RutinaController extends Controller
                         }
                     }
                 }
-            }
-            catch (\Exception $e) {
-            // Ignore exception to fallback
+            } catch (\Exception $e) {
+                // Ignore exception to fallback
             }
         }
 
-        // Fallback or Mock mechanism if Gemini API key implies an error or is missing
         if (!$planJson) {
             $frecuencia = $data['frecuencia'] ?? 'Nunca';
             $isBeginner = in_array($frecuencia, ['Nunca', '1-2 veces']);
-
             $lesionStr = strtolower($data['lesiones'] ?? 'no');
             $hasLegInjury = str_contains($lesionStr, 'pierna') || str_contains($lesionStr, 'rodilla') || str_contains($lesionStr, 'ligamento') || str_contains($lesionStr, 'tobillo');
-
             $gender = strtolower($data['genero'] ?? 'm');
             $isFemale = ($gender === 'f' || $gender === 'femenino' || $gender === 'mujer');
 
             $dias = [];
 
-            // Día 1
             if ($isFemale) {
                 $dias[] = [
                     "dia" => "Día 1",
@@ -114,8 +106,7 @@ class RutinaController extends Controller
                         ["nombre" => "Abducciones en máquina", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
                     ]
                 ];
-            }
-            else {
+            } else {
                 $dias[] = [
                     "dia" => "Día 1",
                     "grupo_muscular" => "Parte Superior (Pecho y Espalda)",
@@ -129,7 +120,6 @@ class RutinaController extends Controller
                 ];
             }
 
-            // Día 2
             if (!$hasLegInjury && !$isFemale) {
                 $dias[] = [
                     "dia" => "Día 2",
@@ -142,8 +132,7 @@ class RutinaController extends Controller
                         ["nombre" => "Extensiones de Cuádriceps", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
                     ]
                 ];
-            }
-            else if (!$hasLegInjury && $isFemale) {
+            } else if (!$hasLegInjury && $isFemale) {
                 $dias[] = [
                     "dia" => "Día 2",
                     "grupo_muscular" => "Tren Superior Tonificación Ligera",
@@ -155,8 +144,7 @@ class RutinaController extends Controller
                         ["nombre" => "Elevaciones laterales ligeras", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
                     ]
                 ];
-            }
-            else {
+            } else {
                 $dias[] = [
                     "dia" => "Día 2",
                     "grupo_muscular" => "Core y Movilidad (Evitando zona lesionada)",
@@ -170,7 +158,6 @@ class RutinaController extends Controller
                 ];
             }
 
-            // Día 3
             if ($isFemale) {
                 $dias[] = [
                     "dia" => "Día 3",
@@ -183,8 +170,7 @@ class RutinaController extends Controller
                         ["nombre" => $hasLegInjury ? "Plancha lateral" : "Curl Femoral Acostado", "series" => 3, "repeticiones" => "15", "descanso" => "60s"]
                     ]
                 ];
-            }
-            else {
+            } else {
                 $dias[] = [
                     "dia" => "Día 3",
                     "grupo_muscular" => "Hombros y Brazos",
@@ -199,7 +185,6 @@ class RutinaController extends Controller
                 ];
             }
 
-            // Si no es principiante, agregar más días
             if (!$isBeginner) {
                 $dias[] = [
                     "dia" => "Día 4",
@@ -212,7 +197,6 @@ class RutinaController extends Controller
                         ["nombre" => "Mountain Climbers", "series" => 4, "repeticiones" => "20", "descanso" => "30s"]
                     ]
                 ];
-
                 $dias[] = [
                     "dia" => "Día 5",
                     "grupo_muscular" => $isFemale ? "Glúteos y Piernas (Repaso Vol.)" : "Cuerpo Completo (Repaso)",
@@ -229,7 +213,6 @@ class RutinaController extends Controller
             $planJson = ["dias" => $dias];
         }
 
-        // Save new routine to database
         $rutina = Rutina::create([
             'user_id' => $user->id,
             'plan_semanal' => $planJson,
@@ -255,8 +238,57 @@ class RutinaController extends Controller
             return response()->json(['message' => 'No se encontró rutina.'], 404);
         }
 
+        $progreso = RutinaProgreso::where('user_id', $user->id)
+            ->where('rutina_id', $rutina->id)
+            ->first();
+
         return response()->json([
-            'rutina' => $rutina
+            'rutina' => $rutina,
+            'progreso_guardado' => $progreso ? $progreso->progreso_json : null
+        ]);
+    }
+
+    /**
+     * Sincroniza el progreso de ejercicios en tiempo real
+     */
+    public function syncProgress(Request $request)
+    {
+        $data = $request->validate([
+            'rutina_id' => 'required|uuid',
+            'progreso_json' => 'required|array',
+        ]);
+
+        $user = $request->user();
+
+        $progreso = RutinaProgreso::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'rutina_id' => $data['rutina_id'],
+            ],
+            [
+                'progreso_json' => $data['progreso_json'],
+            ]
+        );
+
+        return response()->json([
+            'status' => 'synced',
+            'progreso' => $progreso
+        ]);
+    }
+
+    /**
+     * Obtiene el progreso guardado para una rutina específica
+     */
+    public function getProgress(Request $request, $rutinaId)
+    {
+        $user = $request->user();
+
+        $progreso = RutinaProgreso::where('user_id', $user->id)
+            ->where('rutina_id', $rutinaId)
+            ->first();
+
+        return response()->json([
+            'progreso_guardado' => $progreso ? $progreso->progreso_json : null
         ]);
     }
 }

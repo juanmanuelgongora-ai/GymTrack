@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, PlayCircle, Star, ChevronRight, X, Clock, Activity, Target, Loader2, Filter, ArrowRight } from 'lucide-react';
+import { Search, Dumbbell, PlayCircle, Star, ChevronRight, X, Clock, Activity, Target } from 'lucide-react';
 import { useUser } from '../../logica/UserContext';
 import '../../estilos/tabs.css';
-
-const API_URL = '/api';
 
 export default function EjerciciosTab() {
   const { token, userData } = useUser();
@@ -22,13 +20,15 @@ export default function EjerciciosTab() {
   const userGoal = clienteData.objetivo_principal || 'Mantenimiento';
   const userLevel = clienteData.nivel_actividad || 'Principiante';
 
-  const fetchExercises = async () => {
-    if (!token) return;
+  const fetchExercises = React.useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API_URL}/ejercicios?search=${search}`;
-      if (selectedMuscle !== 'Todas') url += `&grupo_muscular=${selectedMuscle}`;
-      if (selectedLevel !== 'Cualquier Nivel') url += `&dificultad=${selectedLevel}`;
+      let url = `/api/ejercicios`;
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (selectedMuscle !== 'Todas') params.append('grupo_muscular', selectedMuscle);
+      if (selectedLevel !== 'Cualquier Nivel') params.append('dificultad', selectedLevel);
+      if (params.toString()) url += `?${params.toString()}`;
 
       const response = await fetch(url, {
         headers: {
@@ -46,7 +46,7 @@ export default function EjerciciosTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, selectedMuscle, selectedLevel, token]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -54,11 +54,11 @@ export default function EjerciciosTab() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, selectedMuscle, selectedLevel, token]);
+  }, [fetchExercises]);
 
   const toggleFavorite = async (ejercicioId) => {
     try {
-      const response = await fetch(`${API_URL}/ejercicios/${ejercicioId}/toggle-favorito`, {
+      const response = await fetch(`/api/ejercicios/${ejercicioId}/toggle-favorito`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -67,9 +67,12 @@ export default function EjerciciosTab() {
       });
 
       if (response.ok) {
+        // Update local state for immediate feedback
         setExercises(exercises.map(ex =>
           ex.id === ejercicioId ? { ...ex, is_favorito: !ex.is_favorito } : ex
         ));
+
+        // Also update selectedVideo if its technical ficha is open
         if (selectedVideo?.id === ejercicioId) {
           setSelectedVideo({ ...selectedVideo, is_favorito: !selectedVideo.is_favorito });
         }
@@ -79,11 +82,13 @@ export default function EjerciciosTab() {
     }
   };
 
+  // Dynamic series and reps calculation
   const getDynamicStats = (ex) => {
     let series = 3;
     let reps = "10-12";
     let rest = ex.tiempo_descanso || "60";
 
+    // Goal Logic
     if (userGoal.toLowerCase().includes('perder') || userGoal.toLowerCase().includes('grasa')) {
       reps = "12-15";
       series = 3;
@@ -94,6 +99,7 @@ export default function EjerciciosTab() {
       rest = "90";
     }
 
+    // Level Logic
     if (userLevel === 'Principiante') {
       series = Math.max(2, series - 1);
     } else if (userLevel === 'Avanzado') {
@@ -118,174 +124,110 @@ export default function EjerciciosTab() {
           <button
             className={`secondary-btn ${showOnlyFavorites ? 'active' : ''}`}
             onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-            style={showOnlyFavorites ? { background: '#ff6b35', color: 'white', borderColor: '#ff6b35' } : {}}
+            style={showOnlyFavorites ? { background: 'var(--brand-orange)', color: 'white' } : {}}
           >
             <Star size={16} fill={showOnlyFavorites ? "white" : "none"} /> Favoritos
           </button>
         </div>
       </header>
 
-      <div className="search-bar-container glass-panel" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid rgba(255,107,53,0.2)' }}>
-        <Search size={20} color="#ff6b35" />
-        <input
-          type="text"
-          placeholder="Buscar ejercicios por nombre (ej: Press de Banca)..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ background: 'transparent', border: 'none', color: 'white', flex: 1, padding: '10px', fontSize: '1rem', outline: 'none' }}
-        />
-      </div>
-
-      <div className="filters-section mb-24">
-        <div className="flex-align-center gap-8 mb-12">
-          <Filter size={16} color="#ff6b35" />
-          <span className="text-secondary text-xs uppercase font-bold tracking-wider">Filtrar por Músculo</span>
-        </div>
-        <div className="filter-chips">
-          {muscleGroups.map(m => (
-            <div
-              key={m}
-              className={`chip ${selectedMuscle === m ? 'active' : ''}`}
-              onClick={() => setSelectedMuscle(m)}
-            >
-              {m}
-            </div>
-          ))}
+      <div className="search-bar-container">
+        <div className="search-input-wrapper">
+          <Search size={20} color="#a1a1aa" />
+          <input
+            type="text"
+            placeholder="Buscar ejercicios..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="filters-section mb-32">
-        <div className="flex-align-center gap-8 mb-12">
-          <Activity size={16} color="#ff6b35" />
-          <span className="text-secondary text-xs uppercase font-bold tracking-wider">Filtrar por Dificultad</span>
-        </div>
-        <div className="filter-chips">
-          {levels.map(l => (
-            <div
-              key={l}
-              className={`chip ${selectedLevel === l ? 'active' : ''}`}
-              onClick={() => setSelectedLevel(l)}
-            >
-              {l}
-            </div>
-          ))}
-        </div>
+      <div className="filter-chips mb-16">
+        {muscleGroups.map(m => (
+          <div
+            key={m}
+            className={`chip ${selectedMuscle === m ? 'active' : ''}`}
+            onClick={() => setSelectedMuscle(m)}
+          >
+            {m}
+          </div>
+        ))}
+      </div>
+
+      <div className="filter-chips mb-24" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+        {levels.map(l => (
+          <div
+            key={l}
+            className={`chip ${selectedLevel === l ? 'active' : ''}`}
+            onClick={() => setSelectedLevel(l)}
+          >
+            {l}
+          </div>
+        ))}
       </div>
 
       {loading ? (
-        <div className="flex-center py-48" style={{ display: 'flex', justifyContent: 'center', minHeight: '300px' }}>
-          <Loader2 className="animate-spin" size={48} color="#ff6b35" />
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <p className="glow-text">Cargando biblioteca...</p>
         </div>
       ) : (
         <div className="ejercicios-grid">
           {filteredExercises.length === 0 ? (
-            <div className="glass-panel p-48 text-center" style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.02)' }}>
-              <Dumbbell size={48} color="rgba(255,255,255,0.1)" className="mx-auto mb-16" />
-              <p className="text-secondary text-lg">
+            <div className="glass-panel p-24" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
+              <p className="text-secondary">
                 {showOnlyFavorites ? "No tienes ejercicios marcados como favoritos." : "No se encontraron ejercicios con estos filtros."}
               </p>
-              <button className="link-btn mt-16" onClick={() => { setSearch(''); setSelectedMuscle('Todas'); setSelectedLevel('Cualquier Nivel'); setShowOnlyFavorites(false); }}>
-                Limpiar filtros
-              </button>
             </div>
           ) : (
             filteredExercises.map((ex) => {
               const stats = getDynamicStats(ex);
-              const muscleColor = '#ff6b35'; // Branded Orange
-              
               return (
-                <div className="ejercicio-card glass-panel" key={ex.id} style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
-                  overflow: 'hidden',
-                  border: '1px solid rgba(255,107,53,0.1)'
-                }}>
-                  {/* Minimalist Image Area */}
-                  <div className="ejercicio-icon-area" style={{ 
-                    height: '160px', 
-                    position: 'relative', 
-                    overflow: 'hidden',
-                    background: 'linear-gradient(135deg, #0a0a0c 0%, #1a1a1e 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {/* Minimalist Muscle Background */}
-                    <div style={{ 
-                      position: 'absolute', 
-                      width: '120%', 
-                      height: '120%', 
-                      background: `radial-gradient(circle, rgba(255,107,53,0.15) 0%, transparent 70%)`,
-                      filter: 'blur(30px)',
-                      zIndex: 0
-                    }}></div>
-
-                    {/* Minimalist Icon / Illustration */}
-                    <div className="muscle-illustration" style={{ zIndex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                       <Dumbbell size={54} color={muscleColor} style={{ filter: 'drop-shadow(0 0 10px rgba(255,107,53,0.5))', opacity: 0.8 }} />
-                       <span style={{ 
-                         marginTop: '12px', 
-                         fontSize: '10px', 
-                         fontWeight: '900', 
-                         color: muscleColor, 
-                         letterSpacing: '3px', 
-                         textTransform: 'uppercase',
-                         opacity: 0.6
-                       }}>{ex.grupo_muscular}</span>
+                <div className="ejercicio-card glass-panel p-16" key={ex.id}>
+                  <div className="flex-between mb-12">
+                    <div className="ejercicio-tags">
+                      <span className="tag-sm tag-brand">{ex.grupo_muscular}</span>
+                      <span className="tag-sm" style={{ background: 'rgba(255,255,255,0.05)' }}>{ex.dificultad}</span>
                     </div>
-
-                    {/* Subtle Video Preview (Visible on Hover if desired, but here we keep it clean) */}
-                    {/* <img src={`https://img.youtube.com/vi/${ex.video_url?.split('/embed/')[1]}/hqdefault.jpg`} style={{ opacity: 0.1 }} /> */}
-                    
-                    <div className="exercise-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'flex-end', padding: '16px' }}>
-                      <span className="tag-sm" style={{ 
-                        background: 'rgba(255,255,255,0.05)', 
-                        backdropFilter: 'blur(4px)',
-                        color: '#aaa',
-                        fontSize: '9px'
-                      }}>{ex.dificultad}</span>
-                    </div>
-                    
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(ex.id); }}
-                      className="fav-btn-float"
-                      style={{ 
-                        position: 'absolute', 
-                        top: '12px', 
-                        right: '12px', 
-                        background: 'rgba(255,255,255,0.03)', 
-                        border: '1px solid rgba(255,255,255,0.05)', 
-                        borderRadius: '50%', 
-                        padding: '8px', 
-                        cursor: 'pointer', 
-                        display: 'flex'
+                    <Star
+                      size={18}
+                      color={ex.is_favorito ? "#ff6f00" : "#a1a1aa"}
+                      fill={ex.is_favorito ? "#ff6f00" : "none"}
+                      style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(ex.id);
                       }}
-                    >
-                      <Star size={16} color={ex.is_favorito ? "#ff6b35" : "#555"} fill={ex.is_favorito ? "#ff6b35" : "none"} />
-                    </button>
+                    />
                   </div>
 
-                  <div className="p-20" style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '4px', color: '#fff' }}>{ex.nombre}</h3>
-                    <p style={{ fontSize: '11px', color: '#666', marginBottom: '16px' }}>{ex.equipamiento}</p>
-                    
-                    <div className="flex-between mt-auto">
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '9px', color: '#444', textTransform: 'uppercase' }}>Series</span>
-                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#ff6b35' }}>{stats.series}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '9px', color: '#444', textTransform: 'uppercase' }}>Reps</span>
-                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{stats.reps}</span>
-                        </div>
-                      </div>
-                      
-                      <button className="minimal-action-btn" onClick={() => setSelectedVideo(ex)}>
-                        Técnica <ArrowRight size={14} />
-                      </button>
+                  <h3 className="mb-4 text-lg">{ex.nombre}</h3>
+                  <div className="text-secondary text-xs mb-16 flex-align-center gap-8">
+                    <span className="flex-align-center gap-4"><Dumbbell size={12} /> {ex.equipamiento}</span>
+                    <span>•</span>
+                    <span className="clickable flex-align-center gap-4 text-brand" onClick={() => setSelectedVideo(ex)}>
+                      <PlayCircle size={12} /> Ver Video
+                    </span>
+                  </div>
+
+                  <div className="ejercicio-icon-area" style={{ height: '120px', overflow: 'hidden', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {ex.video_url ? (
+                      <img
+                        src={`https://img.youtube.com/vi/${ex.video_url.split('/embed/')[1]}/hqdefault.jpg`}
+                        alt={ex.nombre}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6, cursor: 'pointer' }}
+                        onClick={() => setSelectedVideo(ex)}
+                      />
+                    ) : (
+                      <Dumbbell size={40} color="rgba(255,255,255,0.1)" />
+                    )}
+                  </div>
+
+                  <div className="flex-between mt-16">
+                    <div className="text-sm">
+                      <b>{stats.series} series</b> <span className="text-secondary text-xs">x {stats.reps}</span>
                     </div>
+                    <button className="link-btn" style={{ padding: 0 }} onClick={() => setSelectedVideo(ex)}>Ficha Técnica <ChevronRight size={14} /></button>
                   </div>
                 </div>
               );
@@ -294,9 +236,10 @@ export default function EjerciciosTab() {
         </div>
       )}
 
+      {/* Enriched Video/Detail Modal Overlay */}
       {selectedVideo && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }} onClick={() => setSelectedVideo(null)}>
-          <div className="glass-panel" style={{ maxWidth: '900px', width: '95%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setSelectedVideo(null)}>
+          <div className="glass-panel p-24" style={{ maxWidth: '900px', width: '95%', position: 'relative', animation: 'fadeIn 0.3s ease', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setSelectedVideo(null)}
               style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
@@ -304,56 +247,77 @@ export default function EjerciciosTab() {
               <X size={20} />
             </button>
 
-            <div className="modal-content-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px' }}>
-              <div className="p-24">
+            <div className="modal-grid">
+              {/* Left side: Video */}
+              <div className="modal-video-section">
                 <div className="flex-align-center gap-12 mb-16">
                   <h2 className="glow-text" style={{ margin: 0 }}>{selectedVideo.nombre}</h2>
                   <Star
                     size={20}
-                    color={selectedVideo.is_favorito ? "#ff6b35" : "#a1a1aa"}
-                    fill={selectedVideo.is_favorito ? "#ff6b35" : "none"}
+                    color={selectedVideo.is_favorito ? "#ff6f00" : "#a1a1aa"}
+                    fill={selectedVideo.is_favorito ? "#ff6f00" : "none"}
                     style={{ cursor: 'pointer' }}
                     onClick={() => toggleFavorite(selectedVideo.id)}
                   />
                 </div>
-                
-                <div className="video-container" style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+                <div className="video-wrapper">
                   <iframe
                     src={selectedVideo.video_url}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
                     frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    title={selectedVideo.nombre}
                   ></iframe>
                 </div>
               </div>
 
-              <div className="p-24" style={{ background: 'rgba(255,255,255,0.02)', borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
-                <h3 className="section-title mb-16" style={{ fontSize: '0.9rem', color: '#ff6b35', textTransform: 'uppercase', letterSpacing: '1px' }}>Ficha Técnica</h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-                  <div className="glass-panel p-12 text-center">
-                    <p className="text-secondary text-xs mb-4">Descanso</p>
-                    <p className="font-bold">{getDynamicStats(selectedVideo).rest}s</p>
+              {/* Right side: Ficha Técnica */}
+              <div className="modal-info-section">
+                <h3 className="section-title mb-16">Ficha Técnica</h3>
+
+                <div className="tech-specs-grid">
+                  <div className="tech-card">
+                    <Clock size={16} className="text-brand mb-8" />
+                    <span className="label">Descanso</span>
+                    <span className="value">{getDynamicStats(selectedVideo).rest}s</span>
                   </div>
-                  <div className="glass-panel p-12 text-center">
-                    <p className="text-secondary text-xs mb-4">Dificultad</p>
-                    <p className="font-bold">{selectedVideo.dificultad}</p>
+                  <div className="tech-card">
+                    <Activity size={16} className="text-brand mb-8" />
+                    <span className="label">Series</span>
+                    <span className="value">{getDynamicStats(selectedVideo).series}</span>
+                  </div>
+                  <div className="tech-card">
+                    <Target size={16} className="text-brand mb-8" />
+                    <span className="label">Reps</span>
+                    <span className="value">{getDynamicStats(selectedVideo).reps}</span>
+                  </div>
+                  <div className="tech-card">
+                    <Dumbbell size={16} className="text-brand mb-8" />
+                    <span className="label">Equipo</span>
+                    <span className="value" style={{ fontSize: '10px' }}>{selectedVideo.equipamiento}</span>
                   </div>
                 </div>
 
-                <div className="mb-24">
-                  <span className="text-xs text-secondary mb-8 block">Grupo Muscular Principal</span>
-                  <span className="tag-sm tag-brand">{selectedVideo.grupo_muscular}</span>
+                <div className="muscle-info mt-24">
+                  <div className="mb-12">
+                    <span className="text-xs text-secondary mb-4 block">Músculo Principal</span>
+                    <span className="tag-sm tag-brand">{selectedVideo.grupo_muscular}</span>
+                  </div>
+                  {selectedVideo.musculos_secundarios && (
+                    <div>
+                      <span className="text-xs text-secondary mb-4 block">Músculos Secundarios</span>
+                      <div className="flex-wrap gap-4">
+                        {selectedVideo.musculos_secundarios.split(',').map(m => (
+                          <span key={m} className="tag-sm" style={{ background: 'rgba(255,255,255,0.05)' }}>{m.trim()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="mb-24">
-                  <span className="text-xs text-secondary mb-8 block">Equipamiento</span>
-                  <span className="tag-sm" style={{ background: 'rgba(255,255,255,0.1)' }}>{selectedVideo.equipamiento}</span>
-                </div>
-
-                <div className="description">
-                  <span className="text-xs text-secondary mb-8 block">Instrucciones de Ejecución</span>
-                  <p className="text-sm" style={{ lineHeight: '1.6', color: 'rgba(255,255,255,0.8)' }}>
+                <div className="description-box mt-24">
+                  <span className="text-xs text-secondary mb-8 block">Instrucciones</span>
+                  <p className="text-sm text-secondary" style={{ lineHeight: '1.6' }}>
                     {selectedVideo.descripcion}
                   </p>
                 </div>
@@ -362,32 +326,82 @@ export default function EjerciciosTab() {
           </div>
         </div>
       )}
-      <style>{`
-        .minimal-action-btn { 
-          background: rgba(255,255,255,0.03); 
-          border: 1px solid rgba(255,255,255,0.05); 
-          color: #aaa; 
-          border-radius: 4px; 
-          padding: 6px 12px; 
-          font-size: 11px; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          gap: 6px;
-          transition: all 0.3s;
+
+      <style jsx>{`
+        .clickable { cursor: pointer; }
+        .clickable:hover { text-decoration: underline; }
+        .modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.85);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          backdrop-filter: blur(10px);
         }
-        .minimal-action-btn:hover {
-          background: #ff6b35;
-          color: white;
-          border-color: #ff6b35;
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
         }
-        .mx-auto { margin-left: auto; margin-right: auto; }
-        .p-20 { padding: 20px; }
-        .block { display: block; }
-        .primary-btn-sm { background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); color: #ff6b35; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-        .primary-btn-sm:hover { background: #ff6b35; color: white; }
         @media (max-width: 768px) {
-          .modal-content-grid { grid-template-columns: 1fr !important; }
+            .modal-grid { grid-template-columns: 1fr; }
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #000;
+            box-shadow: 0 10px 30px rgba(255, 111, 0, 0.1);
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--brand-orange);
+            border-bottom: 1px solid rgba(255, 111, 0, 0.2);
+            padding-bottom: 8px;
+        }
+        .tech-specs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .tech-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .tech-card .label {
+            font-size: 10px;
+            color: #a1a1aa;
+            margin-bottom: 4px;
+        }
+        .tech-card .value {
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+        }
+        .description-box {
+            background: rgba(0,0,0,0.2);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 3px solid var(--brand-orange);
+        }
+        .secondary-btn.active {
+            border-color: var(--brand-orange);
         }
       `}</style>
     </div>

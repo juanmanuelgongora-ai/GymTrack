@@ -8,7 +8,7 @@ const API_URL = '/api';
 export default function PerfilTab({ onLogrosUnlocked }) {
   const { token, userData, updateUser } = useUser();
   const clienteData = userData?.cliente || {};
-  
+
   const [metricas, setMetricas] = useState([]);
   const [latestMetrica, setLatestMetrica] = useState(null);
   const [showMetricaForm, setShowMetricaForm] = useState(false);
@@ -16,7 +16,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  
+
   const fileInputRef = useRef(null);
 
   const [metricaFormData, setMetricaFormData] = useState({
@@ -37,17 +37,13 @@ export default function PerfilTab({ onLogrosUnlocked }) {
 
   const [activeSection, setActiveSection] = useState('personal');
 
-  const headers = { 
-    'Authorization': `Bearer ${token}`, 
-    'Accept': 'application/json', 
-    'Content-Type': 'application/json' 
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     setLoading(true);
     try {
       const [perfilRes, metricasRes, latestRes] = await Promise.all([
@@ -55,7 +51,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
         fetch(`${API_URL}/metricas`, { headers }),
         fetch(`${API_URL}/metricas/latest`, { headers })
       ]);
-      
+
       if (perfilRes.ok) {
         const data = await perfilRes.json();
         updateUser(data.user);
@@ -70,14 +66,18 @@ export default function PerfilTab({ onLogrosUnlocked }) {
           fecha_nacimiento: data.cliente?.fecha_nacimiento || ''
         });
       }
-      
+
       if (metricasRes.ok) setMetricas(await metricasRes.json());
       if (latestRes.ok) setLatestMetrica(await latestRes.json());
     } catch (err) {
       console.error('Error cargando datos:', err);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleEditClick = () => {
     setProfileFormData({
@@ -110,7 +110,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
         const err = await res.json();
         alert('Error al actualizar: ' + (err.message || 'Error desconocido'));
       }
-    } catch (e) {
+    } catch (err) {
       alert('Error de conexión.');
     }
     setSaving(false);
@@ -138,7 +138,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
         const err = await res.json();
         alert('Error al subir foto: ' + (err.message || 'Error desconocido'));
       }
-    } catch (e) {
+    } catch (err) {
       alert('Error al conectar con el servidor.');
     }
     setUploadingPhoto(false);
@@ -158,7 +158,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
         });
         setShowMetricaForm(false);
         fetchData();
-        
+
         // Notificar logros si los hay
         if (data.logros_desbloqueados && data.logros_desbloqueados.length > 0) {
           if (onLogrosUnlocked) onLogrosUnlocked(data.logros_desbloqueados);
@@ -169,7 +169,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
         const err = await res.json();
         alert('Error al guardar: ' + (err.message || 'Error desconocido'));
       }
-    } catch (e) {
+    } catch (err) {
       alert('Error de conexión.');
     }
     setSaving(false);
@@ -179,7 +179,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
   const [imgError, setImgError] = useState(false);
 
   const initials = `${userData?.nombre?.charAt(0) || ''}${userData?.apellido?.charAt(0) || ''}`.toUpperCase();
-  
+
   const calculateMembershipDays = (createdAt) => {
     if (!createdAt) return 0;
     const dateStr = createdAt.includes(' ') ? createdAt.replace(' ', 'T') : createdAt;
@@ -188,7 +188,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
     const diffTime = Math.abs(today - start);
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 0;
   };
-  
+
   const diasMiembro = calculateMembershipDays(userData?.created_at);
 
   if (loading && !userData) {
@@ -199,16 +199,35 @@ export default function PerfilTab({ onLogrosUnlocked }) {
     );
   }
 
+  const renderCondicionMedica = (condicion) => {
+    if (!condicion) return <div className="data-row"><span className="data-label">Salud</span><span className="data-value">Sin reporte</span></div>;
+    try {
+      const parsed = typeof condicion === 'string' ? JSON.parse(condicion) : condicion;
+      return (
+        <>
+          <div className="data-row"><span className="data-label">Estado de Salud</span><span className="data-value">{parsed.salud || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Cirugías Previas</span><span className="data-value">{parsed.cirugia || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Medicamentos</span><span className="data-value">{parsed.medicamentos || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Condiciones</span><span className="data-value">{parsed.condiciones && parsed.condiciones.length > 0 ? parsed.condiciones.join(', ') : 'Ninguna'}</span></div>
+          <div className="data-row"><span className="data-label">Lesiones</span><span className="data-value">{parsed.lesion || 'N/A'}</span></div>
+          <div className="data-row"><span className="data-label">Horas de Sueño</span><span className="data-value">{parsed.sueno || 'N/A'} hrs</span></div>
+        </>
+      );
+    } catch (e) {
+      return <div className="data-row"><span className="data-label">Salud</span><span className="data-value">{condicion}</span></div>;
+    }
+  };
+
   return (
     <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease' }}>
       <div className="perfil-header p-24">
         <div className="perfil-avatar-container" style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
           {userData?.foto_url && !imgError ? (
-            <img 
-              src={userData.foto_url} 
-              alt="" 
+            <img
+              src={userData.foto_url}
+              alt=""
               onError={() => setImgError(true)}
-              style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ff6b35' }} 
+              style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ff6b35' }}
             />
           ) : (
             <div className="perfil-avatar" style={{ fontSize: '1.8rem', fontWeight: 800 }}>{initials || <User size={32} />}</div>
@@ -218,7 +237,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
           </div>
           <input type="file" ref={fileInputRef} onChange={(e) => { setImgError(false); handlePhotoUpload(e); }} style={{ display: 'none' }} accept="image/*" />
         </div>
-        
+
         <div className="perfil-info">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -234,7 +253,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
               </div>
             </div>
           </div>
-          
+
           <div className="perfil-stats">
             <div className="p-stat"><h3>{clienteData.peso_kg || latestMetrica?.peso_kg || '--'} <span className="text-secondary text-sm font-normal">kg</span></h3><p>Peso Actual</p></div>
             <div className="p-stat"><h3>{clienteData.altura_cm || '--'} <span className="text-secondary text-sm font-normal">cm</span></h3><p>Altura</p></div>
@@ -266,17 +285,17 @@ export default function PerfilTab({ onLogrosUnlocked }) {
             {isEditing ? (
               <div className="form-grid">
                 <div className="grid-2">
-                  <div className="form-group"><label>Nombre</label><input value={profileFormData.nombre} onChange={e => setProfileFormData({...profileFormData, nombre: e.target.value})} className="input-field" /></div>
-                  <div className="form-group"><label>Apellido</label><input value={profileFormData.apellido} onChange={e => setProfileFormData({...profileFormData, apellido: e.target.value})} className="input-field" /></div>
+                  <div className="form-group"><label>Nombre</label><input value={profileFormData.nombre} onChange={e => setProfileFormData({ ...profileFormData, nombre: e.target.value })} className="input-field" /></div>
+                  <div className="form-group"><label>Apellido</label><input value={profileFormData.apellido} onChange={e => setProfileFormData({ ...profileFormData, apellido: e.target.value })} className="input-field" /></div>
                 </div>
-                <div className="form-group"><label>Ubicación</label><input value={profileFormData.ubicacion} onChange={e => setProfileFormData({...profileFormData, ubicacion: e.target.value})} className="input-field" /></div>
+                <div className="form-group"><label>Ubicación</label><input value={profileFormData.ubicacion} onChange={e => setProfileFormData({ ...profileFormData, ubicacion: e.target.value })} className="input-field" /></div>
                 <div className="grid-2">
-                  <div className="form-group"><label>Género</label><select value={profileFormData.genero} onChange={e => setProfileFormData({...profileFormData, genero: e.target.value})} className="input-field"><option value="">Seleccionar...</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="Otro">Otro</option></select></div>
-                  <div className="form-group"><label>F. Nacimiento</label><input type="date" value={profileFormData.fecha_nacimiento} onChange={e => setProfileFormData({...profileFormData, fecha_nacimiento: e.target.value})} className="input-field" /></div>
+                  <div className="form-group"><label>Género</label><select value={profileFormData.genero} onChange={e => setProfileFormData({ ...profileFormData, genero: e.target.value })} className="input-field"><option value="">Seleccionar...</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="Otro">Otro</option></select></div>
+                  <div className="form-group"><label>F. Nacimiento</label><input type="date" value={profileFormData.fecha_nacimiento} onChange={e => setProfileFormData({ ...profileFormData, fecha_nacimiento: e.target.value })} className="input-field" /></div>
                 </div>
                 <div className="grid-2">
-                  <div className="form-group"><label>Peso (kg)</label><input type="number" value={profileFormData.peso_kg} onChange={e => setProfileFormData({...profileFormData, peso_kg: e.target.value})} className="input-field" /></div>
-                  <div className="form-group"><label>Altura (cm)</label><input type="number" value={profileFormData.altura_cm} onChange={e => setProfileFormData({...profileFormData, altura_cm: e.target.value})} className="input-field" /></div>
+                  <div className="form-group"><label>Peso (kg)</label><input type="number" value={profileFormData.peso_kg} onChange={e => setProfileFormData({ ...profileFormData, peso_kg: e.target.value })} className="input-field" /></div>
+                  <div className="form-group"><label>Altura (cm)</label><input type="number" value={profileFormData.altura_cm} onChange={e => setProfileFormData({ ...profileFormData, altura_cm: e.target.value })} className="input-field" /></div>
                 </div>
               </div>
             ) : (
@@ -289,7 +308,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
               </div>
             )}
           </div>
-          
+
           <div className="glass-panel p-24">
             <h3 className="section-title mb-24 flex-align-center gap-12"><Activity size={20} color="#ff6b35" /> Datos Físicos</h3>
             <div className="data-list">
@@ -297,7 +316,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
               <div className="data-row"><span className="data-label">Peso Actual</span><span className="data-value">{clienteData.peso_kg || latestMetrica?.peso_kg || '--'} kg</span></div>
               <div className="data-row"><span className="data-label">IMC</span><span className="data-value">{clienteData.imc || latestMetrica?.imc || '--'}</span></div>
               <div className="data-row"><span className="data-label">Objetivo</span><span className="data-value">{clienteData.objetivo_principal || '--'}</span></div>
-              <div className="data-row"><span className="data-label">Salud</span><span className="data-value">{clienteData.condicion_medica || 'Sin reporte'}</span></div>
+              {renderCondicionMedica(clienteData.condicion_medica)}
             </div>
           </div>
         </div>
@@ -390,7 +409,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
           </div>
         </div>
       )}
-      
+
       <style>{`
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .min-h-50 { min-height: 50vh; }

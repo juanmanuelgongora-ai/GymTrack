@@ -718,3 +718,74 @@
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* =========================================
+   Responsive Design for Mobile & Tablet
+   ========================================= */
+@media (max-width: 1024px) {
+  .alimentacion-grid {
+    grid-template-columns: 1fr;
+  }
+  .ejercicios-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .objetivos-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .macros-grid {
+    grid-template-columns: 1fr;
+  }
+  .ejercicios-grid {
+    grid-template-columns: 1fr;
+  }
+  .objetivos-stats {
+    grid-template-columns: 1fr;
+  }
+  .objetivos-grid {
+    grid-template-columns: 1fr;
+  }
+  .perfil-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+    gap: 16px;
+  }
+  .perfil-info-tags {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .perfil-stats {
+    justify-content: center;
+  }
+  .perfil-split {
+    grid-template-columns: 1fr;
+  }
+  .rutinas-grid-historia {
+    grid-template-columns: 1fr;
+  }
+  .logros-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .logros-grid {
+    grid-template-columns: 1fr;
+  }
+  .meal-item {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .meal-time {
+    text-align: left;
+    width: auto;
+    padding-top: 0;
+    padding-left: 16px;
+  }
+  .meal-timeline::before {
+    left: 8px;
+  }
+}

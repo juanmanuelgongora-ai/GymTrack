@@ -13,8 +13,8 @@ class EjercicioController extends Controller
         $query = Ejercicio::query();
 
         // Filter by Search Name
-        if ($request->has('search')) {
-            $query->where('nombre', 'like', '%' . $request->search . '%');
+        if ($request->has('search') && $request->input('search') !== '') {
+            $query->where('nombre', 'like', '%' . $request->input('search') . '%');
         }
 
         // Filter by Muscle Group

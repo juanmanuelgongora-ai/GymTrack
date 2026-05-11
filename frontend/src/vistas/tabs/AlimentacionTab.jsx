@@ -1,25 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Apple, Flame, Droplet, Wheat, CheckCircle2, Circle, Clock } from 'lucide-react';
 import '../../estilos/tabs.css';
+import { useUser } from '../../logica/UserContext';
+
+const defaultMeals = [
+  { id: 1, time: '07:00 AM', name: 'Desayuno', kcal: 620, p: 35, c: 65, g: 18, done: false, icon: Flame, iconColor: '#ff6b35' },
+  { id: 2, time: '10:30 AM', name: 'Media Mañana', kcal: 280, p: 25, c: 30, g: 8, done: false, icon: Apple, iconColor: '#4ade80' },
+  { id: 3, time: '01:00 PM', name: 'Almuerzo', kcal: 850, p: 55, c: 70, g: 18, done: false, icon: Droplet, iconColor: '#3b82f6' },
+  { id: 4, time: '05:00 PM', name: 'Merienda Pre-Entreno', kcal: 320, p: 20, c: 45, g: 6, done: false, icon: Wheat, iconColor: '#eab308' },
+  { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
+];
 
 export default function AlimentacionTab() {
-  
-  const [meals, setMeals] = useState([
-    { id: 1, time: '07:00 AM', name: 'Desayuno', kcal: 620, p: 35, c: 65, g: 18, done: true, icon: Flame, iconColor: '#ff6b35' },
-    { id: 2, time: '10:30 AM', name: 'Media Mañana', kcal: 280, p: 25, c: 30, g: 8, done: false, icon: Apple, iconColor: '#4ade80' },
-    { id: 3, time: '01:00 PM', name: 'Almuerzo', kcal: 850, p: 55, c: 70, g: 18, done: false, icon: Droplet, iconColor: '#3b82f6' },
-    { id: 4, time: '05:00 PM', name: 'Merienda Pre-Entreno', kcal: 320, p: 20, c: 45, g: 6, done: false, icon: Wheat, iconColor: '#eab308' },
-    { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
-  ]);
+  const { userData } = useUser();
+  const userId = userData?.id || 'guest';
+  const storageKey = `gymtrack_meals_${userId}`;
+  const today = new Date().toDateString();
+
+  const [meals, setMeals] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === today) {
+          return defaultMeals.map(meal => {
+            const savedMeal = parsed.meals.find(m => m.id === meal.id);
+            return savedMeal ? { ...meal, done: savedMeal.done } : meal;
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing meals", e);
+      }
+    }
+    return defaultMeals;
+  });
+
+  useEffect(() => {
+    const dataToSave = meals.map(m => ({ id: m.id, done: m.done }));
+    localStorage.setItem(storageKey, JSON.stringify({
+      date: today,
+      meals: dataToSave
+    }));
+  }, [meals, today, storageKey]);
 
   const [recipeFilter, setRecipeFilter] = useState('Todas');
   
   const sugerencias = [
-    { id: 1, type: 'Desayuno', name: 'Avena Proteica con Frutos Rojos', diff: 'Fácil', time: '10 min', kcal: 350, p: 25, c: 45, g: 8, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 2, type: 'Almuerzo', name: 'Bowl de Quinoa y Salmón', diff: 'Medio', time: '25 min', kcal: 520, p: 40, c: 50, g: 18, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 3, type: 'Cena', name: 'Wrap de Pollo y Espinaca', diff: 'Fácil', time: '15 min', kcal: 400, p: 35, c: 30, g: 12, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 4, type: 'Almuerzo', name: 'Pechuga Grillada con Batata', diff: 'Fácil', time: '20 min', kcal: 450, p: 45, c: 55, g: 5, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
-    { id: 5, type: 'Desayuno', name: 'Smoothie Verde Proteico', diff: 'Muy Fácil', time: '5 min', kcal: 280, p: 30, c: 35, g: 5, img: 'linear-gradient(45deg, #2a2a2a, #333)' },
+    { id: 1, type: 'Desayuno', name: 'Avena Proteica con Frutos Rojos', diff: 'Fácil', time: '10 min', kcal: 350, p: 25, c: 45, g: 8, img: '/images/avena.png' },
+    { id: 2, type: 'Almuerzo', name: 'Bowl de Quinoa y Salmón', diff: 'Medio', time: '25 min', kcal: 520, p: 40, c: 50, g: 18, img: '/images/quinoa.png' },
+    { id: 3, type: 'Cena', name: 'Wrap de Pollo y Espinaca', diff: 'Fácil', time: '15 min', kcal: 400, p: 35, c: 30, g: 12, img: '/images/wrap.png' },
+    { id: 4, type: 'Almuerzo', name: 'Pechuga Grillada con Batata', diff: 'Fácil', time: '20 min', kcal: 450, p: 45, c: 55, g: 5, img: '/images/pechuga.png' },
+    { id: 5, type: 'Desayuno', name: 'Smoothie Verde Proteico', diff: 'Muy Fácil', time: '5 min', kcal: 280, p: 30, c: 35, g: 5, img: '/images/smoothie.png' },
   ];
 
   const filteredRecetas = recipeFilter === 'Todas' ? sugerencias : sugerencias.filter(r => r.type === recipeFilter);
@@ -239,7 +270,7 @@ export default function AlimentacionTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {filteredRecetas.map((receta) => (
               <div className="recipe-card glass-panel" style={{ cursor: 'pointer', transition: 'all 0.2s ease', border: '1px solid rgba(255,255,255,0.05)' }} key={receta.id}>
-                <div className="recipe-img placeholder-img" style={{ background: receta.img, height: '100px', borderRadius: '12px 12px 0 0' }}></div>
+                <div className="recipe-img placeholder-img" style={{ backgroundImage: `url(${receta.img})`, backgroundSize: 'cover', backgroundPosition: 'center', height: '140px', borderRadius: '12px 12px 0 0' }}></div>
                 <div className="p-16" style={{ padding: '16px' }}>
                   <div className="flex-between mb-4">
                     <span className="text-xs" style={{ color: '#ff6b35', fontWeight: 'bold' }}>{receta.type}</span>

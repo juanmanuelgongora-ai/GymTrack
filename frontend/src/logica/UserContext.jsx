@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const UserContext = createContext();
 
@@ -8,7 +8,7 @@ export const UserProvider = ({ children }) => {
     try {
       const saved = localStorage.getItem('gymtrack_user');
       return (saved && saved !== 'undefined') ? JSON.parse(saved) : null;
-    } catch (e) {
+    } catch (err) {
       return null;
     }
   });
@@ -41,6 +41,7 @@ export const UserProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
