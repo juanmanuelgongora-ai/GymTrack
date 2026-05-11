@@ -201,6 +201,29 @@ body {
   padding-left: 16px;
 }
 
+.input-field {
+  width: 100%;
+  background: var(--input-bg, #222222);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: #ff8c42;
+  box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.2);
+}
+
+textarea.input-field {
+  resize: vertical;
+  min-height: 80px;
+}
+
 /* Step 3 Selection Grid */
 .selection-container {
   text-align: left;
