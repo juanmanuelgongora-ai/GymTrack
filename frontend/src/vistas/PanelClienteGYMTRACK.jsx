@@ -14,6 +14,7 @@ import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 import LogrosTab from './tabs/LogrosTab';
 import AchievementNotification from '../componentes/AchievementNotification';
+import StreakBadge from '../componentes/StreakBadge';
 
 const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
   const { token, userData } = useUser();
@@ -35,9 +36,9 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
     if (logros && logros.length > 0) {
       setNewLogros(logros);
       setLogrosCount(prev => prev + logros.length);
-      // Re-fetch stats to update progress bars/metrics that might depend on achievements
-      fetchStats();
     }
+    // Siempre actualizamos las estadísticas (racha, etc) independientemente de si hay logros
+    fetchStats();
   };
 
   const fetchStats = async () => {
@@ -151,9 +152,12 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
         return (
           <>
             <header className="dashboard-header" style={{ animation: 'fadeIn 0.5s ease' }}>
-              <div>
-                <h1 className="glow-text">¡Hola, {userFirstName}!</h1>
-                <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 className="glow-text" style={{ margin: 0 }}>¡Hola, {userFirstName}!</h1>
+                  <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+                <StreakBadge count={stats.racha_dias} loading={loading} />
               </div>
               <button className="primary-btn pulse-glow" onClick={() => {
                 if (todayRoutine) {
