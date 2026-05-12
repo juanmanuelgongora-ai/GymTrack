@@ -31,6 +31,34 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
   const [loading, setLoading] = useState(true);
   const [exerciseProgress, setExerciseProgress] = useState({});
 
+  const handleLogrosUnlocked = (logros) => {
+    if (logros && logros.length > 0) {
+      setNewLogros(logros);
+      setLogrosCount(prev => prev + logros.length);
+      // Re-fetch stats to update progress bars/metrics that might depend on achievements
+      fetchStats();
+    }
+  };
+
+  const fetchStats = async () => {
+    if (!token) return;
+    try {
+      const statsRes = await fetch('/api/entrenamientos/stats', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
+      if (statsRes.ok) {
+        const dataStats = await statsRes.json();
+        setStats({
+          entrenamientos_mes: dataStats.entrenamientos_mes,
+          racha_dias: dataStats.racha_dias,
+          progreso_fuerza: dataStats.progreso_fuerza || 0,
+          progreso_peso: dataStats.progreso_peso || 0,
+          variacion_peso: dataStats.variacion_peso || 0
+        });
+      }
+    } catch (e) {
+      console.error("Error updating stats:", e);
+    }
+  };
+
   useEffect(() => {
     if (rutinaData && rutinaData.id) {
       // progreso_guardado from DB takes priority; fallback to localStorage
@@ -325,16 +353,16 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
           autoStartPlan={autoStartPlan}
           setAutoStartPlan={setAutoStartPlan}
           rutinaActivaData={rutinaData}
-          onLogrosUnlocked={setNewLogros}
+          onLogrosUnlocked={handleLogrosUnlocked}
         />;
       case 'objetivos':
-        return <ObjetivosTab onLogrosUnlocked={setNewLogros} />;
+        return <ObjetivosTab onLogrosUnlocked={handleLogrosUnlocked} />;
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab onLogrosUnlocked={setNewLogros} />;
+        return <PerfilTab onLogrosUnlocked={handleLogrosUnlocked} />;
       case 'logros':
         return <LogrosTab />;
       default:
