@@ -14,6 +14,7 @@ import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 import LogrosTab from './tabs/LogrosTab';
 import AchievementNotification from '../componentes/AchievementNotification';
+import StreakBadge from '../componentes/StreakBadge';
 
 const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
   const { token, userData } = useUser();
@@ -30,6 +31,34 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
   const [newLogros, setNewLogros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exerciseProgress, setExerciseProgress] = useState({});
+
+  const handleLogrosUnlocked = (logros) => {
+    if (logros && logros.length > 0) {
+      setNewLogros(logros);
+      setLogrosCount(prev => prev + logros.length);
+    }
+    // Siempre actualizamos las estadísticas (racha, etc) independientemente de si hay logros
+    fetchStats();
+  };
+
+  const fetchStats = async () => {
+    if (!token) return;
+    try {
+      const statsRes = await fetch('/api/entrenamientos/stats', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
+      if (statsRes.ok) {
+        const dataStats = await statsRes.json();
+        setStats({
+          entrenamientos_mes: dataStats.entrenamientos_mes,
+          racha_dias: dataStats.racha_dias,
+          progreso_fuerza: dataStats.progreso_fuerza || 0,
+          progreso_peso: dataStats.progreso_peso || 0,
+          variacion_peso: dataStats.variacion_peso || 0
+        });
+      }
+    } catch (e) {
+      console.error("Error updating stats:", e);
+    }
+  };
 
   useEffect(() => {
     if (rutinaData && rutinaData.id) {
@@ -123,9 +152,12 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
         return (
           <>
             <header className="dashboard-header" style={{ animation: 'fadeIn 0.5s ease' }}>
-              <div>
-                <h1 className="glow-text">¡Hola, {userFirstName}!</h1>
-                <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 className="glow-text" style={{ margin: 0 }}>¡Hola, {userFirstName}!</h1>
+                  <p className="subtitle-text">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+                <StreakBadge count={stats.racha_dias} loading={loading} />
               </div>
               <button className="primary-btn pulse-glow" onClick={() => {
                 if (todayRoutine) {
@@ -325,16 +357,16 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
           autoStartPlan={autoStartPlan}
           setAutoStartPlan={setAutoStartPlan}
           rutinaActivaData={rutinaData}
-          onLogrosUnlocked={setNewLogros}
+          onLogrosUnlocked={handleLogrosUnlocked}
         />;
       case 'objetivos':
-        return <ObjetivosTab onLogrosUnlocked={setNewLogros} />;
+        return <ObjetivosTab onLogrosUnlocked={handleLogrosUnlocked} />;
       case 'alimentacion':
         return <AlimentacionTab />;
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab onLogrosUnlocked={setNewLogros} />;
+        return <PerfilTab onLogrosUnlocked={handleLogrosUnlocked} />;
       case 'logros':
         return <LogrosTab />;
       default:

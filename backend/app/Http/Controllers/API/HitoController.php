@@ -5,7 +5,9 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Hito;
+use App\Services\AchievementService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class HitoController extends Controller
 {
@@ -131,16 +133,32 @@ class HitoController extends Controller
         }
 
         if ($hito->progreso_porcentaje >= 100) {
-            $hito->estado = 'completado';
+            if ($hito->estado !== 'completado') {
+                Log::info("Hito completado automáticamente: {$hito->id} - {$hito->titulo}");
+                $hito->estado = 'completado';
+            }
         }
 
         if ($request->has('estado')) {
+            $oldEstado = $hito->estado;
             $hito->estado = $request->estado;
+            if ($hito->estado === 'completado' && $oldEstado !== 'completado') {
+                Log::info("Hito marcado como completado manualmente: {$hito->id} - {$hito->titulo}");
+            }
         }
 
         $hito->save();
 
-        return response()->json($hito);
+        // Verificar logros si el hito está completado
+        $logrosDesbloqueados = [];
+        if ($hito->estado === 'completado') {
+            $logrosDesbloqueados = AchievementService::checkHitoAchievements($request->user());
+        }
+
+        return response()->json([
+            'hito' => $hito,
+            'logros_desbloqueados' => $logrosDesbloqueados
+        ]);
     }
 
     /**

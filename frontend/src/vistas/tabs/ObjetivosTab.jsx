@@ -16,7 +16,7 @@ const TIPO_CONFIG = {
 
 const ESTADO_LABELS = { en_progreso: 'En Progreso', completado: 'Completado', abandonado: 'Abandonado' };
 
-export default function ObjetivosTab() {
+export default function ObjetivosTab({ onLogrosUnlocked }) {
   const { token } = useUser();
   const [hitos, setHitos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,9 +109,16 @@ export default function ObjetivosTab() {
       };
       const res = await fetch(`${API_URL}/hitos/${id}`, { method: 'PUT', headers, body: JSON.stringify({ valor_actual: parseFloat(editValue) }) });
       if (res.ok) {
+        const data = await res.json();
         setEditingId(null);
         setEditValue('');
         fetchHitos();
+
+        // Notificar logros si se desbloquearon
+        if (data.logros_desbloqueados && data.logros_desbloqueados.length > 0) {
+          console.log('Logros desbloqueados detectados:', data.logros_desbloqueados);
+          if (onLogrosUnlocked) onLogrosUnlocked(data.logros_desbloqueados);
+        }
       }
     } catch (err) {
       alert('Error al actualizar.');

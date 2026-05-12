@@ -190,10 +190,12 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
         const result = await response.json();
         console.log("Session saved successfully:", result);
 
-        // Verificar si se desbloquearon logros
-        if (result.logros_desbloqueados && result.logros_desbloqueados.length > 0) {
-          if (onLogrosUnlocked) onLogrosUnlocked(result.logros_desbloqueados);
-        } else {
+        // Siempre notificar para que se actualicen las estadísticas (como la racha)
+        if (onLogrosUnlocked) {
+          onLogrosUnlocked(result.logros_desbloqueados || []);
+        }
+        
+        if (!result.logros_desbloqueados || result.logros_desbloqueados.length === 0) {
           alert("¡Entrenamiento guardado con éxito!");
         }
 
