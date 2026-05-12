@@ -81,13 +81,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Entrenador: Gestión de Clientes (Consultar todos los clientes activos como proxy de mis clientes)
     Route::get('/entrenador/clientes', function (Request $request) {
-        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->with('cliente')->get();
+        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->with(['cliente.metricas', 'cliente.hitos'])->get();
         return response()->json($clientes->map(function($user) {
             $clienteInfo = $user->cliente;
             $healthInfo = $clienteInfo && $clienteInfo->condicion_medica 
                           ? json_decode($clienteInfo->condicion_medica, true) 
                           : [];
                           
+            $sesiones = \App\Models\SesionEntrenamiento::where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
+            
             return [
                 'id' => $user->id,
                 'name' => trim($user->nombre . ' ' . $user->apellido) ?: 'Usuario sin nombre',
@@ -99,7 +101,10 @@ Route::middleware('auth:sanctum')->group(function () {
                     'lesiones_activas' => $healthInfo['lesiones'] ?? 'Ninguna registrada',
                     'restricciones_movimiento' => $healthInfo['restricciones_movimiento'] ?? 'Ninguna registrada',
                     'objetivos_acordados' => $clienteInfo->objetivo_principal ?? 'Ninguno registrado'
-                ]
+                ],
+                'metricas' => $clienteInfo && $clienteInfo->metricas ? $clienteInfo->metricas->sortByDesc('fecha')->values()->all() : [],
+                'objetivos' => $clienteInfo && $clienteInfo->hitos ? $clienteInfo->hitos->all() : [],
+                'sesiones' => $sesiones->all()
             ];
         }));
     });

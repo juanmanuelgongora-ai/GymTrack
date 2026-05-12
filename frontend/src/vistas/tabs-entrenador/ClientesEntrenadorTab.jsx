@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, User, Activity, Edit3, Save, AlertTriangle, Target, HeartPulse, ChevronRight, X, CheckCircle2 } from 'lucide-react';
+import { Users, Search, User, Activity, Edit3, Save, AlertTriangle, Target, HeartPulse, ChevronRight, X, CheckCircle2, BarChart3, Calendar, Scale, TrendingUp, Dumbbell } from 'lucide-react';
 import '../../estilos/tabs.css';
 
 export default function ClientesEntrenadorTab() {
@@ -27,6 +27,7 @@ export default function ClientesEntrenadorTab() {
   }, []);
 
   const [selectedClient, setSelectedClient] = useState(null);
+  const [activeClientTab, setActiveClientTab] = useState('resumen');
   const [isEditingHealth, setIsEditingHealth] = useState(false);
   const [healthFormData, setHealthFormData] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +39,7 @@ export default function ClientesEntrenadorTab() {
     setSelectedClient(client);
     setHealthFormData(client.healthInfo);
     setIsEditingHealth(false);
+    setActiveClientTab('resumen');
   };
 
   const handleSaveHealthInfo = async () => {
@@ -164,7 +166,17 @@ export default function ClientesEntrenadorTab() {
                 </div>
               </div>
 
-              {/* Sección de Información Médica y Fitness */}
+              {/* Menu de Sub-secciones o Filtros */}
+              <div className="filter-chips mb-24" style={{ paddingBottom: '10px' }}>
+                <div className={`chip ${activeClientTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveClientTab('resumen')}><Activity size={14} /> Resumen y Salud</div>
+                <div className={`chip ${activeClientTab === 'progreso' ? 'active' : ''}`} onClick={() => setActiveClientTab('progreso')}><TrendingUp size={14} /> Métricas y Objetivos</div>
+                <div className={`chip ${activeClientTab === 'asistencia' ? 'active' : ''}`} onClick={() => setActiveClientTab('asistencia')}><Calendar size={14} /> Historial de Asistencia</div>
+              </div>
+
+              {/* Pestaña: Resumen y Salud */}
+              {activeClientTab === 'resumen' && (
+                <div style={{ animation: 'fadeIn 0.4s ease' }}>
+                  {/* Sección de Información Médica y Fitness */}
               <div className="glass-panel p-24">
                 <div className="flex-between mb-24">
                   <h3 className="section-title flex-align-center gap-12" style={{ margin: 0 }}>
@@ -269,8 +281,126 @@ export default function ClientesEntrenadorTab() {
                     )}
                   </div>
 
+                  {/* Fin Objetivos Fitness */}
                 </div>
               </div>
+            </div>
+            )}
+
+            {/* Pestaña: Métricas y Objetivos */}
+            {activeClientTab === 'progreso' && (
+              <div style={{ animation: 'fadeIn 0.4s ease' }}>
+                {/* Métricas Actuales */}
+                <div className="glass-panel p-24 mb-24">
+                  <h3 className="section-title flex-align-center gap-12 mb-24"><Scale size={20} color="#ff6b35" /> Métricas Corporales Actuales</h3>
+                  {selectedClient.metricas && selectedClient.metricas.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                      {(() => {
+                         const latest = selectedClient.metricas[0];
+                         return (
+                           <>
+                             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                               <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Peso</p>
+                               <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.peso_kg || '--'} kg</p>
+                             </div>
+                             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                               <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>IMC</p>
+                               <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.imc || '--'}</p>
+                             </div>
+                             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                               <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Grasa Corporal</p>
+                               <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.grasa_corporal || '--'}%</p>
+                             </div>
+                             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                               <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Masa Muscular</p>
+                               <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.masa_muscular || '--'} kg</p>
+                             </div>
+                           </>
+                         );
+                      })()}
+                    </div>
+                  ) : (
+                    <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No hay métricas registradas para este cliente.</p>
+                  )}
+                </div>
+
+                {/* Objetivos Activos */}
+                <div className="glass-panel p-24">
+                  <h3 className="section-title flex-align-center gap-12 mb-24"><Target size={20} color="#4ade80" /> Objetivos Activos</h3>
+                  {selectedClient.objetivos && selectedClient.objetivos.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                      {selectedClient.objetivos.map(obj => (
+                        <div key={obj.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <h4 style={{ margin: '0 0 8px 0', color: '#fff' }}>{obj.titulo}</h4>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: '#aaa' }}>
+                            <span>Progreso: {obj.progreso_porcentaje}%</span>
+                            <span>{obj.valor_actual} / {obj.meta_valor} {obj.unidad}</span>
+                          </div>
+                          <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(100, obj.progreso_porcentaje)}%`, height: '100%', background: obj.estado === 'completado' ? '#4ade80' : '#ff6b35' }}></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No hay objetivos activos para este cliente.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Pestaña: Historial de Asistencia */}
+            {activeClientTab === 'asistencia' && (
+              <div style={{ animation: 'fadeIn 0.4s ease' }}>
+                <div className="glass-panel p-24 mb-24">
+                  <h3 className="section-title flex-align-center gap-12 mb-24"><Calendar size={20} color="#3b82f6" /> Historial de Entrenamientos</h3>
+                  
+                  {selectedClient.sesiones && selectedClient.sesiones.length > 0 ? (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                          <p style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{selectedClient.sesiones.length}</p>
+                          <p style={{ color: '#aaa', fontSize: '12px', margin: '4px 0 0 0' }}>Sesiones Totales</p>
+                        </div>
+                        <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                          <p style={{ color: '#4ade80', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{selectedClient.sesiones.filter(s => new Date(s.created_at).getMonth() === new Date().getMonth()).length}</p>
+                          <p style={{ color: '#aaa', fontSize: '12px', margin: '4px 0 0 0' }}>Sesiones este mes</p>
+                        </div>
+                        <div style={{ background: 'rgba(255, 107, 53, 0.1)', border: '1px solid rgba(255, 107, 53, 0.2)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                          <p style={{ color: '#ff6b35', fontSize: '18px', fontWeight: 'bold', margin: 0, marginTop: '4px' }}>
+                             {new Date(selectedClient.sesiones[0].created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                          </p>
+                          <p style={{ color: '#aaa', fontSize: '12px', margin: '4px 0 0 0' }}>Última Sesión</p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <h4 style={{ color: '#fff', margin: '0 0 8px 0' }}>Últimas Sesiones</h4>
+                        {selectedClient.sesiones.slice(0, 5).map((sesion, idx) => (
+                          <div key={sesion.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
+                                <Dumbbell size={20} color="#fff" />
+                              </div>
+                              <div>
+                                <p style={{ margin: 0, color: '#fff', fontWeight: 'bold' }}>Día {sesion.dia_rutina || 'Libre'}</p>
+                                <p style={{ margin: '4px 0 0 0', color: '#aaa', fontSize: '12px' }}>{new Date(sesion.created_at).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ display: 'inline-block', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>Completado</span>
+                              <p style={{ margin: '4px 0 0 0', color: '#aaa', fontSize: '12px' }}>{sesion.duracion_minutos || '--'} min</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>El cliente no ha registrado sesiones de entrenamiento.</p>
+                  )}
+                </div>
+              </div>
+            )}
             </div>
           ) : (
             <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#666' }}>

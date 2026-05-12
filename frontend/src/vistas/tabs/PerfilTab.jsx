@@ -70,6 +70,7 @@ export default function PerfilTab({ onLogrosUnlocked }) {
       if (metricasRes.ok) setMetricas(await metricasRes.json());
       if (latestRes.ok) setLatestMetrica(await latestRes.json());
     } catch (err) {
+
       console.error('Error cargando datos:', err);
     }
     setLoading(false);
