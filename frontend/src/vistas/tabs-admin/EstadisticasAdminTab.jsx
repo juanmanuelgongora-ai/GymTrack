@@ -10,7 +10,7 @@ const EstadisticasAdminTab = () => {
                 {[
                     { label: 'Usuarios Activos', value: '248', trend: '+12% este mes', icon: '👥' },
                     { label: 'Nuevos Registros', value: '32', trend: 'Este mes', icon: '📈' },
-                    { label: 'Ingresos', value: '€18.5k', trend: '+8% vs mes ant.', icon: '💰' },
+                    { label: 'Ingresos', value: '$4.2M', trend: '+8% vs mes ant.', icon: '💰' },
                     { label: 'Asistencia', value: '78%', trend: 'Promedio semanal', icon: '⚡' }
                 ].map((kpi, idx) => (
                     <div key={idx} className="glass-panel" style={{ padding: '32px', borderRadius: '24px', transition: 'all 0.3s ease' }}>

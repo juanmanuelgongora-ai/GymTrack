@@ -62,13 +62,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Entrenador Dashboard Stats
     Route::get('/entrenador/dashboard', function (Request $request) {
         $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->get();
-        $ingresos = $clientes->count() * 100; // Simular $100 por cliente usando clientes reales
+        $ingresos = $clientes->count() * 100000; // Simular $100.000 por cliente usando clientes reales
         return response()->json([
             'ingresos_mes' => $ingresos,
             'clientes_activos' => $clientes->count(),
             'clases_pendientes' => rand(2, 8),
             'retencion' => 95,
-            'nuevos_clientes' => $clientes->sortByDesc('created_at')->take(3)->map(function($c) {
+            'nuevos_clientes' => $clientes->sortByDesc('created_at')->take(3)->map(function ($c) {
                 return [
                     'id' => $c->id,
                     'name' => trim($c->nombre . ' ' . $c->apellido),
@@ -82,14 +82,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Entrenador: Gestión de Clientes (Consultar todos los clientes activos como proxy de mis clientes)
     Route::get('/entrenador/clientes', function (Request $request) {
         $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->with(['cliente.metricas', 'cliente.hitos'])->get();
-        return response()->json($clientes->map(function($user) {
+        return response()->json($clientes->map(function ($user) {
             $clienteInfo = $user->cliente;
-            $healthInfo = $clienteInfo && $clienteInfo->condicion_medica 
-                          ? json_decode($clienteInfo->condicion_medica, true) 
-                          : [];
-                          
+            $healthInfo = $clienteInfo && $clienteInfo->condicion_medica
+                ? json_decode($clienteInfo->condicion_medica, true)
+                : [];
+
             $sesiones = \App\Models\SesionEntrenamiento::where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
-            
+
             return [
                 'id' => $user->id,
                 'name' => trim($user->nombre . ' ' . $user->apellido) ?: 'Usuario sin nombre',
@@ -117,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $currentHealth['estado_general'] = $request->input('condiciones_medicas');
             $currentHealth['lesiones'] = $request->input('lesiones_activas');
             $currentHealth['restricciones_movimiento'] = $request->input('restricciones_movimiento');
-            
+
             $cliente->condicion_medica = json_encode($currentHealth);
             $cliente->objetivo_principal = $request->input('objetivos_acordados');
             $cliente->save();
@@ -135,4 +135,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/entrenadores/{id}/aprobar', [AdminEntrenadorController::class, 'approve']);
     Route::post('/admin/entrenadores/{id}/rechazar', [AdminEntrenadorController::class, 'reject']);
     Route::get('/admin/entrenadores/{id}/certificado', [AdminEntrenadorController::class, 'downloadCertificado']);
+
+    // Admin: Transacciones (GT-59)
+    Route::get('/admin/transacciones', [\App\Http\Controllers\API\TransaccionController::class, 'index']);
 });

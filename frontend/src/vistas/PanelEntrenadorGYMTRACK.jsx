@@ -193,8 +193,8 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
                   </div>
                   <div className="nutrition-info">
                     <div className="cals">
-                      <h4>${stats?.ingresos_mes?.toLocaleString() || '0'} <span>/ $5,000</span></h4>
-                      <div className="progress-bar"><div className="progress" style={{ width: `${Math.min(100, (stats?.ingresos_mes || 0) / 50)}%`, background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
+                      <h4>${stats?.ingresos_mes?.toLocaleString() || '0'} <span>/ $5.000.000</span></h4>
+                      <div className="progress-bar"><div className="progress" style={{ width: `${Math.min(100, (stats?.ingresos_mes || 0) / 50000)}%`, background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
                     </div>
                     <div className="macros" style={{ marginTop: '15px' }}>
                       <div className="macro"><CircleDollarSign size={12} color="#ff6b35" /> Base <b>${(stats?.ingresos_mes ? stats.ingresos_mes * 0.4 : 0).toLocaleString()}</b></div>
