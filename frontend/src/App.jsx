@@ -10,11 +10,12 @@ import PanelAdminGYMTRACK from './vistas/PanelAdminGYMTRACK';
 import PaymentModal from './vistas/shop/PaymentModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
+import ExpiredMembresiaView from './vistas/auth/ExpiredMembresiaView';
 
 const API_URL = '/api';
 
 function App() {
-  const { token, saveSession, logout } = useUser();
+  const { token, userData, saveSession, updateUser, logout } = useUser();
 
   const [view, setView] = useState(() => {
     try {
@@ -41,6 +42,15 @@ function App() {
     setClientTab(tab);
     localStorage.setItem('gymtrack_tab', tab);
   };
+
+  React.useEffect(() => {
+    if (userData && userData.rol === 'cliente' && view === 'panelCliente') {
+      const isExpired = userData.cliente?.vencimiento_membresia && new Date(userData.cliente.vencimiento_membresia) < new Date();
+      if (isExpired) {
+        handleSetView('expiredMembresia');
+      }
+    }
+  }, [userData, view]);
 
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -106,19 +116,51 @@ function App() {
     });
   };
 
-  const handlePaymentConfirm = async () => {
-    alert('¡Pago completado!');
-    setShowPayment(false);
-    setClientTab('inicio');
-    handleSetView('panelCliente');
-
-    if (pendingNotification) {
-      setNotification({
-        title: '¡Tu rutina está lista!',
-        message: 'La IA ha generado tu plan personalizado de entrenamiento.',
-        actionText: 'Ir a Mi Rutina'
+  const handlePaymentConfirm = async (method, cardData) => {
+    try {
+      const response = await fetch(`${API_URL}/membresia/renovar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          plan_nombre: selectedPlan.name,
+          meses: selectedPlan.duration.includes('mes') ? parseInt(selectedPlan.duration) : 1,
+          monto: selectedPlan.price,
+          metodo_pago: method,
+          detalles_pago: cardData
+        })
       });
-      setPendingNotification(false);
+
+      const resData = await response.json();
+
+      if (response.ok) {
+        if (method !== 'transferencia') {
+          localStorage.setItem('gymtrack_preferred_payment', method);
+        }
+
+        updateUser(resData.user);
+        alert(`¡Membresía renovada exitosamente con ${method.toUpperCase()}!`);
+        setShowPayment(false);
+        setClientTab('inicio');
+        handleSetView('panelCliente');
+
+        if (pendingNotification) {
+          setNotification({
+            title: '¡Tu rutina está lista!',
+            message: 'La IA ha generado tu plan personalizado de entrenamiento.',
+            actionText: 'Ir a Mi Rutina'
+          });
+          setPendingNotification(false);
+        }
+      } else {
+        alert('Error en el pago: ' + (resData.message || 'No se pudo procesar la transacción.'));
+      }
+    } catch (error) {
+      console.error('Error procesando pago:', error);
+      alert('Error de conexión con el servidor.');
     }
   };
 
@@ -142,6 +184,11 @@ function App() {
 
     setClientTab('inicio');
     saveSession(data.access_token, data.user);
+
+    if (data.user.rol === 'cliente' && !data.membresia_activa) {
+      targetView = 'expiredMembresia';
+    }
+
     handleSetView(targetView);
     return data;
   };
@@ -302,6 +349,14 @@ function App() {
 
       {view === 'panelAdmin' && (
         <PanelAdminGYMTRACK onLogout={handleLogout} />
+      )}
+
+      {view === 'expiredMembresia' && (
+        <ExpiredMembresiaView
+          userData={userData}
+          onLogout={handleLogout}
+          onGoToShop={() => handleSetView('shop')}
+        />
       )}
 
       {view === 'shop' && (

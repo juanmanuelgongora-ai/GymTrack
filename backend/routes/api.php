@@ -138,4 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin: Transacciones (GT-59)
     Route::get('/admin/transacciones', [\App\Http\Controllers\API\TransaccionController::class, 'index']);
+
+    // --- Renovación de Membresía ---
+    Route::post('/membresia/renovar', [\App\Http\Controllers\API\PagoController::class, 'renovarMembresia']);
 });

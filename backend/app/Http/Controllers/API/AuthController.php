@@ -64,7 +64,9 @@ class AuthController extends Controller
                 'imc' => $imc,
                 'objetivo_principal' => $request->objetivo_principal,
                 'nivel_actividad' => $nivelActividad,
-                'condicion_medica' => $request->condicion_medica
+                'condicion_medica' => $request->condicion_medica,
+                'vencimiento_membresia' => Carbon::now()->addMonth(), // Default 1 month
+                'activo' => true
             ]);
         } else if ($user->rol === 'entrenador') {
             $certificadoPath = null;
@@ -131,6 +133,7 @@ class AuthController extends Controller
 
         if ($user->rol === 'cliente') {
             $user->load('cliente');
+            $user->membresia_activa = $user->cliente->vencimiento_membresia ? $user->cliente->vencimiento_membresia->isFuture() : false;
         } elseif ($user->rol === 'entrenador') {
             $user->load('entrenador');
         }
@@ -139,7 +142,8 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $user,
+            'membresia_activa' => $user->rol === 'cliente' ? (bool) $user->membresia_activa : true
         ]);
     }
 

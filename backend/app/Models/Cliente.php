@@ -27,7 +27,13 @@ class Cliente extends Model
         'nivel_actividad',
         'objetivo_principal',
         'condicion_medica',
+        'vencimiento_membresia',
         'activo'
+    ];
+
+    protected $casts = [
+        'vencimiento_membresia' => 'datetime',
+        'activo' => 'boolean'
     ];
 
     public function user()
