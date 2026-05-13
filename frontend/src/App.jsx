@@ -8,11 +8,19 @@ import RegisterEntrenadorView from './vistas/auth/RegisterEntrenadorView';
 import ShopView from './vistas/shop/ShopView';
 import PanelAdminGYMTRACK from './vistas/PanelAdminGYMTRACK';
 import PaymentModal from './vistas/shop/PaymentModal';
+import ReceiptModal from './vistas/shop/ReceiptModal';
 import PanelClienteGYMTRACK from './vistas/PanelClienteGYMTRACK';
 import PanelEntrenadorGYMTRACK from './vistas/PanelEntrenadorGYMTRACK';
 import ExpiredMembresiaView from './vistas/auth/ExpiredMembresiaView';
 
 const API_URL = '/api';
+
+const initialFormData = {
+  nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
+  sexo: '', peso: '', estatura: '', objetivo_principal: '',
+  salud: 'Excelente', cirugia: 'No', cirugiaDetalle: '', condiciones: [], medicamentos: 'No', medicamentosDetalle: '', lesion: 'No', lesionDetalle: '', frecuencia: '3-4 veces por semana', sueno: '7-8',
+  disclaimer: false
+};
 
 function App() {
   const { token, userData, saveSession, updateUser, logout } = useUser();
@@ -43,35 +51,21 @@ function App() {
     localStorage.setItem('gymtrack_tab', tab);
   };
 
-  React.useEffect(() => {
-    if (userData && userData.rol === 'cliente' && view === 'panelCliente') {
-      const isExpired = userData.cliente?.vencimiento_membresia && new Date(userData.cliente.vencimiento_membresia) < new Date();
-      if (isExpired) {
-        handleSetView('expiredMembresia');
-      }
-    }
-  }, [userData, view]);
-
   const [showPayment, setShowPayment] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [currentTransaction, setCurrentTransaction] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const initialFormData = {
-    nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
-    sexo: '', peso: '', estatura: '', objetivo_principal: '',
-    salud: 'Excelente', cirugia: 'No', cirugiaDetalle: '', condiciones: [], medicamentos: 'No', medicamentosDetalle: '', lesion: 'No', lesionDetalle: '', frecuencia: '3-4 veces por semana', sueno: '7-8',
-    disclaimer: false
-  };
 
   const [formData, setFormData] = useState(initialFormData);
 
-  const handleSetView = (newView) => {
+  const handleSetView = React.useCallback((newView) => {
     if (newView === 'register') {
       setFormData(initialFormData);
       setStep(1);
     }
     localStorage.setItem('gymtrack_view', newView);
     setView(newView);
-  };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -90,6 +84,15 @@ function App() {
     logout();
     handleSetView('login');
   };
+
+  React.useEffect(() => {
+    if (userData && userData.rol === 'cliente' && view === 'panelCliente') {
+      const isExpired = userData.cliente?.vencimiento_membresia && new Date(userData.cliente.vencimiento_membresia) < new Date();
+      if (isExpired) {
+        handleSetView('expiredMembresia');
+      }
+    }
+  }, [userData, view, handleSetView]);
 
   const handleInputChange = (e) => {
     let { name, value, type, checked } = e.target;
@@ -142,10 +145,18 @@ function App() {
         }
 
         updateUser(resData.user);
-        alert(`¡Membresía renovada exitosamente con ${method.toUpperCase()}!`);
+
+        if (resData.transaccion) {
+          setCurrentTransaction(resData.transaccion);
+          setShowReceipt(true);
+        } else {
+          // Fallback if transaction isn't returned for some reason
+          alert(`¡Membresía renovada exitosamente con ${method.toUpperCase()}!`);
+          setClientTab('inicio');
+          handleSetView('panelCliente');
+        }
+
         setShowPayment(false);
-        setClientTab('inicio');
-        handleSetView('panelCliente');
 
         if (pendingNotification) {
           setNotification({
@@ -374,6 +385,18 @@ function App() {
           plan={selectedPlan}
           onClose={() => setShowPayment(false)}
           onConfirm={handlePaymentConfirm}
+        />
+      )}
+
+      {showReceipt && (
+        <ReceiptModal
+          transaction={currentTransaction}
+          plan={selectedPlan}
+          onClose={() => {
+            setShowReceipt(false);
+            setClientTab('inicio');
+            handleSetView('panelCliente');
+          }}
         />
       )}
 

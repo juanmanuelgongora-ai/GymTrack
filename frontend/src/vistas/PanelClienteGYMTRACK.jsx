@@ -16,7 +16,7 @@ import LogrosTab from './tabs/LogrosTab';
 import AchievementNotification from '../componentes/AchievementNotification';
 import StreakBadge from '../componentes/StreakBadge';
 
-const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan }) => {
+const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan, setView }) => {
   const { token, userData } = useUser();
   const clienteData = userData?.cliente || {};
 
@@ -366,7 +366,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab onLogrosUnlocked={handleLogrosUnlocked} />;
+        return <PerfilTab onLogrosUnlocked={handleLogrosUnlocked} setView={setView} />;
       case 'logros':
         return <LogrosTab />;
       default:

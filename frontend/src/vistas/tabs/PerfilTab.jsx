@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../logica/UserContext';
-import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X } from 'lucide-react';
+import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard } from 'lucide-react';
 import '../../estilos/tabs.css';
 
 const API_URL = '/api';
 
-export default function PerfilTab({ onLogrosUnlocked }) {
+export default function PerfilTab({ onLogrosUnlocked, setView }) {
   const { token, userData, updateUser } = useUser();
   const clienteData = userData?.cliente || {};
 
@@ -253,6 +253,18 @@ export default function PerfilTab({ onLogrosUnlocked }) {
                 <span className="perfil-tag"><Calendar size={14} color="#4ade80" /> {diasMiembro} días como miembro</span>
               </div>
             </div>
+            {setView && (
+              <button
+                className="secondary-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  borderColor: '#ff8c42', color: '#ff8c42'
+                }}
+                onClick={() => setView('shop')}
+              >
+                <CreditCard size={16} /> Gestionar Membresía
+              </button>
+            )}
           </div>
 
           <div className="perfil-stats">

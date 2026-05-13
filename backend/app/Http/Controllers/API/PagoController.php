@@ -39,7 +39,7 @@ class PagoController extends Controller
         $cliente->save();
 
         // Registrar la transacción
-        Transaccion::create([
+        $transaccion = Transaccion::create([
             'id' => (string) Str::uuid(),
             'cliente_id' => $cliente->id,
             'monto' => $request->monto,
@@ -52,7 +52,8 @@ class PagoController extends Controller
         return response()->json([
             'message' => 'Membresía renovada exitosamente.',
             'vencimiento_membresia' => $cliente->vencimiento_membresia,
-            'user' => $user->load('cliente')
+            'user' => $user->load('cliente'),
+            'transaccion' => $transaccion
         ]);
     }
 }
