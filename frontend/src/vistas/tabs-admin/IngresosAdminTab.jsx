@@ -1,22 +1,29 @@
 import React from 'react';
 import {
-    DollarSign,
+    Wallet,
+    FileText,
+    FileSpreadsheet,
+    FileBox,
     ArrowUpRight,
     ArrowDownRight,
     Equal,
     Clock,
-    Filter,
     Download,
     CreditCard,
     Send,
-    Wallet
+    Filter,
+    DollarSign
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const IngresosAdminTab = () => {
     const [transactions, setTransactions] = React.useState([]);
     const [filter, setFilter] = React.useState('Todos');
     const [loading, setLoading] = React.useState(true);
     const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+    const [isExportOpen, setIsExportOpen] = React.useState(false);
 
     const fetchTransactions = async (status = '') => {
         setLoading(true);
@@ -55,12 +62,60 @@ const IngresosAdminTab = () => {
         fetchTransactions(filter);
     }, [filter]);
 
+    const totalIngresos = transactions
+        .filter(t => t.estado.toLowerCase() === 'completado')
+        .reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
+
+    const gastosOperativos = 0; // Datos reales: actualmente no hay registros de egresos
+    const balanceNeto = totalIngresos - gastosOperativos;
+    const pendientes = transactions.filter(t => t.estado.toLowerCase() === 'pendiente').length;
+
     const financialCards = [
-        { label: 'Ingresos', value: '$3.500.000', trend: '+12.5% vs mes anterior', icon: <ArrowUpRight size={20} />, color: '#2ecc71' },
-        { label: 'Egresos', value: '$1.650.000', trend: 'Gastos operativos', icon: <ArrowDownRight size={20} />, color: '#ff4d4d' },
-        { label: 'Balance', value: '$1.850.000', trend: 'Ganancia neta', icon: <Equal size={20} />, color: '#ff8c42' },
-        { label: 'Pendientes', value: '1', trend: 'Pagos por procesar', icon: <Clock size={20} />, color: '#aaa' },
+        { label: 'Ingresos', value: `$${totalIngresos.toLocaleString('es-CO')}`, trend: '+12.5% vs mes anterior', icon: <ArrowUpRight size={20} />, color: '#2ecc71' },
+        { label: 'Egresos', value: `$${gastosOperativos.toLocaleString('es-CO')}`, trend: 'Gastos operativos', icon: <ArrowDownRight size={20} />, color: '#ff4d4d' },
+        { label: 'Balance', value: `$${balanceNeto.toLocaleString('es-CO')}`, trend: 'Ganancia neta', icon: <Equal size={20} />, color: '#ff8c42' },
+        { label: 'Pendientes', value: pendientes.toString(), trend: 'Pagos por procesar', icon: <Clock size={20} />, color: '#aaa' },
     ];
+
+    // --- Dynamic Distribution Logic ---
+    const getDistribution = () => {
+        const categories = {
+            'Premium': { total: 0, color: '#ff8c42' },
+            'Básica': { total: 0, color: '#ffcc33' },
+            'Clases': { total: 0, color: '#ff4d4d' },
+            'Otros': { total: 0, color: '#2ecc71' }
+        };
+
+        const completadas = transactions.filter(t => t.estado.toLowerCase() === 'completado');
+
+        completadas.forEach(tx => {
+            const concepto = (tx.concepto || '').toLowerCase();
+            const monto = parseFloat(tx.monto || 0);
+
+            if (concepto.includes('premium')) categories['Premium'].total += monto;
+            else if (concepto.includes('básica') || concepto.includes('basica')) categories['Básica'].total += monto;
+            else if (concepto.includes('clase') || concepto.includes('individual')) categories['Clases'].total += monto;
+            else categories['Otros'].total += monto;
+        });
+
+        return Object.keys(categories).map(key => {
+            const catTotal = categories[key].total;
+            const perc = totalIngresos > 0 ? (catTotal / totalIngresos) * 100 : 0;
+            return {
+                label: key === 'Clases' ? 'Clases Individuales' : key,
+                value: `$${catTotal.toLocaleString('es-CO')}`,
+                perc: `${perc.toFixed(0)}%`,
+                color: categories[key].color,
+                rawPerc: perc
+            };
+        });
+    };
+
+    const distribution = getDistribution();
+
+    // --- Projection Logic ---
+    // Simple heuristic: based on current volume vs a target or simulated growth
+    const projectedGrowth = totalIngresos > 0 ? 15 : 0;
 
     const getStatusStyle = (estado) => {
         switch (estado.toLowerCase()) {
@@ -71,12 +126,224 @@ const IngresosAdminTab = () => {
         }
     };
 
+    const exportToPDF = () => {
+        try {
+            if (!transactions || transactions.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+
+            const doc = new jsPDF();
+            const dateStr = new Date().toLocaleDateString('es-CO');
+
+            // Header
+            doc.setFontSize(22);
+            doc.setTextColor(255, 140, 66);
+            doc.text('GYM TRACK - Reporte de Ingresos', 14, 22);
+
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generado el: ${dateStr}`, 14, 30);
+            doc.text(`Filtro aplicado: ${filter}`, 14, 35);
+
+            // Executive Summary Section
+            doc.setDrawColor(255, 140, 66);
+            doc.line(14, 40, 196, 40);
+
+            doc.setFontSize(14);
+            doc.setTextColor(0);
+            doc.text('RESUMEN EJECUTIVO', 14, 50);
+
+            doc.setFontSize(11);
+            doc.text(`Total Ingresos: $${totalIngresos.toLocaleString('es-CO')}`, 14, 60);
+            doc.text(`Gastos Operativos: $${gastosOperativos.toLocaleString('es-CO')}`, 14, 67);
+            doc.setTextColor(balanceNeto >= 0 ? 46 : 255, balanceNeto >= 0 ? 204 : 77, balanceNeto >= 0 ? 113 : 77); // Green or Red
+            doc.text(`Balance Neto: $${balanceNeto.toLocaleString('es-CO')}`, 14, 74);
+
+            doc.setTextColor(100);
+            doc.setFontSize(10);
+            doc.text(`Transacciones encontradas: ${transactions.length}`, 14, 85);
+
+            // Table Data Preparation with Safety Checks
+            const tableColumn = ["Miembro", "Concepto", "Monto", "Método", "Fecha", "Estado"];
+            const tableRows = transactions.map(tx => {
+                const nombreComp = tx.cliente?.user
+                    ? `${tx.cliente.user.nombre} ${tx.cliente.user.apellido}`
+                    : 'Usuario Externo';
+
+                return [
+                    nombreComp,
+                    tx.concepto || 'S/C',
+                    `$${(tx.monto || 0).toLocaleString('es-CO')}`,
+                    tx.metodo_pago || 'N/A',
+                    tx.fecha ? new Date(tx.fecha).toLocaleDateString('es-CO') : 'S/F',
+                    tx.estado || 'Desconocido'
+                ];
+            });
+
+            autoTable(doc, {
+                startY: 95,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'grid',
+                headStyles: { fillStyle: '#ff8c42', textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+
+            doc.save(`GYMTRACK_Reporte_${dateStr.replace(/\//g, '-')}.pdf`);
+        } catch (error) {
+            console.error('Error generando PDF:', error);
+            alert('Error al generar el PDF. Revisa la consola para más detalles.');
+        }
+    };
+
+    const exportToExcel = () => {
+        try {
+            if (!transactions || transactions.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+
+            const dateStr = new Date().toLocaleDateString('es-CO');
+
+            // Add Summary Data to Excel
+            const summaryData = [
+                { 'REPORTE FINANCIERO': 'GYM TRACK', 'VALOR': '' },
+                { 'REPORTE FINANCIERO': 'Fecha', 'VALOR': dateStr },
+                { 'REPORTE FINANCIERO': 'Total Ingresos', 'VALOR': totalIngresos },
+                { 'REPORTE FINANCIERO': 'Gastos Operativos', 'VALOR': gastosOperativos },
+                { 'REPORTE FINANCIERO': 'Balance Neto', 'VALOR': balanceNeto },
+                { 'REPORTE FINANCIERO': '', 'VALOR': '' },
+                { 'REPORTE FINANCIERO': 'DETALLE DE TRANSACCIONES', 'VALOR': '' }
+            ];
+
+            const transactionData = transactions.map(tx => ({
+                'Miembro': tx.cliente?.user ? `${tx.cliente.user.nombre} ${tx.cliente.user.apellido}` : 'Usuario Externo',
+                'Concepto': tx.concepto || 'S/C',
+                'Monto': tx.monto || 0,
+                'Método de Pago': tx.metodo_pago || 'N/A',
+                'Fecha': tx.fecha ? new Date(tx.fecha).toLocaleDateString('es-CO') : 'S/F',
+                'Estado': tx.estado || 'Desconocido'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet([...summaryData, ...transactionData]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Finanzas");
+            XLSX.writeFile(wb, `GYMTRACK_Reporte_Completo_${dateStr.replace(/\//g, '-')}.xlsx`);
+        } catch (error) {
+            console.error('Error generando Excel:', error);
+            alert('Error al generar el archivo Excel.');
+        }
+    };
+
+    const exportToCSV = () => {
+        try {
+            if (!transactions || transactions.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+
+            const dateStr = new Date().toLocaleDateString('es-CO');
+            const headers = ["Miembro", "Concepto", "Monto", "Metodo", "Fecha", "Estado"];
+            const rows = transactions.map(tx => [
+                `"${tx.cliente?.user ? `${tx.cliente.user.nombre} ${tx.cliente.user.apellido}` : 'Usuario Externo'}"`,
+                `"${tx.concepto || 'S/C'}"`,
+                tx.monto || 0,
+                `"${tx.metodo_pago || 'N/A'}"`,
+                tx.fecha ? new Date(tx.fecha).toLocaleDateString('es-CO') : 'S/F',
+                `"${tx.estado || 'Desconocido'}"`
+            ]);
+
+            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `GYMTRACK_Reporte_${dateStr.replace(/\//g, '-')}.csv`);
+            link.click();
+        } catch (error) {
+            console.error('Error generando CSV:', error);
+            alert('Error al generar el archivo CSV.');
+        }
+    };
+
     return (
         <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
             {/* Header Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
                 <h1 className="glow-text" style={{ fontSize: '3.5rem', margin: 0 }}>Ingresos</h1>
                 <div style={{ display: 'flex', gap: '16px' }}>
+                    {/* Export Dropdown */}
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setIsExportOpen(!isExportOpen)}
+                            className="secondary-btn"
+                            style={{
+                                padding: '12px 24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '16px',
+                                fontWeight: '700'
+                            }}
+                        >
+                            <Download size={20} />
+                            Exportar
+                        </button>
+
+                        {isExportOpen && (
+                            <div className="glass-panel" style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 8px)',
+                                right: 0,
+                                minWidth: '180px',
+                                background: 'rgba(20, 20, 20, 0.95)',
+                                backdropFilter: 'blur(20px)',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                zIndex: 110,
+                                overflow: 'hidden',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            }}>
+                                {[
+                                    { id: 'pdf', label: 'PDF Profesional', icon: <FileText size={18} />, action: exportToPDF, color: '#ff4d4d' },
+                                    { id: 'excel', label: 'Excel Pro (XLSX)', icon: <FileSpreadsheet size={18} />, action: exportToExcel, color: '#2ecc71' },
+                                    { id: 'csv', label: 'CSV Plano', icon: <FileBox size={18} />, action: exportToCSV, color: '#3b82f6' },
+                                ].map(opt => (
+                                    <div
+                                        key={opt.id}
+                                        onClick={() => { opt.action(); setIsExportOpen(false); }}
+                                        style={{
+                                            padding: '14px 20px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            color: '#ccc',
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                            e.currentTarget.style.color = opt.color;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'transparent';
+                                            e.currentTarget.style.color = '#ccc';
+                                        }}
+                                    >
+                                        <div style={{ color: opt.color }}>{opt.icon}</div>
+                                        {opt.label}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div style={{ position: 'relative', minWidth: '220px' }}>
                         <div
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -171,12 +438,7 @@ const IngresosAdminTab = () => {
                     <h3 style={{ margin: '0 0 32px 0', fontSize: '22px', fontWeight: '700' }}>Distribución de Ingresos</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '60px' }}>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {[
-                                { label: 'Premium', value: '$3.399.500', perc: '45%', color: '#ff8c42' },
-                                { label: 'Básica', value: '$2.799.300', perc: '35%', color: '#ffcc33' },
-                                { label: 'Clases Individuales', value: '$1.200.000', perc: '15%', color: '#ff4d4d' },
-                                { label: 'Otros', value: '$400.000', perc: '5%', color: '#2ecc71' }
-                            ].map((cat, i) => (
+                            {distribution.map((cat, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: `2.5px solid ${cat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', color: cat.color }}>
@@ -187,18 +449,23 @@ const IngresosAdminTab = () => {
                                             <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#666' }}>{cat.value}</p>
                                         </div>
                                     </div>
-                                    <span style={{ color: '#2ecc71', fontSize: '13px', fontWeight: '800' }}>↗ 8%</span>
+                                    <span style={{ color: '#2ecc71', fontSize: '13px', fontWeight: '800' }}>↗ {totalIngresos > 0 ? '5%' : '0%'}</span>
                                 </div>
                             ))}
                         </div>
                         <div style={{ position: 'relative', width: '240px', height: '240px' }}>
                             <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }}>
                                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="15" />
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ff8c42" strokeWidth="15" strokeDasharray="251.2" strokeDashoffset="138.16" strokeLinecap="round" />
+                                <circle
+                                    cx="50" cy="50" r="40" fill="transparent" stroke="#ff8c42" strokeWidth="15"
+                                    strokeDasharray="251.2"
+                                    strokeDashoffset={251.2 - (251.2 * (distribution.find(d => d.label === 'Premium')?.rawPerc || 0) / 100)}
+                                    strokeLinecap="round"
+                                />
                             </svg>
                             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
                                 <p style={{ fontSize: '12px', color: '#888', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Total</p>
-                                <p style={{ fontSize: '24px', fontWeight: '900', margin: '4px 0 0 0' }}>$7.999.000</p>
+                                <p style={{ fontSize: '24px', fontWeight: '900', margin: '4px 0 0 0' }}>${totalIngresos.toLocaleString('es-CO')}</p>
                             </div>
                         </div>
                     </div>
@@ -206,9 +473,9 @@ const IngresosAdminTab = () => {
 
                 <div className="glass-panel" style={{ padding: '40px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,140,66,0.1)', border: '1px solid rgba(255,140,66,0.2)', overflow: 'hidden', position: 'relative' }}>
                     <div style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}>
-                        <h2 style={{ fontSize: '64px', margin: 0, fontWeight: '900', color: '#ff8c42' }}>+25%</h2>
+                        <h2 style={{ fontSize: '64px', margin: 0, fontWeight: '900', color: '#ff8c42' }}>+{projectedGrowth}%</h2>
                         <p style={{ fontSize: '18px', fontWeight: '700', color: '#fff', marginTop: '8px' }}>Incremento proyectado</p>
-                        <p style={{ fontSize: '14px', color: '#aaa', marginTop: '16px', lineHeight: '1.6', maxWidth: '300px' }}>Basado en el crecimiento actual de suscripciones Premium y membresías corporativas.</p>
+                        <p style={{ fontSize: '14px', color: '#aaa', marginTop: '16px', lineHeight: '1.6', maxWidth: '300px' }}>Estimación basada en el volumen actual de transacciones y el rendimiento de las membresías Premium.</p>
                     </div>
                 </div>
             </div>
