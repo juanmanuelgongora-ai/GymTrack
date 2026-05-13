@@ -12,7 +12,12 @@ import {
     CreditCard,
     Send,
     Filter,
-    DollarSign
+    DollarSign,
+    TrendingUp,
+    TrendingDown,
+    Activity,
+    ChevronDown,
+    CheckCircle2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -55,6 +60,30 @@ const IngresosAdminTab = () => {
             console.error('Error fetching transactions:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const aprobarTransaccion = async (id) => {
+        if (!window.confirm("¿Estás seguro de que deseas aprobar esta transacción pendiente?")) return;
+
+        try {
+            const res = await fetch(`/api/transacciones/${id}/aprobar`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('gymtrack_token')}`,
+                    'Accept': 'application/json'
+                }
+            });
+            if (res.ok) {
+                alert("Transacción aprobada exitosamente. La membresía ha sido vinculada/renovada.");
+                fetchTransactions(filter);
+            } else {
+                const data = await res.json();
+                alert(`Error al aprobar: ${data.message || 'Error desconocido'}`);
+            }
+        } catch (error) {
+            console.error('Error al aprobar transacción:', error);
+            alert("Error de conexión al aprobar la transacción.");
         }
     };
 
@@ -495,16 +524,17 @@ const IngresosAdminTab = () => {
                             <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Método</th>
                             <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Fecha</th>
                             <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Estado</th>
+                            <th style={{ padding: '24px', fontSize: '11px', color: '#666', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '48px', textAlign: 'center', color: '#666' }}>Cargando transacciones...</td>
+                                <td colSpan="7" style={{ padding: '48px', textAlign: 'center', color: '#666' }}>Cargando transacciones...</td>
                             </tr>
                         ) : transactions.length === 0 ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '48px', textAlign: 'center', color: '#666' }}>No se encontraron transacciones.</td>
+                                <td colSpan="7" style={{ padding: '48px', textAlign: 'center', color: '#666' }}>No se encontraron transacciones.</td>
                             </tr>
                         ) : (
                             transactions.map((tx) => (
@@ -539,16 +569,46 @@ const IngresosAdminTab = () => {
                                     </td>
                                     <td style={{ padding: '24px', color: '#666', fontSize: '13px' }}>{tx.fecha}</td>
                                     <td style={{ padding: '24px' }}>
-                                        <span style={{
-                                            padding: '6px 12px',
-                                            borderRadius: '100px',
-                                            fontSize: '12px',
-                                            fontWeight: '700',
-                                            background: getStatusStyle(tx.estado).bg,
-                                            color: getStatusStyle(tx.estado).color
-                                        }}>
-                                            {tx.estado}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{
+                                                padding: '6px 12px',
+                                                borderRadius: '100px',
+                                                fontSize: '12px',
+                                                fontWeight: '700',
+                                                background: getStatusStyle(tx.estado).bg,
+                                                color: getStatusStyle(tx.estado).color
+                                            }}>
+                                                {tx.estado}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '24px', textAlign: 'center' }}>
+                                        {tx.estado.toLowerCase() === 'pendiente' && (
+                                            <button
+                                                onClick={() => aprobarTransaccion(tx.id)}
+                                                style={{
+                                                    background: 'rgba(46, 204, 113, 0.1)',
+                                                    border: '1px solid #2ecc71',
+                                                    color: '#2ecc71',
+                                                    borderRadius: '8px',
+                                                    padding: '6px 12px',
+                                                    fontSize: '12px',
+                                                    fontWeight: 'bold',
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => { e.currentTarget.style.background = '#2ecc71'; e.currentTarget.style.color = '#fff'; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(46, 204, 113, 0.1)'; e.currentTarget.style.color = '#2ecc71'; }}
+                                            >
+                                                <CheckCircle2 size={14} /> Aprobar
+                                            </button>
+                                        )}
+                                        {tx.estado.toLowerCase() !== 'pendiente' && (
+                                            <span style={{ color: '#666', fontSize: '12px' }}>-</span>
+                                        )}
                                     </td>
                                 </tr>
                             ))

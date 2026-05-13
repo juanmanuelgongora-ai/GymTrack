@@ -36,4 +36,42 @@ class TransaccionController extends Controller
 
         return response()->json($transacciones);
     }
+
+    public function aprobar($id)
+    {
+        $tx = Transaccion::with('cliente')->find($id);
+
+        if (!$tx) {
+            return response()->json(['message' => 'Transacción no encontrada.'], 404);
+        }
+
+        if ($tx->estado === 'completado') {
+            return response()->json(['message' => 'La transacción ya ha sido completada.'], 400);
+        }
+
+        $tx->estado = 'completado';
+        $tx->save();
+
+        if ($tx->cliente && strpos($tx->concepto, 'Renovación:') !== false) {
+            $meses = 1;
+            if (strpos(strtolower($tx->concepto), 'trimestral') !== false) {
+                $meses = 3;
+            } elseif (strpos(strtolower($tx->concepto), 'anual') !== false) {
+                $meses = 12;
+            }
+
+            $cliente = $tx->cliente;
+            $fechaBase = ($cliente->vencimiento_membresia && $cliente->vencimiento_membresia->isFuture())
+                ? $cliente->vencimiento_membresia
+                : \Carbon\Carbon::now();
+
+            $cliente->vencimiento_membresia = $fechaBase->addMonths($meses);
+            $cliente->save();
+        }
+
+        return response()->json([
+            'message' => 'Transacción aprobada y membresía actualizada.',
+            'transaccion' => $tx
+        ]);
+    }
 }

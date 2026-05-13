@@ -12,6 +12,7 @@ use App\Http\Controllers\API\EntrenamientoController;
 use App\Http\Controllers\API\LogroController;
 use App\Http\Controllers\API\AdminUserController;
 use App\Http\Controllers\API\AdminEntrenadorController;
+use App\Http\Controllers\API\TransaccionController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -54,6 +55,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Entrenamientos (Sesiones reales)
     Route::post('/entrenamientos/registrar', [EntrenamientoController::class, 'registrar']);
     Route::get('/entrenamientos/stats', [EntrenamientoController::class, 'stats']);
+
+    // Transacciones
+    Route::get('/transacciones', [TransaccionController::class, 'index']);
+    Route::put('/transacciones/{id}/aprobar', [TransaccionController::class, 'aprobar']);
 
     // Ejercicios
     Route::get('/ejercicios', [EjercicioController::class, 'index']);

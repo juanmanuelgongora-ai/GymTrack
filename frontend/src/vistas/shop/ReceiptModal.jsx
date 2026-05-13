@@ -1,8 +1,10 @@
 import React from 'react';
-import { CheckCircle2, Download, X, Calendar, CreditCard, Receipt, FileText } from 'lucide-react';
+import { CheckCircle2, Download, X, Calendar, CreditCard, Receipt, FileText, Clock } from 'lucide-react';
 
 const ReceiptModal = ({ transaction, plan, onClose }) => {
     if (!transaction) return null;
+
+    const isPending = transaction.estado === 'pendiente';
 
     return (
         <div className="modal-overlay" style={{
@@ -20,14 +22,21 @@ const ReceiptModal = ({ transaction, plan, onClose }) => {
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <div style={{
                         width: '80px', height: '80px', borderRadius: '50%',
-                        background: 'rgba(46, 204, 113, 0.1)', border: '2px solid #2ecc71',
+                        background: isPending ? 'rgba(255, 172, 51, 0.1)' : 'rgba(46, 204, 113, 0.1)',
+                        border: `2px solid ${isPending ? '#ffac33' : '#2ecc71'}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        margin: '0 auto 24px auto', color: '#2ecc71'
+                        margin: '0 auto 24px auto', color: isPending ? '#ffac33' : '#2ecc71'
                     }}>
-                        <CheckCircle2 size={40} />
+                        {isPending ? <Clock size={40} /> : <CheckCircle2 size={40} />}
                     </div>
-                    <h2 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 8px 0', color: '#fff' }}>¡Pago Exitoso!</h2>
-                    <p style={{ color: '#aaa', margin: 0 }}>Tu membresía ha sido renovada correctamente.</p>
+                    <h2 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 8px 0', color: '#fff' }}>
+                        {isPending ? 'Pago Pendiente' : '¡Pago Exitoso!'}
+                    </h2>
+                    <p style={{ color: '#aaa', margin: 0 }}>
+                        {isPending
+                            ? 'Tu membresía se vinculará una vez confirmemos la transferencia.'
+                            : 'Tu membresía ha sido renovada correctamente.'}
+                    </p>
                 </div>
 
                 {/* Receipt Details */}
@@ -52,6 +61,15 @@ const ReceiptModal = ({ transaction, plan, onClose }) => {
                                 <Calendar size={14} /> Fecha y Hora
                             </span>
                             <span style={{ fontWeight: '600', fontSize: '14px' }}>{new Date(transaction.fecha).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#888', fontSize: '14px' }}>Estado</span>
+                            <span style={{
+                                fontWeight: '600', fontSize: '14px', textTransform: 'capitalize',
+                                color: isPending ? '#ffac33' : '#2ecc71'
+                            }}>
+                                {transaction.estado}
+                            </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#888', fontSize: '14px' }}>Concepto</span>
