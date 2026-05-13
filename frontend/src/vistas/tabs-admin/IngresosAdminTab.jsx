@@ -25,13 +25,16 @@ import * as XLSX from 'xlsx';
 
 const IngresosAdminTab = () => {
     const [transactions, setTransactions] = React.useState([]);
-    const [filter, setFilter] = React.useState('Todos');
     const [loading, setLoading] = React.useState(true);
+    const [refreshing, setRefreshing] = React.useState(false);
+    const [filter, setFilter] = React.useState('Todos');
     const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
     const [isExportOpen, setIsExportOpen] = React.useState(false);
 
-    const fetchTransactions = async (status = '') => {
-        setLoading(true);
+    const fetchTransactions = async (status = '', bgRefresh = false) => {
+        if (!bgRefresh) setLoading(true);
+        else setRefreshing(true);
+
         try {
             const url = status && status !== 'Todos'
                 ? `/api/admin/transacciones?estado=${status.toLowerCase()}`
@@ -60,6 +63,7 @@ const IngresosAdminTab = () => {
             console.error('Error fetching transactions:', error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -89,6 +93,13 @@ const IngresosAdminTab = () => {
 
     React.useEffect(() => {
         fetchTransactions(filter);
+
+        // Actualización en tiempo real cada 60 segundos
+        const interval = setInterval(() => {
+            fetchTransactions(filter, true);
+        }, 60000);
+
+        return () => clearInterval(interval);
     }, [filter]);
 
     const totalIngresos = transactions
@@ -299,8 +310,38 @@ const IngresosAdminTab = () => {
     return (
         <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
             {/* Header Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
-                <h1 className="glow-text" style={{ fontSize: '3.5rem', margin: 0 }}>Ingresos</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                        background: 'rgba(255, 140, 66, 0.1)',
+                        padding: '16px',
+                        borderRadius: '20px',
+                        color: '#ff8c42',
+                        border: '1px solid rgba(255, 140, 66, 0.2)'
+                    }}>
+                        <DollarSign size={28} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div>
+                            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800' }}>Ingresos Financieros</h1>
+                            <p style={{ margin: '4px 0 0 0', color: '#888', fontSize: '15px' }}>Resumen de transacciones y estados de cuenta</p>
+                        </div>
+                        {refreshing && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2ecc71', fontSize: '12px', fontWeight: 'bold' }}>
+                                <Activity size={14} className="spin-animation" style={{ animation: 'spin 1.5s linear infinite' }} />
+                                <span>Actualizando...</span>
+                            </div>
+                        )}
+                        <style>
+                            {`
+                            @keyframes spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            `}
+                        </style>
+                    </div>
+                </div>
                 <div style={{ display: 'flex', gap: '16px' }}>
                     {/* Export Dropdown */}
                     <div style={{ position: 'relative' }}>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Transaccion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class TransaccionController extends Controller
 {
@@ -68,6 +69,8 @@ class TransaccionController extends Controller
             $cliente->vencimiento_membresia = $fechaBase->addMonths($meses);
             $cliente->save();
         }
+
+        Log::info("[AUDITORÍA] Transacción pendiente aprobada manualmente: ID {$tx->id} | Nuevo estado: completado");
 
         return response()->json([
             'message' => 'Transacción aprobada y membresía actualizada.',

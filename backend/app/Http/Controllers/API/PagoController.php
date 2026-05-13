@@ -8,6 +8,7 @@ use App\Models\Transaccion;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class PagoController extends Controller
 {
@@ -56,6 +57,8 @@ class PagoController extends Controller
                 'fecha' => Carbon::now()
             ]);
 
+            Log::warning("[AUDITORÍA] Transacción rechazada: ID {$transaccion->id} - Cliente: {$cliente->id} - Monto: {$request->monto} - Método: {$request->metodo_pago}");
+
             return response()->json([
                 'message' => 'Transacción rechazada por el banco. Por favor verifica tus fondos o intenta con otra tarjeta.',
                 'transaccion' => $transaccion
@@ -82,6 +85,8 @@ class PagoController extends Controller
             'concepto' => "Renovación: " . $request->plan_nombre,
             'fecha' => Carbon::now()
         ]);
+
+        Log::info("[AUDITORÍA] Transacción {$estado} registrada en sistema: ID {$transaccion->id} | Cliente: {$cliente->id} | Monto: {$request->monto} | Método: {$request->metodo_pago}");
 
         return response()->json([
             'message' => $mensajeExito,
