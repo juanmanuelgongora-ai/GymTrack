@@ -158,7 +158,7 @@ function App() {
 
         setShowPayment(false);
 
-        if (pendingNotification) {
+        if (pendingNotification && resData.transaccion?.estado !== 'pendiente') {
           setNotification({
             title: '¡Tu rutina está lista!',
             message: 'La IA ha generado tu plan personalizado de entrenamiento.',
@@ -365,6 +365,7 @@ function App() {
       {view === 'expiredMembresia' && (
         <ExpiredMembresiaView
           userData={userData}
+          transaction={currentTransaction}
           onLogout={handleLogout}
           onGoToShop={() => handleSetView('shop')}
         />
@@ -394,8 +395,12 @@ function App() {
           plan={selectedPlan}
           onClose={() => {
             setShowReceipt(false);
-            setClientTab('inicio');
-            handleSetView('panelCliente');
+            if (currentTransaction?.estado === 'pendiente') {
+              handleSetView('expiredMembresia');
+            } else {
+              setClientTab('inicio');
+              handleSetView('panelCliente');
+            }
           }}
         />
       )}
@@ -405,7 +410,15 @@ function App() {
           <h3>✨ {notification.title}</h3>
           <p>{notification.message}</p>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="primary-btn" onClick={() => { setNotification(null); setClientTab('rutina'); handleSetView('panelCliente'); }}>
+            <button className="primary-btn" onClick={() => {
+              setNotification(null);
+              if (currentTransaction?.estado === 'pendiente' || (userData?.rol === 'cliente' && !userData?.membresia_activa)) {
+                handleSetView('expiredMembresia');
+              } else {
+                setClientTab('rutina');
+                handleSetView('panelCliente');
+              }
+            }}>
               {notification.actionText}
             </button>
             <button className="secondary-btn" onClick={() => setNotification(null)}>✕</button>
