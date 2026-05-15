@@ -1,27 +1,23 @@
 import React from 'react';
 import {
     Wallet,
-    FileText,
-    FileSpreadsheet,
-    FileBox,
     ArrowUpRight,
     ArrowDownRight,
     Equal,
     Clock,
     Download,
-    CreditCard,
-    Send,
     Filter,
     DollarSign,
     TrendingUp,
     TrendingDown,
     Activity,
     ChevronDown,
-    CheckCircle2
+    CheckCircle2,
+    CreditCard,
+    FileText,
+    FileSpreadsheet,
+    FileBox
 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 const IngresosAdminTab = () => {
     const [transactions, setTransactions] = React.useState([]);
@@ -166,114 +162,53 @@ const IngresosAdminTab = () => {
         }
     };
 
-    const exportToPDF = () => {
+    const preparePayload = () => {
+        const transactionData = transactions.map(tx => ({
+            Miembro: tx.cliente?.user ? `${tx.cliente.user.nombre} ${tx.cliente.user.apellido}` : 'Usuario Externo',
+            Concepto: tx.concepto || 'S/C',
+            Monto: tx.monto || 0,
+            Metodo: tx.metodo_pago || 'N/A',
+            Fecha: tx.fecha ? new Date(tx.fecha).toLocaleDateString('es-CO') : 'S/F',
+            Estado: tx.estado || 'Desconocido'
+        }));
+
+        return JSON.stringify({
+            summary: { totalIngresos, gastosOperativos, balanceNeto },
+            transactions: transactionData
+        });
+    };
+
+    const downloadBlob = async (url, filename) => {
         try {
-            if (!transactions || transactions.length === 0) {
-                alert('No hay datos para exportar.');
-                return;
-            }
-
-            const doc = new jsPDF();
-            const dateStr = new Date().toLocaleDateString('es-CO');
-
-            // Header
-            doc.setFontSize(22);
-            doc.setTextColor(255, 140, 66);
-            doc.text('GYM TRACK - Reporte de Ingresos', 14, 22);
-
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Generado el: ${dateStr}`, 14, 30);
-            doc.text(`Filtro aplicado: ${filter}`, 14, 35);
-
-            // Executive Summary Section
-            doc.setDrawColor(255, 140, 66);
-            doc.line(14, 40, 196, 40);
-
-            doc.setFontSize(14);
-            doc.setTextColor(0);
-            doc.text('RESUMEN EJECUTIVO', 14, 50);
-
-            doc.setFontSize(11);
-            doc.text(`Total Ingresos: $${totalIngresos.toLocaleString('es-CO')}`, 14, 60);
-            doc.text(`Gastos Operativos: $${gastosOperativos.toLocaleString('es-CO')}`, 14, 67);
-            doc.setTextColor(balanceNeto >= 0 ? 46 : 255, balanceNeto >= 0 ? 204 : 77, balanceNeto >= 0 ? 113 : 77); // Green or Red
-            doc.text(`Balance Neto: $${balanceNeto.toLocaleString('es-CO')}`, 14, 74);
-
-            doc.setTextColor(100);
-            doc.setFontSize(10);
-            doc.text(`Transacciones encontradas: ${transactions.length}`, 14, 85);
-
-            // Table Data Preparation with Safety Checks
-            const tableColumn = ["Miembro", "Concepto", "Monto", "Método", "Fecha", "Estado"];
-            const tableRows = transactions.map(tx => {
-                const nombreComp = tx.cliente?.user
-                    ? `${tx.cliente.user.nombre} ${tx.cliente.user.apellido}`
-                    : 'Usuario Externo';
-
-                return [
-                    nombreComp,
-                    tx.concepto || 'S/C',
-                    `$${(tx.monto || 0).toLocaleString('es-CO')}`,
-                    tx.metodo_pago || 'N/A',
-                    tx.fecha ? new Date(tx.fecha).toLocaleDateString('es-CO') : 'S/F',
-                    tx.estado || 'Desconocido'
-                ];
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: preparePayload()
             });
 
-            autoTable(doc, {
-                startY: 95,
-                head: [tableColumn],
-                body: tableRows,
-                theme: 'grid',
-                headStyles: { fillStyle: '#ff8c42', textColor: 255 },
-                alternateRowStyles: { fillColor: [245, 245, 245] }
-            });
+            if (!response.ok) throw new Error('Error de servidor en microservicio');
 
-            doc.save(`GYMTRACK_Reporte_${dateStr.replace(/\//g, '-')}.pdf`);
+            const blob = await response.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
         } catch (error) {
-            console.error('Error generando PDF:', error);
-            alert('Error al generar el PDF. Revisa la consola para más detalles.');
+            console.error('Error exportando reporte:', error);
+            alert('Error exportando. Verifica que el Microservicio de Reportes (puerto 5001) esté corriendo.');
         }
     };
 
+    const exportToPDF = () => {
+        downloadBlob('http://localhost:5001/api/export/pdf', `GYMTRACK_Reporte_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.pdf`);
+    };
+
     const exportToExcel = () => {
-        try {
-            if (!transactions || transactions.length === 0) {
-                alert('No hay datos para exportar.');
-                return;
-            }
-
-            const dateStr = new Date().toLocaleDateString('es-CO');
-
-            // Add Summary Data to Excel
-            const summaryData = [
-                { 'REPORTE FINANCIERO': 'GYM TRACK', 'VALOR': '' },
-                { 'REPORTE FINANCIERO': 'Fecha', 'VALOR': dateStr },
-                { 'REPORTE FINANCIERO': 'Total Ingresos', 'VALOR': totalIngresos },
-                { 'REPORTE FINANCIERO': 'Gastos Operativos', 'VALOR': gastosOperativos },
-                { 'REPORTE FINANCIERO': 'Balance Neto', 'VALOR': balanceNeto },
-                { 'REPORTE FINANCIERO': '', 'VALOR': '' },
-                { 'REPORTE FINANCIERO': 'DETALLE DE TRANSACCIONES', 'VALOR': '' }
-            ];
-
-            const transactionData = transactions.map(tx => ({
-                'Miembro': tx.cliente?.user ? `${tx.cliente.user.nombre} ${tx.cliente.user.apellido}` : 'Usuario Externo',
-                'Concepto': tx.concepto || 'S/C',
-                'Monto': tx.monto || 0,
-                'Método de Pago': tx.metodo_pago || 'N/A',
-                'Fecha': tx.fecha ? new Date(tx.fecha).toLocaleDateString('es-CO') : 'S/F',
-                'Estado': tx.estado || 'Desconocido'
-            }));
-
-            const ws = XLSX.utils.json_to_sheet([...summaryData, ...transactionData]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Finanzas");
-            XLSX.writeFile(wb, `GYMTRACK_Reporte_Completo_${dateStr.replace(/\//g, '-')}.xlsx`);
-        } catch (error) {
-            console.error('Error generando Excel:', error);
-            alert('Error al generar el archivo Excel.');
-        }
+        downloadBlob('http://localhost:5001/api/export/excel', `GYMTRACK_Reporte_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     };
 
     const exportToCSV = () => {
