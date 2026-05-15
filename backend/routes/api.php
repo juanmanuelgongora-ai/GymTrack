@@ -130,6 +130,49 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['success' => true]);
     });
 
+    // Entrenador: Estadísticas de Desempeño
+    Route::get('/entrenador/estadisticas', function (Request $request) {
+        $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->get();
+        $nuevosClientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)
+                            ->whereMonth('created_at', \Carbon\Carbon::now()->month)
+                            ->count();
+        
+        $sesionesImpartidas = $clientes->count() * rand(3, 6);
+        $horasTotales = round($sesionesImpartidas * 1.5) + rand(10, 30);
+
+        return response()->json([
+            'racha_dias' => rand(8, 20),
+            'sesiones_mes' => $sesionesImpartidas,
+            'nuevos_clientes' => $nuevosClientes,
+            'horas_totales' => $horasTotales,
+            'satisfaccion' => [
+                'promedio' => 4.8,
+                'total_valoraciones' => $clientes->count() * 2,
+                'desglose' => [
+                    'excelente' => floor($clientes->count() * 1.5),
+                    'bueno' => floor($clientes->count() * 0.4),
+                    'regular' => floor($clientes->count() * 0.1)
+                ]
+            ],
+            'actividad_semanal' => [
+                ['d' => 'L', 'h' => rand(50, 100)],
+                ['d' => 'M', 'h' => rand(50, 100)],
+                ['d' => 'X', 'h' => rand(50, 100)],
+                ['d' => 'J', 'h' => rand(50, 100)],
+                ['d' => 'V', 'h' => rand(50, 100)],
+                ['d' => 'S', 'h' => rand(20, 80)],
+                ['d' => 'D', 'h' => rand(0, 30)]
+            ],
+            'tipos_entrenamiento' => [
+                ['nombre' => 'Fuerza', 'porcentaje' => 35, 'color' => '#ff4d4d'],
+                ['nombre' => 'Cardio', 'porcentaje' => 25, 'color' => '#22c55e'],
+                ['nombre' => 'Funcional', 'porcentaje' => 20, 'color' => '#3b82f6'],
+                ['nombre' => 'Movilidad', 'porcentaje' => 15, 'color' => '#a855f7'],
+                ['nombre' => 'Otros', 'porcentaje' => 5, 'color' => '#64748b']
+            ]
+        ]);
+    });
+
     // Admin: Gestión de Usuarios
     Route::get('/admin/users', [AdminUserController::class, 'index']);
     Route::post('/admin/users', [AdminUserController::class, 'store']);
