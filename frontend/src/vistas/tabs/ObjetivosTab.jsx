@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Target, Flag, Zap, TrendingUp, Calendar, ArrowRight, Plus, X, Save, Trash2, Edit3 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useUser } from '../../logica/UserContext';
+import { Target, Flag, Zap, TrendingUp, Calendar, ArrowRight, Plus, X, Save, Trash2, Loader2, BarChart3, Scale } from 'lucide-react';
 import '../../estilos/tabs.css';
 
 const API_URL = '/api';
 
 const TIPO_CONFIG = {
-  peso: { icon: <Target size={20} />, color: '#ff6b35', label: 'Peso' },
+  peso: { icon: <Scale size={20} />, color: '#ff6b35', label: 'Peso' },
   fuerza: { icon: <TrendingUp size={20} />, color: '#3b82f6', label: 'Fuerza' },
   hipertrofia: { icon: <Zap size={20} />, color: '#a855f7', label: 'Hipertrofia' },
-  habito: { icon: <Calendar size={20} />, color: '#22c55e', label: 'Hábito' },
+  habito: { icon: <Calendar size={20} />, color: '#22c55e', label: 'Constancia' },
   resistencia: { icon: <Flag size={20} />, color: '#eab308', label: 'Resistencia' },
+  composicion: { icon: <BarChart3 size={20} />, color: '#ec4899', label: 'Composición' },
 };
 
 const ESTADO_LABELS = { en_progreso: 'En Progreso', completado: 'Completado', abandonado: 'Abandonado' };
 
-export default function ObjetivosTab({ token }) {
+export default function ObjetivosTab({ onLogrosUnlocked }) {
+  const { token } = useUser();
   const [hitos, setHitos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -22,57 +25,115 @@ export default function ObjetivosTab({ token }) {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
+
   const [formData, setFormData] = useState({
-    titulo: '', descripcion: '', tipo: 'peso', meta_valor: '', valor_actual: '', unidad: 'kg', fecha_limite: ''
+    titulo: '',
+    descripcion: '',
+    tipo: 'peso',
+    valor_inicial: '',
+    meta_valor: '',
+    valor_actual: '',
+    unidad: 'kg',
+    fecha_limite: ''
   });
 
-  const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' };
-
-  useEffect(() => { fetchHitos(); }, []);
-
-  const fetchHitos = async () => {
+  const fetchHitos = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     try {
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      };
       const url = filtroTipo ? `${API_URL}/hitos?tipo=${filtroTipo}` : `${API_URL}/hitos`;
       const res = await fetch(url, { headers });
-      if (res.ok) setHitos(await res.json());
-    } catch (err) { console.error('Error cargando hitos:', err); }
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Hitos cargados:', data);
+        setHitos(data);
+      } else {
+        console.error('Error al cargar hitos:', res.status);
+      }
+    } catch (err) {
+      console.error('Error de red al cargar hitos:', err);
+    }
     setLoading(false);
-  };
+  }, [token, filtroTipo]);
 
-  useEffect(() => { fetchHitos(); }, [filtroTipo]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchHitos();
+  }, [fetchHitos]);
 
   const handleCreate = async () => {
     if (!formData.titulo || !formData.meta_valor) return alert('Título y meta son obligatorios.');
     setSaving(true);
     try {
-      const body = { ...formData };
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
+
+      const body = {
+        ...formData,
+        valor_inicial: parseFloat(formData.valor_inicial) || 0,
+        meta_valor: parseFloat(formData.meta_valor),
+        valor_actual: parseFloat(formData.valor_actual) || parseFloat(formData.valor_inicial) || 0
+      };
+
       if (!body.fecha_limite) delete body.fecha_limite;
-      if (!body.valor_actual) body.valor_actual = 0;
+
       const res = await fetch(`${API_URL}/hitos`, { method: 'POST', headers, body: JSON.stringify(body) });
       if (res.ok) {
         setShowForm(false);
-        setFormData({ titulo: '', descripcion: '', tipo: 'peso', meta_valor: '', valor_actual: '', unidad: 'kg', fecha_limite: '' });
+        setFormData({ titulo: '', descripcion: '', tipo: 'peso', valor_inicial: '', meta_valor: '', valor_actual: '', unidad: 'kg', fecha_limite: '' });
         fetchHitos();
-      } else { const e = await res.json(); alert('Error: ' + (e.message || JSON.stringify(e.errors))); }
-    } catch (e) { alert('Error de conexión.'); }
+      } else {
+        const e = await res.json();
+        alert('Error: ' + (e.message || JSON.stringify(e.errors)));
+      }
+    } catch (err) {
+      alert('Error de conexión.');
+    }
     setSaving(false);
   };
 
   const handleUpdateProgress = async (id) => {
     if (!editValue || isNaN(editValue)) return;
     try {
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
       const res = await fetch(`${API_URL}/hitos/${id}`, { method: 'PUT', headers, body: JSON.stringify({ valor_actual: parseFloat(editValue) }) });
-      if (res.ok) { setEditingId(null); setEditValue(''); fetchHitos(); }
-    } catch (e) { alert('Error al actualizar.'); }
+      if (res.ok) {
+        const data = await res.json();
+        setEditingId(null);
+        setEditValue('');
+        fetchHitos();
+
+        // Notificar logros si se desbloquearon
+        if (data.logros_desbloqueados && data.logros_desbloqueados.length > 0) {
+          console.log('Logros desbloqueados detectados:', data.logros_desbloqueados);
+          if (onLogrosUnlocked) onLogrosUnlocked(data.logros_desbloqueados);
+        }
+      }
+    } catch (err) {
+      alert('Error al actualizar.');
+    }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar este hito?')) return;
     try {
+      const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
       const res = await fetch(`${API_URL}/hitos/${id}`, { method: 'DELETE', headers });
       if (res.ok) fetchHitos();
-    } catch (e) { alert('Error al eliminar.'); }
+    } catch (err) {
+      alert('Error al eliminar.');
+    }
   };
 
   const stats = {
@@ -81,13 +142,10 @@ export default function ObjetivosTab({ token }) {
     completados: hitos.filter(h => h.estado === 'completado').length,
   };
 
-  if (loading) {
+  if (loading && hitos.length === 0) {
     return (
-      <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 40, height: 40, border: '3px solid rgba(255,107,53,0.3)', borderTop: '3px solid #ff6b35', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
-          <p className="text-secondary">Cargando hitos...</p>
-        </div>
+      <div className="tab-container flex-center min-h-50">
+        <Loader2 className="animate-spin" size={40} color="#ff6b35" />
       </div>
     );
   }
@@ -108,70 +166,64 @@ export default function ObjetivosTab({ token }) {
         <div className="glass-panel p-24" style={{ marginBottom: 24, animation: 'fadeIn 0.3s ease' }}>
           <h4 style={{ marginBottom: 16, color: '#ff6b35' }}>Crear Nuevo Hito</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Título *</label>
-              <input className="input-element no-icon" placeholder="ej: Perder 5kg" value={formData.titulo}
-                onChange={e => setFormData(p => ({ ...p, titulo: e.target.value }))}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%' }} />
+            <div style={{ gridColumn: 'span 2' }}>
+              <label className="form-label">Título del Objetivo *</label>
+              <input className="input-field" placeholder="ej: Llegar a los 75kg de peso corporal" value={formData.titulo}
+                onChange={e => setFormData(p => ({ ...p, titulo: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Tipo *</label>
-              <select value={formData.tipo} onChange={e => setFormData(p => ({ ...p, tipo: e.target.value }))}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%' }}>
-                <option value="peso">Peso / Composición</option>
+              <label className="form-label">Categoría *</label>
+              <select className="input-field" value={formData.tipo} onChange={e => setFormData(p => ({ ...p, tipo: e.target.value }))} style={{ background: '#1a1a1d' }}>
+                <option value="peso">Peso</option>
                 <option value="fuerza">Fuerza</option>
                 <option value="hipertrofia">Hipertrofia</option>
-                <option value="habito">Hábito / Constancia</option>
+                <option value="habito">Constancia</option>
                 <option value="resistencia">Resistencia</option>
+                <option value="composicion">Composición</option>
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Meta (valor numérico) *</label>
-              <input className="input-element no-icon" placeholder="ej: 75" value={formData.meta_valor}
-                onChange={e => setFormData(p => ({ ...p, meta_valor: e.target.value }))}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%' }} />
+              <label className="form-label">Unidad de Medida *</label>
+              <input className="input-field" placeholder="ej: kg, rep, sesiones" value={formData.unidad}
+                onChange={e => setFormData(p => ({ ...p, unidad: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Unidad *</label>
-              <input className="input-element no-icon" placeholder="ej: kg, rep, sesiones" value={formData.unidad}
-                onChange={e => setFormData(p => ({ ...p, unidad: e.target.value }))}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%' }} />
+              <label className="form-label">Valor Inicial *</label>
+              <input className="input-field" type="number" placeholder="ej: 80" value={formData.valor_inicial}
+                onChange={e => setFormData(p => ({ ...p, valor_inicial: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Valor Actual</label>
-              <input className="input-element no-icon" placeholder="ej: 0" value={formData.valor_actual}
-                onChange={e => setFormData(p => ({ ...p, valor_actual: e.target.value }))}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%' }} />
+              <label className="form-label">Valor Meta *</label>
+              <input className="input-field" type="number" placeholder="ej: 75" value={formData.meta_valor}
+                onChange={e => setFormData(p => ({ ...p, meta_valor: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Fecha Límite</label>
-              <input type="date" value={formData.fecha_limite}
-                onChange={e => setFormData(p => ({ ...p, fecha_limite: e.target.value }))}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%' }} />
+              <label className="form-label">Valor Actual (opcional)</label>
+              <input className="input-field" type="number" placeholder="ej: 80" value={formData.valor_actual}
+                onChange={e => setFormData(p => ({ ...p, valor_actual: e.target.value }))} />
+            </div>
+            <div>
+              <label className="form-label">Fecha Límite</label>
+              <input className="input-field" type="date" value={formData.fecha_limite}
+                onChange={e => setFormData(p => ({ ...p, fecha_limite: e.target.value }))} />
             </div>
           </div>
-          <div style={{ marginTop: 12 }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Descripción</label>
-            <textarea placeholder="Descripción del hito..." value={formData.descripcion}
-              onChange={e => setFormData(p => ({ ...p, descripcion: e.target.value }))}
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', width: '100%', minHeight: 50, resize: 'vertical' }} />
-          </div>
-          <button className="primary-btn" style={{ marginTop: 16, padding: '10px 24px' }} onClick={handleCreate} disabled={saving}>
-            <Save size={16} /> {saving ? 'Guardando...' : 'Crear Hito'}
+          <button className="primary-btn mt-24" onClick={handleCreate} disabled={saving}>
+            <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Objetivo'}
           </button>
         </div>
       )}
 
-      <div className="filter-chips mb-8">
+      <div className="filter-chips mb-24">
         <div className={`chip ${filtroTipo === '' ? 'active' : ''}`} onClick={() => setFiltroTipo('')}>Todos</div>
-        <div className={`chip ${filtroTipo === 'peso' ? 'active' : ''}`} onClick={() => setFiltroTipo('peso')}>Peso</div>
-        <div className={`chip ${filtroTipo === 'fuerza' ? 'active' : ''}`} onClick={() => setFiltroTipo('fuerza')}>Fuerza</div>
-        <div className={`chip ${filtroTipo === 'hipertrofia' ? 'active' : ''}`} onClick={() => setFiltroTipo('hipertrofia')}>Hipertrofia</div>
-        <div className={`chip ${filtroTipo === 'habito' ? 'active' : ''}`} onClick={() => setFiltroTipo('habito')}>Constancia</div>
-        <div className={`chip ${filtroTipo === 'resistencia' ? 'active' : ''}`} onClick={() => setFiltroTipo('resistencia')}>Resistencia</div>
+        {Object.keys(TIPO_CONFIG).map(key => (
+          <div key={key} className={`chip ${filtroTipo === key ? 'active' : ''}`} onClick={() => setFiltroTipo(key)}>
+            {TIPO_CONFIG[key].label}
+          </div>
+        ))}
       </div>
 
-      <div className="objetivos-stats">
+      <div className="objetivos-stats mb-24">
         <div className="stat-box">
           <div className="icon-box"><Target color="#ff6b35" /></div>
           <div><h2>{stats.total}</h2><p>Total Objetivos</p></div>
@@ -187,10 +239,10 @@ export default function ObjetivosTab({ token }) {
       </div>
 
       {hitos.length === 0 ? (
-        <div className="glass-panel p-24" style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <Target size={48} color="rgba(255,107,53,0.4)" style={{ marginBottom: 16 }} />
-          <h3 style={{ marginBottom: 8 }}>Sin hitos registrados</h3>
-          <p className="text-secondary">Crea tu primer hito físico para comenzar a rastrear tu progreso.</p>
+        <div className="glass-panel p-48 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
+          <Target size={48} color="rgba(255,107,53,0.2)" className="mb-16 mx-auto" />
+          <h3 style={{ color: 'rgba(255,255,255,0.5)' }}>Sin hitos registrados</h3>
+          <p className="text-secondary">No hay objetivos en esta categoría. Crea uno nuevo para empezar.</p>
         </div>
       ) : (
         <div className="objetivos-grid">
@@ -202,54 +254,59 @@ export default function ObjetivosTab({ token }) {
               <div className="objetivo-card glass-panel p-24" key={hito.id}>
                 <div className="flex-between mb-16">
                   <div className="flex-align-center gap-12">
-                    <div className="icon-box" style={{ width: 40, height: 40 }}>{cfg.icon}</div>
+                    <div className="icon-box" style={{ width: 40, height: 40, background: `${cfg.color}15` }}>
+                      {React.cloneElement(cfg.icon, { color: cfg.color })}
+                    </div>
                     <div>
-                      <h3>{hito.titulo}</h3>
+                      <h3 style={{ fontSize: '1.1rem' }}>{hito.titulo}</h3>
                       <span className="text-secondary text-xs">{cfg.label}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="flex-align-center gap-8">
                     <div className={`status-badge ${isDone ? 'status-done' : 'status-progress'}`}>{ESTADO_LABELS[hito.estado]}</div>
-                    <button onClick={() => handleDelete(hito.id)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: 4, cursor: 'pointer', display: 'flex' }} title="Eliminar">
-                      <Trash2 size={14} color="#ef4444" />
+                    <button onClick={() => handleDelete(hito.id)} className="icon-btn-danger" title="Eliminar">
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
 
-                {hito.descripcion && <p className="text-sm text-secondary mb-16">{hito.descripcion}</p>}
+                {hito.descripcion && <p className="text-sm text-secondary mb-16" style={{ opacity: 0.7 }}>{hito.descripcion}</p>}
 
-                <div className="mb-16">
+                <div className="mb-20">
                   <div className="flex-between text-sm mb-8">
-                    <span>Progreso: <b>{hito.progreso_porcentaje}%</b></span>
-                    <span className="text-brand">{hito.valor_actual} / {hito.meta_valor} {hito.unidad}</span>
+                    <span className="font-bold">{hito.progreso_porcentaje}% Completado</span>
+                    <span className="text-brand font-bold">{hito.valor_actual} / {hito.meta_valor} <span className="text-secondary font-normal">{hito.unidad}</span></span>
                   </div>
-                  <div className="progress-bar-lg">
-                    <div className={`progress-fill ${isDone ? 'bg-green' : 'bg-orange'}`} style={{ width: `${Math.min(100, hito.progreso_porcentaje)}%` }}></div>
+                  <div className="progress-bar-lg" style={{ height: 10, background: 'rgba(255,255,255,0.05)' }}>
+                    <div className={`progress-fill ${isDone ? 'bg-green' : 'bg-orange'}`}
+                      style={{
+                        width: `${Math.min(100, hito.progreso_porcentaje)}%`,
+                        boxShadow: `0 0 10px ${isDone ? '#4ade8050' : '#ff6b3550'}`
+                      }}>
+                    </div>
+                  </div>
+                  <div className="flex-between text-xs text-secondary mt-8">
+                    <span>Inicio: {hito.valor_inicial} {hito.unidad}</span>
+                    <span>Meta: {hito.meta_valor} {hito.unidad}</span>
                   </div>
                 </div>
 
-                <div className="flex-between text-xs text-secondary mt-16 pt-16" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex-between text-xs text-secondary mt-16 pt-16 border-top-thin">
                   {hito.fecha_limite ? (
-                    <span className="flex-align-center gap-4"><Calendar size={12} /> Meta: {new Date(hito.fecha_limite).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                  ) : <span />}
+                    <span className="flex-align-center gap-4"><Calendar size={12} /> Límite: {new Date(hito.fecha_limite).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  ) : <span>Sin fecha límite</span>}
 
                   {!isDone && (
                     isEditing ? (
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <input value={editValue} onChange={e => setEditValue(e.target.value)} placeholder="Nuevo valor"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,107,53,0.3)', borderRadius: 6, padding: '4px 8px', color: '#fff', width: 90, fontSize: '0.8rem' }}
-                          onKeyDown={e => { if (e.key === 'Enter') handleUpdateProgress(hito.id); }}
-                        />
-                        <button onClick={() => handleUpdateProgress(hito.id)} style={{ background: 'rgba(255,107,53,0.15)', border: '1px solid rgba(255,107,53,0.4)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#ff6b35', fontSize: '0.8rem' }}>
-                          <Save size={12} /> OK
-                        </button>
-                        <button onClick={() => { setEditingId(null); setEditValue(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                          <X size={14} color="rgba(255,255,255,0.5)" />
-                        </button>
+                      <div className="flex-align-center gap-6">
+                        <input value={editValue} onChange={e => setEditValue(e.target.value)} className="input-field-sm"
+                          onKeyDown={e => { if (e.key === 'Enter') handleUpdateProgress(hito.id); }} autoFocus />
+                        <button onClick={() => handleUpdateProgress(hito.id)} className="primary-btn-sm"><Save size={12} /> OK</button>
+                        <button onClick={() => { setEditingId(null); setEditValue(''); }} className="icon-btn-sm"><X size={14} /></button>
                       </div>
                     ) : (
-                      <button className="link-btn" style={{ margin: 0 }} onClick={() => { setEditingId(hito.id); setEditValue(String(hito.valor_actual)); }}>
-                        Actualizar <ArrowRight size={14} />
+                      <button className="link-btn" onClick={() => { setEditingId(hito.id); setEditValue(String(hito.valor_actual)); }}>
+                        Actualizar Avance <ArrowRight size={14} />
                       </button>
                     )
                   )}
@@ -259,6 +316,36 @@ export default function ObjetivosTab({ token }) {
           })}
         </div>
       )}
+      <style>{`
+        .flex-center { display: flex; align-items: center; justify-content: center; }
+        .min-h-50 { min-height: 50vh; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .flex-align-center { display: flex; align-items: center; }
+        .gap-12 { gap: 12px; }
+        .gap-8 { gap: 8px; }
+        .gap-6 { gap: 6px; }
+        .gap-4 { gap: 4px; }
+        .mb-24 { margin-bottom: 24px; }
+        .mb-20 { margin-bottom: 20px; }
+        .mb-16 { margin-bottom: 16px; }
+        .mt-24 { margin-top: 24px; }
+        .form-label { display: block; font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+        .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; color: #fff; width: 100%; transition: all 0.3s; }
+        .input-field:focus { border-color: #ff6b35; outline: none; background: rgba(255,255,255,0.08); }
+        .input-field-sm { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,107,53,0.3); border-radius: 6px; padding: 4px 8px; color: #fff; width: 80px; font-size: 0.8rem; }
+        .primary-btn-sm { background: rgba(255,107,53,0.15); border: 1px solid rgba(255,107,53,0.4); border-radius: 6px; padding: 4px 8px; cursor: pointer; color: #ff6b35; display: flex; align-items: center; gap: 4px; font-size: 0.8rem; }
+        .icon-btn-sm { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.4); }
+        .icon-btn-danger { background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.1); border-radius: 6px; padding: 4px; cursor: pointer; color: #ef4444; display: flex; transition: all 0.3s; }
+        .icon-btn-danger:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; }
+        .status-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-progress { background: rgba(255,107,53,0.1); color: #ff6b35; border: 1px solid rgba(255,107,53,0.2); }
+        .status-done { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+        .bg-orange { background: linear-gradient(90deg, #ff6b35, #ff8c61); }
+        .bg-green { background: linear-gradient(90deg, #4ade80, #22c55e); }
+        .border-top-thin { border-top: 1px solid rgba(255,255,255,0.05); }
+        .font-bold { font-weight: 700; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+      `}</style>
     </div>
   );
 }
