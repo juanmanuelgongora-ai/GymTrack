@@ -15,6 +15,7 @@ import RutinaTab from './tabs/RutinaTab';
 import LogrosTab from './tabs/LogrosTab';
 import AchievementNotification from '../componentes/AchievementNotification';
 import StreakBadge from '../componentes/StreakBadge';
+import RutinaDelDia from '../componentes/RutinaDelDia';
 
 const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan, setView }) => {
   const { token, userData } = useUser();
@@ -191,71 +192,44 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
             </section>
 
             <div className="dashboard-split" style={{ animation: 'fadeIn 0.7s ease' }}>
-              <section className="routine-section">
-                <div
-                  className={`routine-card ${isTodayCompleted(todayRoutine) ? 'day-completed' : ''}`}
-                  style={isTodayCompleted(todayRoutine) ? { borderColor: 'rgba(16,185,129,0.5)', background: 'linear-gradient(145deg, rgba(16,185,129,0.1) 0%, rgba(20,20,20,0.8) 100%)' } : {}}
-                >
-                  <div className="routine-banner">
-                    <div className="banner-details">
-                      <span className="badge glass-badge" style={isTodayCompleted(todayRoutine) ? { background: '#10b981', color: 'white' } : {}}>Hoy - {todayRoutine?.dia || 'Día 1'}</span>
-                      <span className="badge glass-badge">{todayRoutine?.duracion_estimada || '45-60 min'}</span>
-                    </div>
-                    <h2>
-                      {todayRoutine?.grupo_muscular || 'Día de descanso'}
-                    </h2>
-                    <p>{todayRoutine?.ejercicios?.length || 0} ejercicios • {todayRoutine?.intensidad || 'Baja'}</p>
-                  </div>
+              <div className="routines-list" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                {loading || !rutinaData?.plan_semanal?.dias ? (
+                  <RutinaDelDia loading={true} />
+                ) : (
+                  rutinaData.plan_semanal.dias.map((diaPlan, index) => {
+                    const isToday = todayRoutine?.dia === diaPlan.dia;
+                    
+                    const today = new Date();
+                    const currentIdx = rutinaData.plan_semanal.dias.findIndex(d => d.dia === todayRoutine?.dia);
+                    const dayIndexDiff = index - (currentIdx >= 0 ? currentIdx : 0);
+                    const planDate = new Date(today);
+                    planDate.setDate(today.getDate() + dayIndexDiff);
+                    const dateString = planDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+                    const formattedDate = dateString.charAt(0).toUpperCase() + dateString.slice(1);
 
-                  <div className="exercise-list">
-                    {todayRoutine?.ejercicios?.map((ex, idx) => (
-                      <div className="exercise-item glass-panel" key={idx}>
-                        <div className="exercise-number">{idx + 1}</div>
-                        <div className="exercise-info">
-                          <h3>{ex.nombre}</h3>
-                          <div className="exercise-details">
-                            <span><Dumbbell size={14} /> {ex.series} x {ex.repeticiones}</span>
-                            <span>•</span>
-                            <span><Activity size={14} /> {ex.descanso || '60s'}</span>
-                          </div>
-                        </div>
-                        {exerciseProgress[ex.id || ex.nombre || ex.ejercicio_nombre]?.completedSets?.length >= (ex.series || 3) ? (
-                          <div className="completed-badge" style={{ padding: '8px', color: '#10b981' }}>
-                            <CheckCircle2 size={20} />
-                          </div>
-                        ) : (
-                          <button className="secondary-btn" onClick={() => {
-                            setAutoStartPlan({ ...todayRoutine, ejercicios: [ex] });
-                            setActiveTab('rutina');
-                          }}>
-                            <Play size={16} fill="currentColor" /> Iniciar
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {!todayRoutine && !loading && (
-                      <p className="text-secondary text-center py-24">No tienes rutina asignada para hoy.</p>
-                    )}
-                    {loading && (
-                      <p className="text-secondary text-center py-24">Cargando tu rutina de hoy...</p>
-                    )}
-                  </div>
-
-                  <div className="routine-actions">
-                    <button className="primary-btn full-width" onClick={() => {
-                      if (todayRoutine) {
-                        setAutoStartPlan(todayRoutine);
-                        setActiveTab('rutina');
-                      }
-                    }} style={isTodayCompleted(todayRoutine) ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}}>
-                      {isTodayCompleted(todayRoutine) ? <CheckCircle2 size={18} /> : <Play size={18} fill="currentColor" />} {isTodayCompleted(todayRoutine) ? 'Repetir Rutina' : 'Comenzar Rutina'}
-                    </button>
-                    <button className="secondary-btn full-width" onClick={() => setActiveTab('rutina')}>
-                      <BookOpen size={18} /> Ver Detalles
-                    </button>
-                  </div>
-                </div>
-              </section>
+                    return (
+                      <RutinaDelDia
+                        key={index}
+                        todayRoutine={diaPlan}
+                        isTodayCompleted={isTodayCompleted(diaPlan)}
+                        exerciseProgress={exerciseProgress}
+                        loading={loading}
+                        isToday={isToday}
+                        dateString={formattedDate}
+                        onStartExercise={(ex) => {
+                          setAutoStartPlan({ ...diaPlan, ejercicios: [ex] });
+                          setActiveTab('rutina');
+                        }}
+                        onStartRoutine={() => {
+                          setAutoStartPlan(diaPlan);
+                          setActiveTab('rutina');
+                        }}
+                        onViewDetails={() => setActiveTab('rutina')}
+                      />
+                    );
+                  })
+                )}
+              </div>
 
               <section className="sidebar-section">
                 <div className="sidebar-card glass-panel">
