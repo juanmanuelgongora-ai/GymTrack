@@ -36,9 +36,31 @@ class PagoController extends Controller
 
         // Lógica de simulación del Gateway
         if ($request->metodo_pago === 'tarjeta') {
-            // Simulamos rechazo si el CVV es 000
-            if (isset($detalles['cvv']) && $detalles['cvv'] === '000') {
+            $cvv = $detalles['cvv'] ?? null;
+            $expiry = $detalles['expiry'] ?? null;
+            $number = preg_replace('/\s/', '', $detalles['number'] ?? '');
+
+            // Simular rechazo por CVV inválido (fondos insuficientes)
+            if ($cvv === '000') {
                 $estado = 'rechazado';
+                $mensajeExito = 'Transacción rechazada por el banco. Por favor verifica tus fondos o intenta con otra tarjeta.';
+            }
+
+            // Simular rechazo por tarjeta vencida (fecha en el pasado)
+            if ($estado !== 'rechazado' && $expiry) {
+                [$mes, $anio] = array_pad(explode('/', $expiry), 2, null);
+                $anioCompleto = $anio ? ('20' . $anio) : date('Y');
+                $fechaTarjeta = Carbon::create((int) $anioCompleto, (int) $mes, 1)->endOfMonth();
+                if ($fechaTarjeta->isPast()) {
+                    $estado = 'rechazado';
+                    $mensajeExito = 'La tarjeta ingresada se encuentra vencida. Por favor utiliza una tarjeta vigente.';
+                }
+            }
+
+            // Simular rechazo por número de tarjeta inválido (menos de 16 dígitos)
+            if ($estado !== 'rechazado' && strlen($number) < 16) {
+                $estado = 'rechazado';
+                $mensajeExito = 'El número de tarjeta no es válido. Verifica los 16 dígitos e intenta nuevamente.';
             }
         } elseif ($request->metodo_pago === 'transferencia') {
             $estado = 'pendiente';
@@ -60,7 +82,7 @@ class PagoController extends Controller
             Log::warning("[AUDITORÍA] Transacción rechazada: ID {$transaccion->id} - Cliente: {$cliente->id} - Monto: {$request->monto} - Método: {$request->metodo_pago}");
 
             return response()->json([
-                'message' => 'Transacción rechazada por el banco. Por favor verifica tus fondos o intenta con otra tarjeta.',
+                'message' => $mensajeExito,
                 'transaccion' => $transaccion
             ], 400);
         }

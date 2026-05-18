@@ -55,6 +55,7 @@ function App() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [paymentError, setPaymentError] = useState(null);
 
   const [formData, setFormData] = useState(initialFormData);
 
@@ -167,11 +168,11 @@ function App() {
           setPendingNotification(false);
         }
       } else {
-        alert('Error en el pago: ' + (resData.message || 'No se pudo procesar la transacción.'));
+        setPaymentError(resData.message || 'No se pudo procesar la transacción.');
       }
     } catch (error) {
       console.error('Error procesando pago:', error);
-      alert('Error de conexión con el servidor.');
+      setPaymentError('Error de conexión con el servidor. Verifica tu internet e inténtalo de nuevo.');
     }
   };
 
@@ -384,7 +385,8 @@ function App() {
       {showPayment && (
         <PaymentModal
           plan={selectedPlan}
-          onClose={() => setShowPayment(false)}
+          paymentError={paymentError}
+          onClose={() => { setShowPayment(false); setPaymentError(null); }}
           onConfirm={handlePaymentConfirm}
         />
       )}

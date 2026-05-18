@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Icons from '../../logica/Icons';
 import { CreditCard, Landmark, Wallet, ShieldCheck, Info } from 'lucide-react';
 
-const PaymentModal = ({ plan, onClose, onConfirm }) => {
+const PaymentModal = ({ plan, onClose, onConfirm, paymentError }) => {
     const [method, setMethod] = useState('tarjeta');
     const [cardData, setCardData] = useState({ number: '', expiry: '', cvv: '', name: '' });
     const [saveMethod, setSaveMethod] = useState(false);
@@ -131,7 +131,19 @@ const PaymentModal = ({ plan, onClose, onConfirm }) => {
                     </div>
                 </div>
 
-                <p style={{ color: '#888', marginBottom: '16px', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Selecciona Método de Pago</p>
+                {paymentError && (
+                    <div style={{ background: 'rgba(255,77,77,0.12)', border: '1px solid rgba(255,77,77,0.4)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <span style={{ fontSize: '18px', lineHeight: 1 }}>&#9888;</span>
+                        <div>
+                            <p style={{ margin: 0, fontWeight: '700', color: '#ff4d4d', fontSize: '13px' }}>Pago rechazado</p>
+                            <p style={{ margin: '4px 0 0 0', color: '#ffaaaa', fontSize: '13px', lineHeight: '1.5' }}>{paymentError}</p>
+                        </div>
+                    </div>
+                )}
+
+                <p style={{ color: paymentError ? '#ff8c42' : '#888', marginBottom: '8px', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: paymentError ? '700' : '400' }}>
+                    {paymentError ? 'Intenta con otro método:' : 'Selecciona Método de Pago'}
+                </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
                     {[
                         { id: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
