@@ -16,6 +16,7 @@ import LogrosTab from './tabs/LogrosTab';
 import AchievementNotification from '../componentes/AchievementNotification';
 import StreakBadge from '../componentes/StreakBadge';
 import RutinaDelDia from '../componentes/RutinaDelDia';
+import ResumenNutricional from '../componentes/ResumenNutricional';
 
 const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan, setView }) => {
   const { token, userData } = useUser();
@@ -232,6 +233,11 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
               </div>
 
               <section className="sidebar-section">
+                <ResumenNutricional 
+                  onViewPlan={() => setActiveTab('alimentacion')}
+                  onLogFood={() => setActiveTab('alimentacion')}
+                />
+
                 <div className="sidebar-card glass-panel">
                   <div className="card-header">
                     <div className="header-icon-box"><Activity size={20} color="#ff6b35" /></div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Apple, Flame, Droplet, Wheat, CheckCircle2, Circle, Clock } from 'lucide-react';
+import AnalisisNutricional from '../../componentes/AnalisisNutricional';
 import '../../estilos/tabs.css';
 import { useUser } from '../../logica/UserContext';
 
@@ -236,6 +237,11 @@ export default function AlimentacionTab() {
               })}
             </div>
           </div>
+          
+          <AnalisisNutricional 
+            consumido={consumido}
+            metas={{ kcal: metaKcal, p: metaP, c: metaC, g: metaG }}
+          />
         </div>
 
         <div className="alimentacion-side">
