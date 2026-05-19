@@ -17,6 +17,7 @@ import AchievementNotification from '../componentes/AchievementNotification';
 import StreakBadge from '../componentes/StreakBadge';
 import RutinaDelDia from '../componentes/RutinaDelDia';
 import ResumenNutricional from '../componentes/ResumenNutricional';
+import BodyMetricsWidget from '../componentes/BodyMetricsWidget';
 
 const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan, setView }) => {
   const { token, userData } = useUser();
@@ -305,29 +306,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
                   </button>
                 </div>
 
-                <div className="sidebar-card glass-panel">
-                  <div className="card-header">
-                    <div className="header-icon-box"><BarChart3 size={20} color="#a855f7" /></div>
-                    <div>
-                      <h3>Métricas Corporales</h3>
-                      <p>Actualizado hoy</p>
-                    </div>
-                  </div>
-                  <div className="metrics-list">
-                    <div className="metric-row">
-                      <span>Peso actual</span>
-                      <b>{clienteData.peso_kg ? `${clienteData.peso_kg} kg` : '0 kg'}</b>
-                    </div>
-                    <div className="metric-row">
-                      <span>IMC</span>
-                      <b>{clienteData.imc ? clienteData.imc : '0.0'}</b>
-                    </div>
-                    <div className="metric-row">
-                      <span>Altura</span>
-                      <b>{clienteData.altura_cm ? `${clienteData.altura_cm} cm` : '0 cm'}</b>
-                    </div>
-                  </div>
-                </div>
+                <BodyMetricsWidget clienteData={clienteData} onViewHistory={() => setActiveTab('perfil')} />
               </section>
             </div>
           </>
