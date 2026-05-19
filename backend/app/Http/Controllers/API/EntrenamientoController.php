@@ -146,37 +146,38 @@ class EntrenamientoController extends Controller
             ->where('estado', 'en_progreso')
             ->get();
 
-        foreach ($hitos as $hito) {
-            $ejercicioBuscado = strtolower($hito->titulo);
+        foreach ($detalles as $nameOrId => $progreso) {
             $mejorPesoEnSesion = 0;
-
-            foreach ($detalles as $nameOrId => $progreso) {
-                if (str_contains(strtolower($nameOrId), $ejercicioBuscado)) {
-                    if (isset($progreso['completedSets']) && is_array($progreso['completedSets'])) {
-                        foreach ($progreso['completedSets'] as $set) {
-                            if (isset($set['peso'])) {
-                                $mejorPesoEnSesion = max($mejorPesoEnSesion, (float) $set['peso']);
-                            }
-                        }
+            if (isset($progreso['completedSets']) && is_array($progreso['completedSets'])) {
+                foreach ($progreso['completedSets'] as $set) {
+                    if (isset($set['peso'])) {
+                        $mejorPesoEnSesion = max($mejorPesoEnSesion, (float) $set['peso']);
                     }
                 }
             }
 
-            // Si rompió su récord personal en esta sesión, actualizamos el hito
-            if ($mejorPesoEnSesion > $hito->valor_actual) {
-                $hito->valor_actual = $mejorPesoEnSesion;
+            if ($mejorPesoEnSesion <= 0)
+                continue;
 
-                // Recalcular progreso %
-                $denominador = $hito->meta_valor - $hito->valor_inicial;
+            $ejercicioNombre = is_string($nameOrId) ? $nameOrId : 'Ejercicio';
+            // Solo sincronizamos si ya existe un objetivo manual para este ejercicio
+            $hitoExistente = $hitos->first(function ($h) use ($ejercicioNombre) {
+                return str_contains(strtolower($ejercicioNombre), strtolower($h->titulo));
+            });
+
+            if ($hitoExistente && $mejorPesoEnSesion > $hitoExistente->valor_actual) {
+                $hitoExistente->valor_actual = $mejorPesoEnSesion;
+
+                $denominador = $hitoExistente->meta_valor - $hitoExistente->valor_inicial;
                 if ($denominador != 0) {
-                    $hito->progreso_porcentaje = min(100, max(0, round((($hito->valor_actual - $hito->valor_inicial) / $denominador) * 100)));
+                    $hitoExistente->progreso_porcentaje = min(100, max(0, round((($hitoExistente->valor_actual - $hitoExistente->valor_inicial) / $denominador) * 100)));
                 }
 
-                if ($hito->progreso_porcentaje >= 100) {
-                    $hito->estado = 'completado';
+                if ($hitoExistente->progreso_porcentaje >= 100) {
+                    $hitoExistente->estado = 'completado';
                 }
 
-                $hito->save();
+                $hitoExistente->save();
             }
         }
     }

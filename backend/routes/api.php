@@ -8,6 +8,7 @@ use App\Http\Controllers\API\HitoController;
 use App\Http\Controllers\API\RutinaController;
 use App\Http\Controllers\API\EjercicioController;
 use App\Http\Controllers\API\EntrenamientoController;
+use App\Http\Controllers\API\AnaliticasController;
 
 use App\Http\Controllers\API\LogroController;
 use App\Http\Controllers\API\AdminUserController;
@@ -56,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Entrenamientos (Sesiones reales)
     Route::post('/entrenamientos/registrar', [EntrenamientoController::class, 'registrar']);
     Route::get('/entrenamientos/stats', [EntrenamientoController::class, 'stats']);
+
+    // Analíticas (GT-54/55 Desacoplado)
+    Route::get('/analiticas/ejercicios', [AnaliticasController::class, 'getEjerciciosConProgreso']);
+    Route::get('/analiticas/historial', [AnaliticasController::class, 'getHistorialEjercicio']);
 
     // Transacciones
     Route::get('/transacciones', [TransaccionController::class, 'index']);
@@ -135,9 +140,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/entrenador/estadisticas', function (Request $request) {
         $clientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)->get();
         $nuevosClientes = \App\Models\User::where('rol', 'cliente')->where('activo', 1)
-                            ->whereMonth('created_at', \Carbon\Carbon::now()->month)
-                            ->count();
-        
+            ->whereMonth('created_at', \Carbon\Carbon::now()->month)
+            ->count();
+
         $sesionesImpartidas = $clientes->count() * rand(3, 6);
         $horasTotales = round($sesionesImpartidas * 1.5) + rand(10, 30);
 

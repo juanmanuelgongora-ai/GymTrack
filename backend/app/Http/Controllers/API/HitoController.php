@@ -37,6 +37,41 @@ class HitoController extends Controller
 
         $hitos = $query->orderBy('created_at', 'desc')->get();
 
+        // ---- GT-55: Contar sesiones para cada hito ----
+        $sesiones = \App\Models\SesionEntrenamiento::where('user_id', $request->user()->id)->get();
+
+        foreach ($hitos as $hito) {
+            $count = 0;
+            $tituloBuscado = strtolower($hito->titulo);
+
+            foreach ($sesiones as $sesion) {
+                $detalles = $sesion->detalles_sesion;
+                if (!$detalles)
+                    continue;
+
+                $encontradoEnSesion = false;
+                foreach ($detalles as $nameOrId => $progreso) {
+                    if (str_contains(strtolower($nameOrId), $tituloBuscado)) {
+                        // Verificamos si tiene al menos un set con peso
+                        if (isset($progreso['completedSets']) && is_array($progreso['completedSets'])) {
+                            foreach ($progreso['completedSets'] as $set) {
+                                if (isset($set['peso']) && (float) $set['peso'] > 0) {
+                                    $encontradoEnSesion = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if ($encontradoEnSesion)
+                        break;
+                }
+                if ($encontradoEnSesion)
+                    $count++;
+            }
+            $hito->registros_count = $count;
+        }
+        // -----------------------------------------------
+
         return response()->json($hitos);
     }
 

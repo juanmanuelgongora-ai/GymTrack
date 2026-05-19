@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../logica/UserContext';
-import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard } from 'lucide-react';
+import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp } from 'lucide-react';
+import ForceProgressAnalytics from '../../componentes/ForceProgressAnalytics';
 import '../../estilos/tabs.css';
 
 const API_URL = '/api';
@@ -277,6 +278,7 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
 
       <div className="filter-chips mb-24">
         <div className={`chip ${activeSection === 'personal' ? 'active' : ''}`} onClick={() => setActiveSection('personal')}><User size={14} /> Información Personal</div>
+        <div className={`chip ${activeSection === 'estadisticas' ? 'active' : ''}`} onClick={() => setActiveSection('estadisticas')}><TrendingUp size={14} /> Estadísticas</div>
         <div className={`chip ${activeSection === 'metricas' ? 'active' : ''}`} onClick={() => setActiveSection('metricas')}><BarChart3 size={14} /> Historial Métrico</div>
       </div>
 
@@ -420,6 +422,12 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeSection === 'estadisticas' && (
+        <div style={{ animation: 'slideUp 0.4s ease' }}>
+          <ForceProgressAnalytics token={token} />
         </div>
       )}
 
