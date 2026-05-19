@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/hitos', [HitoController::class, 'index']);
     Route::post('/hitos', [HitoController::class, 'store']);
     Route::put('/hitos/{id}', [HitoController::class, 'update']);
+    Route::get('/hitos/{id}/historial', [HitoController::class, 'historial']);
     Route::delete('/hitos/{id}', [HitoController::class, 'destroy']);
 
     // Rutinas AI

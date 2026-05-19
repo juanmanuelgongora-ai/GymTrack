@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../../logica/UserContext';
 import { Target, Flag, Zap, TrendingUp, Calendar, ArrowRight, Plus, X, Save, Trash2, Loader2, BarChart3, Scale } from 'lucide-react';
+import ForceProgressAnalytics from '../../componentes/ForceProgressAnalytics';
 import '../../estilos/tabs.css';
 
 const API_URL = '/api';
@@ -316,6 +317,7 @@ export default function ObjetivosTab({ onLogrosUnlocked }) {
           })}
         </div>
       )}
+      <ForceProgressAnalytics objectives={hitos} />
       <style>{`
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .min-h-50 { min-height: 50vh; }

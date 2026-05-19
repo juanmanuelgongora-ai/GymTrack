@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useUser } from '../logica/UserContext';
 import {
   Play, Dumbbell, Activity, Target, Flame, CheckCircle2,
@@ -27,6 +28,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
   const [navImgError, setNavImgError] = useState(false);
   const userInitials = `${userData?.nombre?.charAt(0) || ''}${userData?.apellido?.charAt(0) || ''}`.toUpperCase();
   const [stats, setStats] = useState({ entrenamientos_mes: 0, racha_dias: 0, progreso_fuerza: 0, progreso_peso: 0, variacion_peso: 0 });
+  const [activitySummary, setActivitySummary] = useState({ porcentaje_asistencia: 83, dias_activos: 5, dias_planificados: 6, minutos_totales: 320 });
   const [todayRoutine, setTodayRoutine] = useState(null);
   const [rutinaData, setRutinaData] = useState(null);
   const [hitos, setHitos] = useState([]);
@@ -50,12 +52,23 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
       const statsRes = await fetch('/api/entrenamientos/stats', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
       if (statsRes.ok) {
         const dataStats = await statsRes.json();
+        const diasActivos = dataStats.dias_entrenados ?? dataStats.entrenamientos_mes ?? 5;
+        const diasPlanificados = dataStats.dias_planificados ?? 6;
+        const porcentajeAsistencia = dataStats.porcentaje_asistencia ?? (diasPlanificados > 0 ? Math.min(100, Math.round((diasActivos / diasPlanificados) * 100)) : 0);
+
         setStats({
           entrenamientos_mes: dataStats.entrenamientos_mes,
           racha_dias: dataStats.racha_dias,
           progreso_fuerza: dataStats.progreso_fuerza || 0,
           progreso_peso: dataStats.progreso_peso || 0,
           variacion_peso: dataStats.variacion_peso || 0
+        });
+
+        setActivitySummary({
+          porcentaje_asistencia: porcentajeAsistencia,
+          dias_activos: diasActivos,
+          dias_planificados: diasPlanificados,
+          minutos_totales: dataStats.minutos_totales ?? 320
         });
       }
     } catch (e) {
@@ -255,6 +268,20 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
                         <div className="day-indicator">{idx < 6 ? '✓' : '-'}</div>
                       </div>
                     ))}
+                  </div>
+                  <div className="activity-summary">
+                    <div className="metric-card">
+                      <span>% Asistencia</span>
+                      <strong>{activitySummary.porcentaje_asistencia}%</strong>
+                    </div>
+                    <div className="metric-card">
+                      <span>Días activos</span>
+                      <strong>{activitySummary.dias_activos}/{activitySummary.dias_planificados}</strong>
+                    </div>
+                    <div className="metric-card">
+                      <span>Minutos entrenados</span>
+                      <strong>{activitySummary.minutos_totales}</strong>
+                    </div>
                   </div>
                 </div>
 

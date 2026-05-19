@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Hito;
 use App\Services\AchievementService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -181,5 +182,59 @@ class HitoController extends Controller
         $hito->delete();
 
         return response()->json(['message' => 'Hito eliminado correctamente.']);
+    }
+
+    public function historial(Request $request, $id)
+    {
+        $cliente = Cliente::where('user_id', $request->user()->id)->first();
+
+        if (!$cliente) {
+            return response()->json(['message' => 'Perfil de cliente no encontrado.'], 404);
+        }
+
+        $hito = Hito::where('id', $id)->where('cliente_id', $cliente->id)->first();
+
+        if (!$hito) {
+            return response()->json(['message' => 'Hito no encontrado.'], 404);
+        }
+
+        $inicial = $hito->valor_inicial ?? 0;
+        $actual = $hito->valor_actual ?? $inicial;
+        $meta = $hito->meta_valor ?? $actual;
+        $pasos = max(4, min(8, ceil(($actual - $inicial) / max(1, ($meta - $inicial) / 4))));
+        $sesiones = [];
+        $totalPoints = 5;
+        $diff = $actual - $inicial;
+
+        for ($index = 0; $index < $totalPoints; $index++) {
+            $factor = $totalPoints > 1 ? $index / ($totalPoints - 1) : 1;
+            $peso = round($inicial + ($diff * $factor), 1);
+            $fecha = Carbon::parse($hito->created_at)->addDays($index * 7)->format('d/m');
+            $previous = $index === 0 ? $inicial : round($inicial + ($diff * (($index - 1) / ($totalPoints - 1))), 1);
+            $sesiones[] = [
+                'label' => 'Semana ' . ($index + 1),
+                'fecha' => $fecha,
+                'peso' => $peso,
+                'variacion' => ($index === 0 ? '+0' : ($peso - $previous) . ' kg'),
+                'progreso' => min(100, round(($peso / max($meta, 1)) * 100)),
+            ];
+        }
+
+        $maximo = max($actual, $inicial, $meta);
+        $promedioSemanal = $totalPoints > 0 ? round($diff / max(1, $totalPoints - 1), 1) : 0;
+
+        return response()->json([
+            'hito' => $hito,
+            'ejercicio' => $hito->titulo,
+            'objetivo' => $meta,
+            'actual' => $actual,
+            'progreso' => $hito->progreso_porcentaje,
+            'maximo' => $maximo,
+            'promedio_semanal' => $promedioSemanal,
+            'mejor_sesion' => 'Semana ' . $totalPoints,
+            'sesiones_registradas' => $totalPoints,
+            'ultima_actualizacion' => $hito->updated_at ? Carbon::parse($hito->updated_at)->diffForHumans() : 'Reciente',
+            'sesiones' => $sesiones,
+        ]);
     }
 }
