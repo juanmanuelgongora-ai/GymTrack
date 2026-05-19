@@ -14,7 +14,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Target, Zap, TrendingUp, Dumbbell, Flag, Clock3, ArrowDownRight, CheckCircle2 } from 'lucide-react';
+import { Target, Zap, TrendingUp, Dumbbell, Flag, Clock3, ArrowDownRight, CheckCircle2, TrendingDown } from 'lucide-react';
 
 const fallbackData = [
   { label: 'Semana 1', fecha: '01/05', peso: 60, variacion: '+3', progreso: 15 },
@@ -308,6 +308,55 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          {/* GT-54: Resumen de métricas del ejercicio seleccionado */}
+          {(() => {
+            const pesoInicial = chartData[0]?.peso ?? summary.actual;
+            const pesoMaximo = summary.maximo || Math.max(...chartData.map(d => d.peso));
+            const incrementoKg = pesoMaximo - pesoInicial;
+            const incrementoPct = pesoInicial > 0 ? ((incrementoKg / pesoInicial) * 100).toFixed(1) : '0.0';
+            const isPositive = incrementoKg >= 0;
+            const metrics = [
+              {
+                label: 'Peso Inicial',
+                value: `${pesoInicial} kg`,
+                icon: <Target size={18} color="#9698a6" />,
+                color: '#9698a6',
+                bg: 'rgba(150,152,166,0.08)',
+              },
+              {
+                label: 'Peso Máximo Actual',
+                value: `${pesoMaximo} kg`,
+                icon: <TrendingUp size={18} color="#ff6b35" />,
+                color: '#ff6b35',
+                bg: 'rgba(255,107,53,0.08)',
+              },
+              {
+                label: 'Incremento Total',
+                value: `${isPositive ? '+' : ''}${incrementoKg} kg / ${isPositive ? '+' : ''}${incrementoPct}%`,
+                icon: isPositive
+                  ? <TrendingUp size={18} color="#4ade80" />
+                  : <TrendingDown size={18} color="#f87171" />,
+                color: isPositive ? '#4ade80' : '#f87171',
+                bg: isPositive ? 'rgba(74,222,128,0.07)' : 'rgba(248,113,113,0.07)',
+              },
+            ];
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '20px' }}>
+                {metrics.map((m, i) => (
+                  <div key={i} style={{ background: m.bg, border: `1px solid ${m.color}22`, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ background: `${m.color}15`, padding: '8px', borderRadius: '8px', display: 'flex' }}>
+                      {m.icon}
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.72rem', color: '#9698a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{m.label}</p>
+                      <strong style={{ fontSize: '1rem', color: m.color, fontWeight: 700 }}>{m.value}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="force-progress-summary">

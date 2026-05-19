@@ -21,6 +21,8 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   const [rutinaId, setRutinaId] = useState(rutinaActivaData?.id || null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [currentWeight, setCurrentWeight] = useState('');
+  const [currentReps, setCurrentReps] = useState('');
 
   // Load progress from DB when rutinaActivaData is provided via props
   useEffect(() => {
@@ -91,6 +93,10 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
     }
     setIsResting(false);
     setRestTimeLeft(0);
+
+    // Set default values for weight/reps from previous session or suggestions
+    setCurrentWeight(ejercicio.peso_sugerido?.match(/\d+/)?.[0] || '');
+    setCurrentReps(ejercicio.repeticiones?.match(/\d+/)?.[0] || '');
   };
 
   const closeExercise = () => {
@@ -194,7 +200,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
         if (onLogrosUnlocked) {
           onLogrosUnlocked(result.logros_desbloqueados || []);
         }
-        
+
         if (!result.logros_desbloqueados || result.logros_desbloqueados.length === 0) {
           alert("¡Entrenamiento guardado con éxito!");
         }
@@ -226,7 +232,11 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   };
 
   const completeSet = () => {
-    const newCompleted = [...completedSets, currentSet];
+    const newCompleted = [...completedSets, {
+      set: currentSet,
+      peso: parseFloat(currentWeight) || 0,
+      reps: parseInt(currentReps) || 0
+    }];
     setCompletedSets(newCompleted);
 
     const totalSeries = activeExercise?.series || 3;
@@ -510,8 +520,31 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                   <p className="text-secondary">Prepárate y realiza <span className="text-white font-bold">{activeExercise.repeticiones}</span> repeticiones.</p>
 
                   <div className="mt-16 pt-16" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <p className="text-xs text-secondary mb-4">PESO SUGERIDO</p>
-                    <p className="text-lg font-bold text-brand">{activeExercise.peso_sugerido || 'Moderado / A tu capacidad'}</p>
+                    <p className="text-xs text-secondary mb-12">REGISTRA TU DESEMPEÑO</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Peso (kg)</label>
+                        <input
+                          type="number"
+                          className="input-field"
+                          value={currentWeight}
+                          onChange={e => setCurrentWeight(e.target.value)}
+                          placeholder="0"
+                          style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Reps</label>
+                        <input
+                          type="number"
+                          className="input-field"
+                          value={currentReps}
+                          onChange={e => setCurrentReps(e.target.value)}
+                          placeholder="0"
+                          style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -65,10 +65,10 @@ class HitoController extends Controller
         $valorInicial = $request->valor_inicial ?? 0;
         $valorActual = $request->valor_actual ?? $valorInicial;
         $metaValor = $request->meta_valor;
-        
+
         $denominador = $metaValor - $valorInicial;
         $progreso = 0;
-        
+
         if ($denominador != 0) {
             $progreso = min(100, max(0, round((($valorActual - $valorInicial) / $denominador) * 100)));
         }
@@ -116,10 +116,14 @@ class HitoController extends Controller
             'fecha_limite' => 'nullable|date',
         ]);
 
-        if ($request->has('titulo')) $hito->titulo = $request->titulo;
-        if ($request->has('descripcion')) $hito->descripcion = $request->descripcion;
-        if ($request->has('fecha_limite')) $hito->fecha_limite = $request->fecha_limite;
-        if ($request->has('meta_valor')) $hito->meta_valor = $request->meta_valor;
+        if ($request->has('titulo'))
+            $hito->titulo = $request->titulo;
+        if ($request->has('descripcion'))
+            $hito->descripcion = $request->descripcion;
+        if ($request->has('fecha_limite'))
+            $hito->fecha_limite = $request->fecha_limite;
+        if ($request->has('meta_valor'))
+            $hito->meta_valor = $request->meta_valor;
 
         if ($request->has('valor_actual')) {
             $hito->valor_actual = $request->valor_actual;
@@ -198,30 +202,73 @@ class HitoController extends Controller
             return response()->json(['message' => 'Hito no encontrado.'], 404);
         }
 
-        $inicial = $hito->valor_inicial ?? 0;
-        $actual = $hito->valor_actual ?? $inicial;
-        $meta = $hito->meta_valor ?? $actual;
-        $pasos = max(4, min(8, ceil(($actual - $inicial) / max(1, ($meta - $inicial) / 4))));
-        $sesiones = [];
-        $totalPoints = 5;
-        $diff = $actual - $inicial;
+        // 1. Buscar sesiones reales en la tabla de entrenamientos
+        $realSessions = \App\Models\SesionEntrenamiento::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
 
-        for ($index = 0; $index < $totalPoints; $index++) {
-            $factor = $totalPoints > 1 ? $index / ($totalPoints - 1) : 1;
-            $peso = round($inicial + ($diff * $factor), 1);
-            $fecha = Carbon::parse($hito->created_at)->addDays($index * 7)->format('d/m');
-            $previous = $index === 0 ? $inicial : round($inicial + ($diff * (($index - 1) / ($totalPoints - 1))), 1);
-            $sesiones[] = [
-                'label' => 'Semana ' . ($index + 1),
-                'fecha' => $fecha,
-                'peso' => $peso,
-                'variacion' => ($index === 0 ? '+0' : ($peso - $previous) . ' kg'),
-                'progreso' => min(100, round(($peso / max($meta, 1)) * 100)),
-            ];
+        $historicoReal = [];
+        $ejercicioBuscado = strtolower($hito->titulo);
+
+        foreach ($realSessions as $sesion) {
+            $detalles = $sesion->detalles_sesion;
+            if (!$detalles)
+                continue;
+
+            $maxPesoEnSesion = 0;
+            $encontrado = false;
+
+            // Buscar el ejercicio en el JSON de la sesión
+            foreach ($detalles as $nameOrId => $progreso) {
+                if (str_contains(strtolower($nameOrId), $ejercicioBuscado)) {
+                    if (isset($progreso['completedSets']) && is_array($progreso['completedSets'])) {
+                        foreach ($progreso['completedSets'] as $set) {
+                            if (isset($set['peso'])) {
+                                $maxPesoEnSesion = max($maxPesoEnSesion, (float) $set['peso']);
+                                $encontrado = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($encontrado && $maxPesoEnSesion > 0) {
+                $historicoReal[] = [
+                    'label' => 'Sesión ' . (count($historicoReal) + 1),
+                    'fecha' => Carbon::parse($sesion->created_at)->format('d/m'),
+                    'peso' => $maxPesoEnSesion,
+                    'variacion' => count($historicoReal) > 0 ? (round($maxPesoEnSesion - end($historicoReal)['peso'], 1)) . ' kg' : '+0',
+                    'progreso' => $hito->meta_valor > 0 ? min(100, round(($maxPesoEnSesion / $hito->meta_valor) * 100)) : 0,
+                ];
+            }
         }
 
-        $maximo = max($actual, $inicial, $meta);
-        $promedioSemanal = $totalPoints > 0 ? round($diff / max(1, $totalPoints - 1), 1) : 0;
+        // 2. Si no hay datos reales, mantenemos la simulación para que no aparezca vacío
+        if (empty($historicoReal)) {
+            $inicial = $hito->valor_inicial ?? 0;
+            $actual = $hito->valor_actual ?? $inicial;
+            $meta = $hito->meta_valor ?? $actual;
+            $totalPoints = 5;
+            $diff = $actual - $inicial;
+
+            for ($index = 0; $index < $totalPoints; $index++) {
+                $factor = $totalPoints > 1 ? $index / ($totalPoints - 1) : 1;
+                $peso = round($inicial + ($diff * $factor), 1);
+                $fecha = Carbon::parse($hito->created_at)->addDays($index * 7)->format('d/m');
+                $previous = $index === 0 ? $inicial : round($inicial + ($diff * (($index - 1) / ($totalPoints - 1))), 1);
+                $historicoReal[] = [
+                    'label' => 'Semana ' . ($index + 1),
+                    'fecha' => $fecha,
+                    'peso' => $peso,
+                    'variacion' => ($index === 0 ? '+0' : (round($peso - $previous, 1)) . ' kg'),
+                    'progreso' => $meta > 0 ? min(100, round(($peso / $meta) * 100)) : 0,
+                ];
+            }
+        }
+
+        $meta = $hito->meta_valor;
+        $actual = !empty($historicoReal) ? end($historicoReal)['peso'] : ($hito->valor_actual ?: 0);
+        $maximo = !empty($historicoReal) ? max(array_column($historicoReal, 'peso')) : $actual;
 
         return response()->json([
             'hito' => $hito,
@@ -230,11 +277,7 @@ class HitoController extends Controller
             'actual' => $actual,
             'progreso' => $hito->progreso_porcentaje,
             'maximo' => $maximo,
-            'promedio_semanal' => $promedioSemanal,
-            'mejor_sesion' => 'Semana ' . $totalPoints,
-            'sesiones_registradas' => $totalPoints,
-            'ultima_actualizacion' => $hito->updated_at ? Carbon::parse($hito->updated_at)->diffForHumans() : 'Reciente',
-            'sesiones' => $sesiones,
+            'sesiones' => $historicoReal,
         ]);
     }
 }
