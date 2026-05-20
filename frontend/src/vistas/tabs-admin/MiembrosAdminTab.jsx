@@ -13,7 +13,8 @@ import {
     X,
     Check,
     AlertTriangle,
-    Loader2
+    Loader2,
+    ChevronDown
 } from 'lucide-react';
 
 const MiembrosAdminTab = () => {
@@ -22,6 +23,7 @@ const MiembrosAdminTab = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(null); // stores user to deactivate/activate
+    const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -281,50 +283,161 @@ const MiembrosAdminTab = () => {
             {showAddModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
                     <div className="glass-panel" style={{ width: '400px', padding: '32px', borderRadius: '24px', border: '1px solid rgba(255,140,66,0.2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px' }}>Añadir Miembro</h2>
-                            <X size={24} cursor="pointer" onClick={() => setShowAddModal(false)} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800', background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Añadir Miembro</h2>
+                                <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '13px' }}>Crea un nuevo perfil en el sistema</p>
+                            </div>
+                            <div onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '12px', cursor: 'pointer', color: '#666' }}>
+                                <X size={20} />
+                            </div>
                         </div>
                         <form onSubmit={handleAddUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <input
-                                placeholder="Nombre"
+                                placeholder="Nombre completo del miembro"
                                 required
                                 value={formData.nombre}
                                 onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-                                style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                                style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255,140,66,0.05)',
+                                    border: '1px solid rgba(255,140,66,0.1)',
+                                    color: '#fff',
+                                    fontSize: '14px',
+                                    outline: 'none'
+                                }}
                             />
                             <input
-                                placeholder="Apellido"
+                                placeholder="Apellidos"
                                 required
                                 value={formData.apellido}
                                 onChange={e => setFormData({ ...formData, apellido: e.target.value })}
-                                style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                                style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255,140,66,0.05)',
+                                    border: '1px solid rgba(255,140,66,0.1)',
+                                    color: '#fff',
+                                    fontSize: '14px',
+                                    outline: 'none'
+                                }}
                             />
                             <input
-                                placeholder="Email"
+                                placeholder="Correo electrónico corporativo"
                                 type="email"
                                 required
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                                style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255,140,66,0.05)',
+                                    border: '1px solid rgba(255,140,66,0.1)',
+                                    color: '#fff',
+                                    fontSize: '14px',
+                                    outline: 'none'
+                                }}
                             />
                             <input
-                                placeholder="Contraseña Inicial"
+                                placeholder="Contraseña de acceso"
                                 type="password"
                                 required
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                                style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255,140,66,0.05)',
+                                    border: '1px solid rgba(255,140,66,0.1)',
+                                    color: '#fff',
+                                    fontSize: '14px',
+                                    outline: 'none'
+                                }}
                             />
-                            <select
-                                value={formData.rol}
-                                onChange={e => setFormData({ ...formData, rol: e.target.value })}
-                                style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
-                            >
-                                <option value="cliente">Cliente</option>
-                                <option value="entrenador">Entrenador</option>
-                                <option value="admin">Administrador</option>
-                            </select>
+                            <style>
+                                {`
+                                input:-webkit-autofill,
+                                input:-webkit-autofill:hover, 
+                                input:-webkit-autofill:focus {
+                                    -webkit-text-fill-color: #fff;
+                                    -webkit-box-shadow: 0 0 0px 1000px #1a1a1a inset;
+                                    transition: background-color 5000s ease-in-out 0s;
+                                }
+                                `}
+                            </style>
+                            <div style={{ position: 'relative' }}>
+                                <div
+                                    onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                                    style={{
+                                        padding: '14px 18px',
+                                        borderRadius: '12px',
+                                        background: 'rgba(255,140,66,0.05)',
+                                        border: '1px solid rgba(255,140,66,0.1)',
+                                        color: '#fff',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        fontSize: '14px',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <span style={{ textTransform: 'capitalize' }}>{formData.rol}</span>
+                                    <ChevronDown size={18} style={{ transform: isRoleDropdownOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s', opacity: 0.5 }} />
+                                </div>
+
+                                {isRoleDropdownOpen && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 8px)',
+                                        left: 0,
+                                        right: 0,
+                                        background: 'rgba(15, 15, 15, 0.98)',
+                                        backdropFilter: 'blur(20px)',
+                                        borderRadius: '12px',
+                                        border: '1px solid rgba(255,140,66,0.2)',
+                                        zIndex: 1100,
+                                        overflow: 'hidden',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                                    }}>
+                                        {[
+                                            { value: 'cliente', label: 'Cliente', color: '#ff8c42' },
+                                            { value: 'entrenador', label: 'Entrenador', color: '#2ecc71' }
+                                        ].map(opt => (
+                                            <div
+                                                key={opt.value}
+                                                onClick={() => {
+                                                    setFormData({ ...formData, rol: opt.value });
+                                                    setIsRoleDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    padding: '12px 18px',
+                                                    cursor: 'pointer',
+                                                    color: '#ccc',
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    transition: 'all 0.2s',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                                    e.currentTarget.style.color = opt.color;
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'transparent';
+                                                    e.currentTarget.style.color = '#ccc';
+                                                }}
+                                            >
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: opt.color }}></div>
+                                                {opt.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <button type="submit" style={{ marginTop: '12px', padding: '14px', borderRadius: '12px', background: 'var(--primary-gradient)', border: 'none', color: '#fff', fontWeight: '600', cursor: 'pointer' }}>
                                 Crear Miembro
                             </button>

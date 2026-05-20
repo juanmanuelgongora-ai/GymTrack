@@ -20,8 +20,10 @@ app.get('/', (req, res) => {
 app.post('/api/export/pdf', async (req, res) => {
     try {
         const { transactions, summary } = req.body;
+        console.log(`[POST /api/export/pdf] Received request with ${transactions?.length || 0} transactions`);
 
         if (!transactions || !summary) {
+            console.error('Missing data in request');
             return res.status(400).json({ error: 'Missing data' });
         }
 

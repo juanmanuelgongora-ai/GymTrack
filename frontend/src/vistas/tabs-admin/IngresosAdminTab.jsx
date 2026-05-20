@@ -199,16 +199,16 @@ const IngresosAdminTab = () => {
             URL.revokeObjectURL(downloadUrl);
         } catch (error) {
             console.error('Error exportando reporte:', error);
-            alert('Error exportando. Verifica que el Microservicio de Reportes (puerto 5001) esté corriendo.');
+            alert(`Error exportando: ${error.message}. Verifica que el Microservicio de Reportes (puerto 5001) esté corriendo.`);
         }
     };
 
     const exportToPDF = () => {
-        downloadBlob('http://localhost:5001/api/export/pdf', `GYMTRACK_Reporte_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.pdf`);
+        downloadBlob('http://127.0.0.1:5001/api/export/pdf', `GYMTRACK_Reporte_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.pdf`);
     };
 
     const exportToExcel = () => {
-        downloadBlob('http://localhost:5001/api/export/excel', `GYMTRACK_Reporte_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
+        downloadBlob('http://127.0.0.1:5001/api/export/excel', `GYMTRACK_Reporte_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     };
 
     const exportToCSV = () => {
