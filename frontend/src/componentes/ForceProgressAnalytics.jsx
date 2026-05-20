@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useUser } from '../logica/UserContext';
 import {
@@ -14,11 +14,13 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Target, Zap, TrendingUp, Dumbbell, Flag, Clock3, ArrowDownRight, CheckCircle2, TrendingDown } from 'lucide-react';
+import { Target, Zap, TrendingUp, Dumbbell, Flag, Clock3, ArrowDownRight, CheckCircle2 } from 'lucide-react';
 
 const fallbackData = [
-  { label: 'Sesión 1', fecha: '...', peso: 0, variacion: '+0', progreso: 0 },
-  { label: 'Sesión 2', fecha: '...', peso: 0, variacion: '+0', progreso: 0 },
+  { label: 'Semana 1', fecha: 'W1', peso: 0, variacion: '+0', progreso: 0 },
+  { label: 'Semana 2', fecha: 'W2', peso: 0, variacion: '+0', progreso: 0 },
+  { label: 'Semana 3', fecha: 'W3', peso: 0, variacion: '+0', progreso: 0 },
+  { label: 'Semana 4', fecha: 'W4', peso: 0, variacion: '+0', progreso: 0 },
 ];
 
 const defaultSummary = {
@@ -63,30 +65,37 @@ const CustomTooltip = ({ active, payload }) => {
 
 const formatObjective = (objective = {}) => ({
   ...objective,
+  id: objective.id ?? objective.id_hito ?? objective.titulo ?? Math.random().toString(36).slice(2),
+  titulo: objective.titulo ?? objective.nombre ?? 'Objetivo',
+  tipo: objective.tipo ?? 'fuerza',
+  estado: objective.estado ?? 'en_progreso',
   objetivo: Number(objective.meta_valor ?? objective.valor_objetivo ?? 100),
   actual: Number(objective.valor_actual ?? objective.valor_inicial ?? 0),
   progreso: Number(objective.progreso_porcentaje ?? objective.progreso ?? 0),
   maximo: Number(objective.maximo ?? objective.valor_actual ?? objective.valor_inicial ?? 0),
   sesiones_registradas: Number(objective.sesiones_registradas ?? objective.registros ?? objective.sesiones ?? 1),
+  promedio_semanal: Number(objective.promedio_semanal ?? 0).toFixed(1),
   mejor_sesion: objective.mejor_sesion || `Semana ${Math.max(1, Number(objective.sesiones_registradas ?? objective.registros ?? objective.sesiones ?? 1))}`,
-  ultima_actualizacion: objective.updated_at || objective.fecha_limite || 'Reciente',
+  ultima_actualizacion: objective.updated_at ?? objective.fecha_limite ?? 'Reciente',
 });
 
 const buildFallbackData = (objective) => {
   const formatted = formatObjective(objective);
   const points = 5;
-  const values = Array.from({ length: points }, (_, idx) => {
+  const initial = Number(objective.valor_inicial ?? 60);
+  const current = Math.max(formatted.actual, initial);
+  return Array.from({ length: points }, (_, idx) => {
     const factor = idx / (points - 1);
-    const peso = Math.round((formatted.valor_inicial ?? 60) + factor * (formatted.actual - (formatted.valor_inicial ?? 60)));
+    const peso = Math.round(initial + factor * (current - initial));
+    const anterior = idx === 0 ? initial : Math.round(initial + ((idx - 1) / (points - 1)) * (current - initial));
     return {
       label: `Semana ${idx + 1}`,
       fecha: `W${idx + 1}`,
       peso,
-      variacion: idx === 0 ? '+0' : `${peso - Math.round((formatted.valor_inicial ?? 60) + (factor - 1 / (points - 1)) * (formatted.actual - (formatted.valor_inicial ?? 60)))} kg`,
+      variacion: idx === 0 ? '+0' : `${peso - anterior} kg`,
       progreso: Math.min(100, Math.round((peso / Math.max(formatted.objetivo, 1)) * 100)),
     };
   });
-  return values;
 };
 
 const calculateTrend = (data = []) => {
@@ -102,58 +111,63 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
   const { token } = useUser();
   const [chartData, setChartData] = useState(fallbackData);
   const [summary, setSummary] = useState(defaultSummary);
-  const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [apiExercises, setApiExercises] = useState([]); // GT-55: Ejercicios reales con historia
+  const [objectiveOptions, setObjectiveOptions] = useState([]);
   const wrapperRef = useRef(null);
 
-  // Cargar lista de ejercicios con progreso (2+ sesiones)
+  const getStatusLabel = (status) => ESTADO_LABELS[status] || 'Activo';
+
   useEffect(() => {
-    const fetchExercises = async () => {
+    if (objectives && objectives.length > 0) {
+      setObjectiveOptions(objectives);
+      return;
+    }
+
+    const fetchObjectives = async () => {
+      if (!token) return;
       try {
-        const response = await fetch('/api/analiticas/ejercicios', {
+        const response = await fetch('/api/hitos?tipo=fuerza', {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         });
         if (response.ok) {
           const data = await response.json();
-          setApiExercises(data);
+          setObjectiveOptions(Array.isArray(data) ? data : []);
         }
       } catch (e) {
-        console.error('Error fetching analytics exercises:', e);
+        console.error('Error fetching force objectives:', e);
       }
     };
-    if (token) fetchExercises();
-  }, [token]);
 
-  const objectiveOptions = useMemo(
-    () => {
-      return apiExercises.map(obj => ({
-        ...obj,
-        tipoConfig: OBJECTIVE_TYPE_CONFIG[obj.tipo] || OBJECTIVE_TYPE_CONFIG.default,
-        estado_text: 'Análisis Real',
-      }));
-    },
-    [apiExercises],
+    fetchObjectives();
+  }, [objectives, token]);
+
+  const formattedOptions = useMemo(
+    () => objectiveOptions.map(item => ({
+      ...formatObjective(item),
+      tipoConfig: OBJECTIVE_TYPE_CONFIG[item.tipo] || OBJECTIVE_TYPE_CONFIG.default,
+      estado_text: getStatusLabel(item.estado),
+    })),
+    [objectiveOptions],
   );
 
   useEffect(() => {
-    if (!selectedId && objectiveOptions.length > 0) {
-      const next = objectiveOptions.find(item => item.estado === 'en_progreso') || objectiveOptions[0];
+    if (!selectedId && formattedOptions.length > 0) {
+      const next = formattedOptions.find(item => item.estado === 'en_progreso') || formattedOptions[0];
       setSelectedId(next?.id);
-    } else if (selectedId && !objectiveOptions.some(item => item.id === selectedId)) {
-      const next = objectiveOptions.find(item => item.estado === 'en_progreso') || objectiveOptions[0];
+    } else if (selectedId && !formattedOptions.some(item => item.id === selectedId)) {
+      const next = formattedOptions.find(item => item.estado === 'en_progreso') || formattedOptions[0];
       setSelectedId(next?.id);
     }
-  }, [objectiveOptions, selectedId]);
+  }, [formattedOptions, selectedId]);
 
   const selectedObjective = useMemo(
-    () => objectiveOptions.find(item => item.id === selectedId) || objectiveOptions[0],
-    [objectiveOptions, selectedId],
+    () => formattedOptions.find(item => item.id === selectedId) || formattedOptions[0],
+    [formattedOptions, selectedId],
   );
 
   useEffect(() => {
-    const handleClickOutside = event => {
+    const handleClickOutside = (event) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
@@ -165,63 +179,57 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
   }, [dropdownOpen]);
 
   useEffect(() => {
-    const loadObjectiveData = async selected => {
+    const loadObjectiveData = async (selected) => {
       if (!selected) return;
-      setLoading(true);
-
-      let fetchedData = null;
+      setSummary(defaultSummary);
+      setChartData(fallbackData);
+      let history = null;
+      const formatted = formatObjective(selected);
       try {
-        const response = await fetch(`/api/analiticas/historial?ejercicio=${encodeURIComponent(selected.titulo)}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-          },
+        const response = await fetch(`/api/hitos/${selected.id}/historial`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         });
         if (response.ok) {
           const payload = await response.json();
-          fetchedData = payload.sesiones;
-
-          setSummary(prev => ({
-            ...prev,
-            ejercicio: payload.ejercicio,
-            objetivo: payload.maximo * 1.2, // Sugerimos un +20% como meta visual
-            actual: payload.actual,
-            progreso: Math.round((payload.actual / (payload.maximo * 1.2)) * 100),
-            maximo: payload.maximo,
-            promedio_semanal: (payload.actual / Math.max(1, payload.sesiones_registradas)).toFixed(1),
-            mejor_sesion: 'Récord',
-            sesiones_registradas: payload.sesiones_registradas,
-            ultima_actualizacion: payload.ultima_actualizacion,
-          }));
+          history = payload.historial || payload.sesiones || payload.data || null;
+          if (payload.actual !== undefined) formatted.actual = Number(payload.actual);
+          if (payload.maximo !== undefined) formatted.maximo = Number(payload.maximo);
+          if (payload.progreso !== undefined) formatted.progreso = Number(payload.progreso);
+          if (payload.promedio_semanal !== undefined) formatted.promedio_semanal = Number(payload.promedio_semanal).toFixed(1);
+          if (payload.mejor_sesion !== undefined) formatted.mejor_sesion = payload.mejor_sesion;
+          if (payload.sesiones_registradas !== undefined) formatted.sesiones_registradas = Number(payload.sesiones_registradas);
+          if (payload.ultima_actualizacion) formatted.ultima_actualizacion = payload.ultima_actualizacion;
         }
       } catch (error) {
-        console.warn('Historial no disponible:', error);
+        console.warn('Objective history not available:', error);
       }
 
-      if (fetchedData && fetchedData.length > 0) {
-        setChartData(fetchedData.map((item, index) => ({
-          label: item.label || `Semana ${index + 1}`,
-          fecha: item.fecha || item.label || `Sesión ${index + 1}`,
-          peso: Number(item.peso ?? item.valor ?? formattedObjective.actual),
-          variacion: item.variacion || `${Number(item.peso ?? item.valor ?? formattedObjective.actual) - (Number(item.anterior ?? item.peso ?? item.valor ?? formattedObjective.actual) || 0)} kg`,
-          progreso: Number(item.progreso ?? Math.min(100, Math.round(((item.peso ?? item.valor ?? formattedObjective.actual) / Math.max(formattedObjective.objetivo, 1)) * 100))),
-        })));
-      } else {
-        setChartData(buildFallbackData(selected));
-        setSummary(prev => ({
-          ...prev,
-          ejercicio: formattedObjective.titulo || formattedObjective.ejercicio || prev.ejercicio,
-          objetivo: formattedObjective.objetivo,
-          actual: formattedObjective.actual,
-          progreso: formattedObjective.progreso,
-          maximo: formattedObjective.maximo,
-          promedio_semanal: formattedObjective.promedio_semanal,
-          mejor_sesion: formattedObjective.mejor_sesion,
-          sesiones_registradas: formattedObjective.sesiones_registradas,
-          ultima_actualizacion: formattedObjective.ultima_actualizacion,
-        }));
-      }
-      setLoading(false);
+      const chartPoints = (history && Array.isArray(history) && history.length > 0)
+        ? history.map((item, index) => {
+          const peso = Number(item.peso ?? item.valor ?? formatted.actual);
+          const previous = Number(history[index - 1]?.peso ?? history[index - 1]?.valor ?? formatted.actual);
+          return {
+            label: item.label || `Sesión ${index + 1}`,
+            fecha: item.fecha || item.label || `Semana ${index + 1}`,
+            peso,
+            variacion: index === 0 ? '+0' : `${peso - previous} kg`,
+            progreso: Number(item.progreso ?? Math.min(100, Math.round((peso / Math.max(formatted.objetivo, 1)) * 100))),
+          };
+        })
+        : buildFallbackData(formatted);
+
+      setChartData(chartPoints);
+      setSummary({
+        ejercicio: formatted.titulo,
+        objetivo: formatted.objetivo,
+        actual: formatted.actual,
+        progreso: Math.min(100, formatted.progreso),
+        maximo: formatted.maximo,
+        promedio_semanal: formatted.promedio_semanal,
+        mejor_sesion: formatted.mejor_sesion,
+        sesiones_registradas: formatted.sesiones_registradas,
+        ultima_actualizacion: formatted.ultima_actualizacion,
+      });
     };
 
     loadObjectiveData(selectedObjective);
@@ -245,34 +253,24 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
       transition={{ duration: 0.55, ease: 'easeOut' }}
       ref={wrapperRef}
     >
-      {objectiveOptions.length === 0 ? (
-        <div style={{ padding: '60px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', animation: 'fadeIn 0.6s ease' }}>
-          <div style={{ position: 'relative', marginBottom: '32px' }}>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(255,107,53,0.15) 0%, transparent 70%)', borderRadius: '50%' }}></div>
-            <TrendingUp size={64} className="text-brand" style={{ position: 'relative', zIndex: 1, opacity: 0.8 }} />
+      {formattedOptions.length === 0 ? (
+        <div className="force-placeholder">
+          <div className="placeholder-graphic">
+            <TrendingUp size={64} className="text-brand" />
           </div>
-          <h2 className="glow-text mb-16" style={{ fontSize: '24px' }}>Tus Gráficos de Fuerza se están cocinando</h2>
-          <p className="text-secondary mb-32" style={{ maxWidth: '400px', margin: '0 auto', fontSize: '1.05rem', lineHeight: '1.6' }}>
-            Para mostrarte una línea de progreso significativa, necesitamos que registres **al menos 2 sesiones** de un mismo ejercicio.
-          </p>
-          <div className="glass-panel" style={{ padding: '16px 24px', background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,107,53,0.2)' }}>
-            <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CheckCircle2 size={18} className="text-brand" />
-              <span>¡Sigue con tus rutinas y tus récords aparecerán aquí automáticamente!</span>
-            </p>
-          </div>
+          <h2 className="glow-text">No hay objetivos de fuerza disponibles</h2>
+          <p className="text-secondary">Agrega un nuevo objetivo para que el panel se active y tus progresos se visualicen automáticamente.</p>
         </div>
       ) : (
         <>
           <div className="force-progress-header">
             <div>
               <h2>Progreso de Fuerza</h2>
-              <p>Seguimiento de evolución por ejercicio</p>
+              <p className="text-secondary">Tus estadísticas cambian al seleccionar un objetivo o ejercicio.</p>
             </div>
-
             <div className="force-selector">
               <button className="force-select-toggle" type="button" onClick={() => setDropdownOpen(prev => !prev)}>
-                <span className="option-icon" style={{ background: selectedObjective?.tipoConfig?.color ?? '#ff6b35' }}>
+                <span className="option-icon" style={{ background: selectedObjective?.tipoConfig?.color || '#ff6b35' }}>
                   {selectedObjective?.tipoConfig?.icon || <Target size={16} />}
                 </span>
                 <div className="option-copy">
@@ -283,7 +281,7 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
               </button>
               {dropdownOpen && (
                 <div className="force-select-menu glass-panel">
-                  {objectiveOptions.map(item => (
+                  {formattedOptions.map(item => (
                     <button
                       key={item.id}
                       type="button"
@@ -311,7 +309,7 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
           <div className="force-progress-grid">
             <div className="force-progress-chart">
               <div className="chart-title">
-                <span>Evolución de Fuerza</span>
+                <span>Evolución del ejercicio</span>
                 <small>{summary.ejercicio}</small>
               </div>
               <div className="chart-wrapper">
@@ -327,83 +325,32 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
                     <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#9698a6', fontSize: 12 }} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fill: '#9698a6', fontSize: 12 }} width={34} />
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.14)', strokeDasharray: '3 3' }} />
-                    <Area
-                      type="monotone"
-                      dataKey="peso"
-                      stroke="none"
-                      fill="url(#forceGradient)"
-                      isAnimationActive={true}
-                      animationDuration={1200}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="peso"
-                      stroke="#ff6b35"
-                      strokeWidth={3}
-                      dot={{ fill: '#ff6b35', stroke: '#fff', strokeWidth: 3, r: 5 }}
-                      activeDot={{ r: 7 }}
-                      animationDuration={1200}
-                    />
+                    <Area type="monotone" dataKey="peso" stroke="none" fill="url(#forceGradient)" isAnimationActive animationDuration={1200} />
+                    <Line type="monotone" dataKey="peso" stroke="#ff6b35" strokeWidth={3} dot={{ fill: '#ff6b35', stroke: '#0d0d0d', strokeWidth: 3, r: 5 }} activeDot={{ r: 7 }} animationDuration={1200} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* GT-54: Resumen de métricas del ejercicio seleccionado */}
-              {(() => {
-                const pesoInicial = chartData[0]?.peso ?? summary.actual;
-                const pesoMaximo = summary.maximo || Math.max(...chartData.map(d => d.peso));
-                const incrementoKg = pesoMaximo - pesoInicial;
-                const incrementoPct = pesoInicial > 0 ? ((incrementoKg / pesoInicial) * 100).toFixed(1) : '0.0';
-                const isPositive = incrementoKg >= 0;
-                const metrics = [
-                  {
-                    label: 'Peso Inicial',
-                    value: `${pesoInicial} kg`,
-                    icon: <Target size={18} color="#9698a6" />,
-                    color: '#9698a6',
-                    bg: 'rgba(150,152,166,0.08)',
-                  },
-                  {
-                    label: 'Peso Máximo Actual',
-                    value: `${pesoMaximo} kg`,
-                    icon: <TrendingUp size={18} color="#ff6b35" />,
-                    color: '#ff6b35',
-                    bg: 'rgba(255,107,53,0.08)',
-                  },
-                  {
-                    label: 'Incremento Total',
-                    value: `${isPositive ? '+' : ''}${incrementoKg} kg / ${isPositive ? '+' : ''}${incrementoPct}%`,
-                    icon: isPositive
-                      ? <TrendingUp size={18} color="#4ade80" />
-                      : <TrendingDown size={18} color="#f87171" />,
-                    color: isPositive ? '#4ade80' : '#f87171',
-                    bg: isPositive ? 'rgba(74,222,128,0.07)' : 'rgba(248,113,113,0.07)',
-                  },
-                ];
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '20px' }}>
-                    {metrics.map((m, i) => (
-                      <div key={i} style={{ background: m.bg, border: `1px solid ${m.color}22`, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ background: `${m.color}15`, padding: '8px', borderRadius: '8px', display: 'flex' }}>
-                          {m.icon}
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontSize: '0.72rem', color: '#9698a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{m.label}</p>
-                          <strong style={{ fontSize: '1rem', color: m.color, fontWeight: 700 }}>{m.value}</strong>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
+              <div className="force-mini-metrics">
+                {[
+                  { label: 'Peso inicial', value: `${chartData[0]?.peso ?? summary.actual} kg`, accent: '#9698a6' },
+                  { label: 'Peso máximo', value: `${summary.maximo} kg`, accent: '#ff6b35' },
+                  { label: 'Incremento total', value: `${Math.max(0, summary.maximo - (chartData[0]?.peso ?? summary.actual))} kg`, accent: '#22c55e' },
+                ].map((metric, index) => (
+                  <motion.div key={index} className="force-mini-card" whileHover={{ y: -2 }} transition={{ duration: 0.25 }}>
+                    <span className="text-secondary" style={{ fontSize: '0.75rem' }}>{metric.label}</span>
+                    <strong style={{ display: 'block', marginTop: 8, color: metric.accent }}>{metric.value}</strong>
+                  </motion.div>
+                ))}
+              </div>
             </div>
 
             <div className="force-progress-summary">
               <div className="summary-card chart-donut-card">
                 <div className="summary-title">
                   <div>
-                    <h3>Progreso del Objetivo</h3>
-                    <p>Meta de fuerza a alcanzar</p>
+                    <h3>Progreso del objetivo</h3>
+                    <p className="text-secondary">Meta de fuerza a alcanzar</p>
                   </div>
                   <div className="donut-legend">
                     <span>{summary.actual} kg</span>
@@ -413,16 +360,7 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
                 <div className="donut-chart">
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
-                      <Pie
-                        data={donutData}
-                        dataKey="value"
-                        startAngle={90}
-                        endAngle={-270}
-                        innerRadius={68}
-                        outerRadius={88}
-                        paddingAngle={4}
-                        stroke="transparent"
-                      >
+                      <Pie data={donutData} dataKey="value" startAngle={90} endAngle={-270} innerRadius={68} outerRadius={88} paddingAngle={4} stroke="transparent">
                         {donutData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={index === 0 ? '#ff6b35' : '#2f3341'} />
                         ))}
@@ -451,30 +389,24 @@ export default function ForceProgressAnalytics({ objectives = [] }) {
               </div>
 
               <div className="summary-card metrics-grid">
-                <div className="metric-box">
-                  <span>Peso máximo alcanzado</span>
-                  <strong>{summary.maximo} kg</strong>
-                </div>
-                <div className="metric-box">
-                  <span>Promedio semanal</span>
-                  <strong>{summary.promedio_semanal} kg</strong>
-                </div>
-                <div className="metric-box">
-                  <span>Mejor sesión</span>
-                  <strong>{summary.mejor_sesion}</strong>
-                </div>
-                <div className="metric-box">
-                  <span>Sesiones registradas</span>
-                  <strong>{summary.sesiones_registradas}</strong>
-                </div>
-                <div className="metric-box">
-                  <span>Progreso mensual</span>
-                  <strong>{monthlyProgress}</strong>
-                </div>
-                <div className="metric-box">
-                  <span>Última actualización</span>
-                  <strong>{summary.ultima_actualizacion}</strong>
-                </div>
+                {[{
+                  label: 'Mejor marca', value: summary.mejor_sesion,
+                }, {
+                  label: 'Promedio semanal', value: `${summary.promedio_semanal} kg`,
+                }, {
+                  label: 'Sesiones registradas', value: `${summary.sesiones_registradas}`,
+                }, {
+                  label: 'Progreso mensual', value: monthlyProgress,
+                }, {
+                  label: 'Tendencia', value: trend,
+                }, {
+                  label: 'Última actualización', value: summary.ultima_actualizacion,
+                }].map((item, index) => (
+                  <div className="metric-box force-summary-card" key={index}>
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
