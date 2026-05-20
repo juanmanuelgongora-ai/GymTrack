@@ -14,6 +14,8 @@ use App\Http\Controllers\API\LogroController;
 use App\Http\Controllers\API\AdminUserController;
 use App\Http\Controllers\API\AdminEntrenadorController;
 use App\Http\Controllers\API\TransaccionController;
+use App\Http\Controllers\API\AdminAnaliticasController;
+use App\Http\Controllers\API\ClaseController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -193,6 +195,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin: Transacciones (GT-59)
     Route::get('/admin/transacciones', [\App\Http\Controllers\API\TransaccionController::class, 'index']);
 
+    // Admin: Analíticas (GT-60)
+    Route::get('/admin/estadisticas', [AdminAnaliticasController::class, 'index']);
+
     // --- Renovación de Membresía ---
     Route::post('/membresia/renovar', [\App\Http\Controllers\API\PagoController::class, 'renovarMembresia']);
+
+    // --- Clases (GT-New) ---
+    Route::apiResource('/clases', ClaseController::class);
+    Route::patch('/clases/{id}/status', [ClaseController::class, 'updateStatus']);
 });

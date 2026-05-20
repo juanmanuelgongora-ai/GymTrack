@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Activity, Calendar, MonitorPlay, LineChart, User,
   HelpCircle, Settings, Play, ChevronRight, CircleDollarSign, BarChart3, Clock,
-  LogOut, TrendingUp, Construction, Dumbbell, Apple
+  LogOut, TrendingUp, Construction, Dumbbell, Apple, PieChart
 } from 'lucide-react';
 import '../estilos/PanelClienteGYMTRACK.css';
 
@@ -11,6 +11,8 @@ import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
 import HistorialEntrenamientosTab from './tabs-entrenador/HistorialEntrenamientosTab';
 import PlanNutricionalTab from './tabs-entrenador/PlanNutricionalTab';
 import ClientesEntrenadorTab from './tabs-entrenador/ClientesEntrenadorTab';
+import ClasesEntrenadorTab from './tabs-entrenador/ClasesEntrenadorTab';
+import EstadisticasTab from './tabs-entrenador/EstadisticasTab';
 
 const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -21,25 +23,25 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const especialidad = data.entrenador?.especialidad || 'Entrenador';
 
   const [stats, setStats] = useState(null);
+  const [realClasses, setRealClasses] = useState([]);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
         const tokenStr = userAuth?.access_token || localStorage.getItem('gymtrack_token');
-        const res = await fetch('/api/entrenador/dashboard', {
-          headers: { 'Authorization': `Bearer ${tokenStr}`, 'Accept': 'application/json' }
-        });
-        if (res.ok) {
-          setStats(await res.json());
-        }
+        const [statsRes, classesRes] = await Promise.all([
+          fetch('/api/entrenador/dashboard', { headers: { 'Authorization': `Bearer ${tokenStr}`, 'Accept': 'application/json' } }),
+          fetch('/api/clases', { headers: { 'Authorization': `Bearer ${tokenStr}`, 'Accept': 'application/json' } })
+        ]);
+
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (classesRes.ok) setRealClasses(await classesRes.json());
       } catch (err) {
-        console.error("Error fetching stats:", err);
+        console.error("Error fetching data:", err);
       }
     };
-    if (activeTab === 'inicio') {
-      fetchStats();
-    }
-  }, [userAuth, activeTab]);
+    fetchData();
+  }, [userAuth]);
 
   const metricas = stats ? [
     { title: `$${stats.ingresos_mes.toLocaleString()}`, subtitle: 'Ingresos del mes', icon: CircleDollarSign, stat: '+12%', trend: 'up' },
@@ -53,11 +55,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
     { title: '...', subtitle: 'Retención', icon: TrendingUp, stat: '-', trend: 'neutral' },
   ];
 
-  const proximasClases = [
-    { id: 1, name: 'Clase de HIIT', time: '10:00 AM', clients: 12, status: 'Próxima' },
-    { id: 2, name: 'Entrenamiento Funcional', time: '02:00 PM', clients: 8, status: 'Hoy' },
-    { id: 3, name: 'Yoga y Estiramiento', time: '05:30 PM', clients: 15, status: 'Hoy' },
-  ];
+  const proximasClases = realClasses.filter(c => c.estado === 'programada').slice(0, 3);
 
   const nuevosClientes = stats?.nuevos_clientes || [];
 
@@ -136,14 +134,14 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
                           <Clock size={24} color="#ff6b35" />
                         </div>
                         <div className="exercise-info" style={{ marginLeft: '15px', flex: 1 }}>
-                          <h3>{clase.name}</h3>
+                          <h3>{clase.nombre}</h3>
                           <div className="exercise-details">
-                            <span><Users size={14} /> {clase.clients} inscritos</span>
+                            <span><Users size={14} /> {clase.capacidad_max} máx</span>
                             <span>•</span>
-                            <span style={{ color: '#ff6b35' }}>{clase.time}</span>
+                            <span style={{ color: '#ff6b35' }}>{clase.horario_inicio.substring(0, 5)} - {clase.horario_fin.substring(0, 5)}</span>
                           </div>
                         </div>
-                        <button className="secondary-btn">
+                        <button className="secondary-btn" onClick={() => setActiveTab('clases')}>
                           Ver Detalles
                         </button>
                       </div>
@@ -212,10 +210,15 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
       case 'clientes':
         return <ClientesEntrenadorTab />;
 
+      case 'clases':
+        return <ClasesEntrenadorTab />;
+
+      case 'estadisticas':
+        return <EstadisticasTab />;
+
       // Placeholder para el resto de pestañas requeridas
       case 'rutinas':
       case 'calendario':
-      case 'clases':
       case 'finanzas':
       case 'ayuda':
       case 'configuracion':
@@ -268,12 +271,14 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
           </div>
         </div>
         <div className="nav-links">
-          {['inicio', 'clientes', 'historial', 'nutricion', 'perfil'].map(tab => (
+          {['inicio', 'clientes', 'clases', 'historial', 'nutricion', 'estadisticas', 'perfil'].map(tab => (
             <button key={tab} className={`nav-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               {tab === 'inicio' && <LayoutDashboard size={18} />}
               {tab === 'clientes' && <Users size={18} />}
+              {tab === 'clases' && <Calendar size={18} />}
               {tab === 'historial' && <Activity size={18} />}
               {tab === 'nutricion' && <Apple size={18} />}
+              {tab === 'estadisticas' && <PieChart size={18} />}
               {tab === 'perfil' && <User size={18} />}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>

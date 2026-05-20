@@ -243,7 +243,7 @@ const IngresosAdminTab = () => {
     };
 
     return (
-        <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', width: '100%' }}>
             {/* Header Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
