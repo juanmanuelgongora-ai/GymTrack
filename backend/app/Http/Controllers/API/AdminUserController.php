@@ -18,7 +18,9 @@ class AdminUserController extends Controller
      */
     public function index()
     {
-        $users = User::with(['cliente', 'entrenador'])->get();
+        $users = User::with(['cliente', 'entrenador'])
+            ->whereIn('rol', ['cliente', 'entrenador'])
+            ->get();
         return response()->json($users);
     }
 
@@ -32,7 +34,7 @@ class AdminUserController extends Controller
             'apellido' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'rol' => 'required|in:admin,entrenador,cliente',
+            'rol' => 'required|in:entrenador,cliente',
         ]);
 
         return DB::transaction(function () use ($request) {
