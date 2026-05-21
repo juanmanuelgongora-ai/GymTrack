@@ -44,4 +44,9 @@ class Entrenador extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function certificados()
+    {
+        return $this->hasMany(EntrenadorCertificado::class, 'entrenador_id');
+    }
 }

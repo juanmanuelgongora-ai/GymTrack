@@ -124,8 +124,9 @@ class AuthController extends Controller
             ]);
         }
 
-        // Verificamos si el usuario no ha sido aprobado (inactivo)
-        if (!$user->activo) {
+        // Verificamos si el usuario no ha sido aprobado (inactivo), 
+        // pero permitimos que los administradores entren siempre
+        if (!$user->activo && $user->rol !== 'admin') {
             throw ValidationException::withMessages([
                 'email' => ['Tu cuenta no está activa. Si eres entrenador, espera a que el administrador apruebe tu solicitud.'],
             ]);
