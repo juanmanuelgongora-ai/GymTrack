@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Cliente;
 use App\Models\Entrenador;
+use App\Models\EntrenadorCertificado;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -76,7 +77,7 @@ class AuthController extends Controller
                 $certificadoPath = $file->storeAs('certificados', $filename, 'public');
             }
 
-            Entrenador::create([
+            $entrenador = Entrenador::create([
                 'user_id' => $user->id,
                 'especialidad' => $request->especialidad,
                 'experiencia_anios' => $request->experiencia,
@@ -93,6 +94,16 @@ class AuthController extends Controller
                 'direccion' => $request->direccion,
                 'emergencia' => $request->emergencia
             ]);
+
+            if ($certificadoPath) {
+                EntrenadorCertificado::create([
+                    'entrenador_id' => $entrenador->id,
+                    'titulo' => $request->certificacion ?? 'Certificado inicial',
+                    'path' => $certificadoPath,
+                    'emisor' => 'Pendiente', // Could be added to registration form later
+                    'fecha_obtencion' => now()
+                ]);
+            }
         }
 
         if ($user->rol === 'cliente') {

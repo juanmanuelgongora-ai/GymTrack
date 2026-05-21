@@ -47,9 +47,9 @@ const PerfilEntrenadorTab = ({ userData, token }) => {
         } catch {
             arr = tipos.toString().split(',').map(t => t.trim());
         }
-        
+
         if (!Array.isArray(arr) || arr.length === 0) return <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>--</span>;
-        
+
         return (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '280px' }}>
                 {arr.map((tipo, idx) => (
@@ -63,12 +63,12 @@ const PerfilEntrenadorTab = ({ userData, token }) => {
 
     if (loading) {
         return (
-          <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 40, height: 40, border: '3px solid rgba(255,107,53,0.3)', borderTop: '3px solid #ff6b35', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
-              <p className="text-secondary">Cargando perfil...</p>
+            <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ width: 40, height: 40, border: '3px solid rgba(255,107,53,0.3)', borderTop: '3px solid #ff6b35', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+                    <p className="text-secondary">Cargando perfil...</p>
+                </div>
             </div>
-          </div>
         );
     }
 
@@ -99,11 +99,11 @@ const PerfilEntrenadorTab = ({ userData, token }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '30px' }}>
                     <div style={{ background: '#1c1c1e', padding: '20px', borderRadius: '12px', border: '1px solid #333' }}>
                         <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Capacidad Máxima</p>
-                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>{entrenador.capacidad_maxima || '--'}</h2>
+                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>{entrenador.capacidad_maxima ?? '--'}</h2>
                     </div>
                     <div style={{ background: '#1c1c1e', padding: '20px', borderRadius: '12px', border: '1px solid #333' }}>
                         <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Años de Experiencia</p>
-                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>{entrenador.experiencia_anios || '--'} años</h2>
+                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>{entrenador.experiencia_anios !== undefined && entrenador.experiencia_anios !== null ? entrenador.experiencia_anios : '--'} años</h2>
                     </div>
                     <div style={{ background: '#1c1c1e', padding: '20px', borderRadius: '12px', border: '1px solid #333' }}>
                         <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Sesiones este Mes</p>
@@ -152,7 +152,15 @@ const PerfilEntrenadorTab = ({ userData, token }) => {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Teléfono</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{user.telefono || '--'}</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.contacto || '--'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                                <span style={{ color: '#888', fontSize: '14px' }}>Edad</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.edad || '--'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                                <span style={{ color: '#888', fontSize: '14px' }}>Dirección</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.direccion || '--'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Rol</span>

@@ -16,11 +16,17 @@ use App\Http\Controllers\API\AdminEntrenadorController;
 use App\Http\Controllers\API\TransaccionController;
 use App\Http\Controllers\API\AdminAnaliticasController;
 use App\Http\Controllers\API\ClaseController;
+use App\Http\Controllers\API\EntrenadorCertificadoController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Certificados de Entrenador
+    Route::get('/entrenador/certificados', [EntrenadorCertificadoController::class, 'index']);
+    Route::post('/entrenador/certificados', [EntrenadorCertificadoController::class, 'store']);
+    Route::delete('/entrenador/certificados/{id}', [EntrenadorCertificadoController::class, 'destroy']);
+    Route::get('/entrenador/certificados/{id}/download', [EntrenadorCertificadoController::class, 'download']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get(
         '/user',
