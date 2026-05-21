@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../../logica/UserContext';
 import { Target, Flag, Zap, TrendingUp, Calendar, ArrowRight, Plus, X, Save, Trash2, Loader2, BarChart3, Scale } from 'lucide-react';
+import ForceProgressAnalytics from '../../componentes/ForceProgressAnalytics';
 import '../../estilos/tabs.css';
 
 const API_URL = '/api';
@@ -223,21 +224,6 @@ export default function ObjetivosTab({ onLogrosUnlocked }) {
         ))}
       </div>
 
-      <div className="objetivos-stats mb-24">
-        <div className="stat-box">
-          <div className="icon-box"><Target color="#ff6b35" /></div>
-          <div><h2>{stats.total}</h2><p>Total Objetivos</p></div>
-        </div>
-        <div className="stat-box">
-          <div className="icon-box"><Zap color="#ff6b35" /></div>
-          <div><h2>{stats.enProgreso}</h2><p>En Progreso</p></div>
-        </div>
-        <div className="stat-box">
-          <div className="icon-box"><Flag color="#4ade80" /></div>
-          <div><h2>{stats.completados}</h2><p>Completados</p></div>
-        </div>
-      </div>
-
       {hitos.length === 0 ? (
         <div className="glass-panel p-48 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
           <Target size={48} color="rgba(255,107,53,0.2)" className="mb-16 mx-auto" />
@@ -316,6 +302,22 @@ export default function ObjetivosTab({ onLogrosUnlocked }) {
           })}
         </div>
       )}
+
+      <div className="objetivos-stats mb-24">
+        <div className="stat-box">
+          <div className="icon-box"><Target color="#ff6b35" /></div>
+          <div><h2>{stats.total}</h2><p>Total Objetivos</p></div>
+        </div>
+        <div className="stat-box">
+          <div className="icon-box"><Zap color="#ff6b35" /></div>
+          <div><h2>{stats.enProgreso}</h2><p>En Progreso</p></div>
+        </div>
+        <div className="stat-box">
+          <div className="icon-box"><Flag color="#4ade80" /></div>
+          <div><h2>{stats.completados}</h2><p>Completados</p></div>
+        </div>
+      </div>
+      <ForceProgressAnalytics objectives={hitos} />
       <style>{`
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .min-h-50 { min-height: 50vh; }
