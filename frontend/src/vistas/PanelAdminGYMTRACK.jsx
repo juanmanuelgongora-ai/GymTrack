@@ -15,8 +15,9 @@ import MiembrosAdminTab from './tabs-admin/MiembrosAdminTab';
 import ClasesAdminTab from './tabs-admin/ClasesAdminTab';
 import IngresosAdminTab from './tabs-admin/IngresosAdminTab';
 import SolicitudesEntrenadorTab from './tabs-admin/SolicitudesEntrenadorTab';
+import ChatSoporte from '../componentes/ChatSoporte';
 
-const PanelAdminGYMTRACK = ({ onLogout }) => {
+const PanelAdminGYMTRACK = ({ onLogout, userData }) => {
     const [activeTab, setActiveTab] = useState('estadisticas');
     const [pendingCount, setPendingCount] = useState(0);
 
@@ -209,6 +210,7 @@ const PanelAdminGYMTRACK = ({ onLogout }) => {
                     © 2026 GYM TRACK Admin Panel. Todos los derechos reservados.
                 </div>
             </div>
+            <ChatSoporte user={userData || { nombre: 'Administrador', rol: 'admin' }} />
         </div >
     );
 };

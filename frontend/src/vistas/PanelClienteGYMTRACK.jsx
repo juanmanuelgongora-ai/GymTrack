@@ -19,6 +19,7 @@ import StreakBadge from '../componentes/StreakBadge';
 import RutinaDelDia from '../componentes/RutinaDelDia';
 import ResumenNutricional from '../componentes/ResumenNutricional';
 import BodyMetricsWidget from '../componentes/BodyMetricsWidget';
+import ChatSoporte from '../componentes/ChatSoporte';
 
 const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan, setAutoStartPlan, setView }) => {
   const { token, userData } = useUser();
@@ -213,7 +214,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
                 ) : (
                   rutinaData.plan_semanal.dias.map((diaPlan, index) => {
                     const isToday = todayRoutine?.dia === diaPlan.dia;
-                    
+
                     const today = new Date();
                     const currentIdx = rutinaData.plan_semanal.dias.findIndex(d => d.dia === todayRoutine?.dia);
                     const dayIndexDiff = index - (currentIdx >= 0 ? currentIdx : 0);
@@ -247,7 +248,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
               </div>
 
               <section className="sidebar-section">
-                <ResumenNutricional 
+                <ResumenNutricional
                   onViewPlan={() => setActiveTab('alimentacion')}
                   onLogFood={() => setActiveTab('alimentacion')}
                 />
@@ -417,6 +418,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
         achievements={newLogros}
         onClose={() => setNewLogros([])}
       />
+      <ChatSoporte user={userData} />
     </div>
   );
 };

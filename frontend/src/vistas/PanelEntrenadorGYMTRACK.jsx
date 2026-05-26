@@ -13,6 +13,7 @@ import PlanNutricionalTab from './tabs-entrenador/PlanNutricionalTab';
 import ClientesEntrenadorTab from './tabs-entrenador/ClientesEntrenadorTab';
 import ClasesEntrenadorTab from './tabs-entrenador/ClasesEntrenadorTab';
 import EstadisticasTab from './tabs-entrenador/EstadisticasTab';
+import ChatSoporte from '../componentes/ChatSoporte';
 
 const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -310,6 +311,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
       <main className="dashboard-main">
         {renderContent()}
       </main>
+      <ChatSoporte user={data} />
     </div>
   );
 };

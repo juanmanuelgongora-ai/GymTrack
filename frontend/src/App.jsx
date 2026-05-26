@@ -360,7 +360,7 @@ function App() {
       )}
 
       {view === 'panelAdmin' && (
-        <PanelAdminGYMTRACK onLogout={handleLogout} />
+        <PanelAdminGYMTRACK onLogout={handleLogout} userData={userData} />
       )}
 
       {view === 'expiredMembresia' && (
