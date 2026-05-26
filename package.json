@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "cd frontend && vite",
-    "dev:full": "concurrently -k -n \"BACKEND,FRONTEND,MS_CALC,MS_REPORTS\" -c \"bgBlue.bold,bgGreen.bold,bgYellow.bold,bgMagenta.bold\" \"cd backend && php artisan serve --host=127.0.0.1 --port=8000\" \"cd frontend && vite\" \"cd microservicio-calculadora && npm start\" \"cd microservicio-reportes && npm start\"",
+    "dev:full": "concurrently -k -n \"BACKEND,FRONTEND,MS_CALC,MS_REPORTS,MS_NOTIF\" -c \"bgBlue.bold,bgGreen.bold,bgYellow.bold,bgMagenta.bold,bgCyan.bold\" \"cd backend && php artisan serve --host=127.0.0.1 --port=8000\" \"cd frontend && vite\" \"cd microservicio-calculadora && npm start\" \"cd microservicio-reportes && npm start\" \"cd microservicio-notificaciones && npm start\"",
     "build": "cd frontend && vite build",
     "lint": "eslint .",
     "preview": "cd frontend && vite preview"

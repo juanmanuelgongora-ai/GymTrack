@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Cliente;
 use App\Models\Entrenador;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -60,6 +61,17 @@ class AdminUserController extends Controller
                     'especialidad' => 'General',
                     'experiencia_anios' => 0
                 ]);
+            }
+
+            // Llamar al microservicio de notificaciones (Registro por Administrador)
+            try {
+                Http::post(env('MICROSERVICIO_NOTIFICACIONES_URL', 'http://localhost:3005') . '/api/notificar-registro', [
+                    'email' => $user->email,
+                    'nombre' => $user->nombre,
+                    'rol' => $user->rol
+                ]);
+            } catch (\Exception $e) {
+                \Log::error("Error llamando al microservicio de notificaciones: " . $e->getMessage());
             }
 
             return response()->json($user->load(['cliente', 'entrenador']), 201);

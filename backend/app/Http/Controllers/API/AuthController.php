@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
 {
@@ -104,6 +105,17 @@ class AuthController extends Controller
                     'fecha_obtencion' => now()
                 ]);
             }
+        }
+
+        // Llamar al microservicio de notificaciones (Registro Público)
+        try {
+            \Illuminate\Support\Facades\Http::post(env('MICROSERVICIO_NOTIFICACIONES_URL', 'http://localhost:3005') . '/api/notificar-registro', [
+                'email' => $user->email,
+                'nombre' => $user->nombre,
+                'rol' => $user->rol
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Error llamando al microservicio de notificaciones: " . $e->getMessage());
         }
 
         if ($user->rol === 'cliente') {
