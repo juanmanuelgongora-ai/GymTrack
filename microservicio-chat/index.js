@@ -67,5 +67,5 @@ app.get('/health', (req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-    console.log(`🚀 Microservicio de Chat corriendo en http://localhost:${PORT}`);
+    console.log(`Microservicio de Chat corriendo en http://localhost:${PORT}`);
 });

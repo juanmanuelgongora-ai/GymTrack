@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "cd frontend && vite",
     "dev:full": "concurrently -k -n \"BACKEND,FRONTEND,MS_CALC,MS_REPORTS,MS_NOTIF,MS_CHAT\" -c \"bgBlue.bold,bgGreen.bold,bgYellow.bold,bgMagenta.bold,bgCyan.bold,bgWhite.bold\" \"cd backend && php artisan serve --host=127.0.0.1 --port=8000\" \"cd frontend && vite\" \"cd microservicio-calculadora && npm start\" \"cd microservicio-reportes && npm start\" \"cd microservicio-notificaciones && npm start\" \"cd microservicio-chat && npm start\"",
+    "install:all": "npm install && cd frontend && npm install && cd ../microservicio-calculadora && npm install && cd ../microservicio-chat && npm install && cd ../microservicio-notificaciones && npm install && cd ../microservicio-reportes && npm install",
     "build": "cd frontend && vite build",
     "lint": "eslint .",
     "preview": "cd frontend && vite preview"
