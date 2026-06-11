@@ -1,16 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Apple, Flame, Droplet, Wheat, CheckCircle2, Circle, Clock } from 'lucide-react';
+import AnalisisNutricional from '../../componentes/AnalisisNutricional';
 import '../../estilos/tabs.css';
+import { useUser } from '../../logica/UserContext';
+
+const defaultMeals = [
+  { id: 1, time: '07:00 AM', name: 'Desayuno', kcal: 620, p: 35, c: 65, g: 18, done: false, icon: Flame, iconColor: '#ff6b35' },
+  { id: 2, time: '10:30 AM', name: 'Media Mañana', kcal: 280, p: 25, c: 30, g: 8, done: false, icon: Apple, iconColor: '#4ade80' },
+  { id: 3, time: '01:00 PM', name: 'Almuerzo', kcal: 850, p: 55, c: 70, g: 18, done: false, icon: Droplet, iconColor: '#3b82f6' },
+  { id: 4, time: '05:00 PM', name: 'Merienda Pre-Entreno', kcal: 320, p: 20, c: 45, g: 6, done: false, icon: Wheat, iconColor: '#eab308' },
+  { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
+];
 
 export default function AlimentacionTab() {
+  const { userData } = useUser();
+  const userId = userData?.id || 'guest';
+  const storageKey = `gymtrack_meals_${userId}`;
+  const today = new Date().toDateString();
+
+  const [meals, setMeals] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === today) {
+          return defaultMeals.map(meal => {
+            const savedMeal = parsed.meals.find(m => m.id === meal.id);
+            return savedMeal ? { ...meal, done: savedMeal.done } : meal;
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing meals", e);
+      }
+    }
+    return defaultMeals;
+  });
+
+  useEffect(() => {
+    const dataToSave = meals.map(m => ({ id: m.id, done: m.done }));
+    localStorage.setItem(storageKey, JSON.stringify({
+      date: today,
+      meals: dataToSave
+    }));
+  }, [meals, today, storageKey]);
+
+  const [recipeFilter, setRecipeFilter] = useState('Todas');
   
-  const [meals, setMeals] = useState([
-    { id: 1, time: '07:00 AM', name: 'Desayuno', kcal: 620, p: 35, c: 65, g: 18, done: true, icon: Flame, iconColor: '#ff6b35' },
-    { id: 2, time: '10:30 AM', name: 'Media Mañana', kcal: 280, p: 25, c: 30, g: 8, done: false, icon: Apple, iconColor: '#4ade80' },
-    { id: 3, time: '01:00 PM', name: 'Almuerzo', kcal: 850, p: 55, c: 70, g: 18, done: false, icon: Droplet, iconColor: '#3b82f6' },
-    { id: 4, time: '05:00 PM', name: 'Merienda Pre-Entreno', kcal: 320, p: 20, c: 45, g: 6, done: false, icon: Wheat, iconColor: '#eab308' },
-    { id: 5, time: '08:30 PM', name: 'Cena', kcal: 530, p: 45, c: 40, g: 12, done: false, icon: Droplet, iconColor: '#a855f7' }
-  ]);
+  const sugerencias = [
+    { id: 1, type: 'Desayuno', name: 'Avena Proteica con Frutos Rojos', diff: 'Fácil', time: '10 min', kcal: 350, p: 25, c: 45, g: 8, img: '/images/avena.png' },
+    { id: 2, type: 'Almuerzo', name: 'Bowl de Quinoa y Salmón', diff: 'Medio', time: '25 min', kcal: 520, p: 40, c: 50, g: 18, img: '/images/quinoa.png' },
+    { id: 3, type: 'Cena', name: 'Wrap de Pollo y Espinaca', diff: 'Fácil', time: '15 min', kcal: 400, p: 35, c: 30, g: 12, img: '/images/wrap.png' },
+    { id: 4, type: 'Almuerzo', name: 'Pechuga Grillada con Batata', diff: 'Fácil', time: '20 min', kcal: 450, p: 45, c: 55, g: 5, img: '/images/pechuga.png' },
+    { id: 5, type: 'Desayuno', name: 'Smoothie Verde Proteico', diff: 'Muy Fácil', time: '5 min', kcal: 280, p: 30, c: 35, g: 5, img: '/images/smoothie.png' },
+  ];
+
+  const filteredRecetas = recipeFilter === 'Todas' ? sugerencias : sugerencias.filter(r => r.type === recipeFilter);
 
   // Metas Diarias
   const metaKcal = 2600;
@@ -32,6 +76,11 @@ export default function AlimentacionTab() {
   const pPercent = Math.min(100, Math.round((consumido.p / metaP) * 100));
   const cPercent = Math.min(100, Math.round((consumido.c / metaC) * 100));
   const gPercent = Math.min(100, Math.round((consumido.g / metaG) * 100));
+
+  const totalGramos = consumido.p + consumido.c + consumido.g;
+  const pDist = totalGramos > 0 ? (consumido.p / totalGramos) * 100 : 0;
+  const cDist = totalGramos > 0 ? (consumido.c / totalGramos) * 100 : 0;
+  const gDist = totalGramos > 0 ? (consumido.g / totalGramos) * 100 : 0;
 
   const toggleMeal = (id) => {
     setMeals(meals.map(m => m.id === id ? { ...m, done: !m.done } : m));
@@ -72,22 +121,67 @@ export default function AlimentacionTab() {
               </p>
             </div>
             
-            {/* Macros Actualizados en Tiempo Real */}
-            <div className="macros-grid">
-              <div className="macro-card">
-                <div className="flex-between text-sm mb-8"><span className="text-secondary">Proteínas</span> <span className="text-secondary">{consumido.p}g</span></div>
-                <div className="flex-between mb-8"><b className="text-lg">{metaP}g</b><span className="text-xs text-brand">{pPercent}% del total</span></div>
-                <div className="progress-bar"><div className="progress-fill bg-orange" style={{ width: `${pPercent}%` }}></div></div>
+            {/* Macros Actualizados en Tiempo Real (Gráfico Circular) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginTop: '30px', padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              {/* Donut Chart SVG */}
+              <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
+                <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                  <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                  {totalGramos > 0 && (
+                    <>
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#ff6b35" strokeWidth="4" strokeDasharray={`${pDist} 100`} strokeDashoffset="0" style={{ transition: 'all 0.5s ease', strokeLinecap: 'round' }} />
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray={`${cDist} 100`} strokeDashoffset={`-${pDist}`} style={{ transition: 'all 0.5s ease', strokeLinecap: 'round' }} />
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#eab308" strokeWidth="4" strokeDasharray={`${gDist} 100`} strokeDashoffset={`-${pDist + cDist}`} style={{ transition: 'all 0.5s ease', strokeLinecap: 'round' }} />
+                    </>
+                  )}
+                </svg>
+                {/* Center Text */}
+                <div style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', lineHeight: 1 }}>{totalGramos}g</span>
+                  <span style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>Consumidos</span>
+                </div>
               </div>
-              <div className="macro-card">
-                <div className="flex-between text-sm mb-8"><span className="text-secondary">Carbohidratos</span> <span className="text-secondary">{consumido.c}g</span></div>
-                <div className="flex-between mb-8"><b className="text-lg">{metaC}g</b><span className="text-xs text-brand">{cPercent}% del total</span></div>
-                <div className="progress-bar"><div className="progress-fill bg-blue" style={{ width: `${cPercent}%` }}></div></div>
-              </div>
-              <div className="macro-card">
-                <div className="flex-between text-sm mb-8"><span className="text-secondary">Grasas</span> <span className="text-secondary">{consumido.g}g</span></div>
-                <div className="flex-between mb-8"><b className="text-lg">{metaG}g</b><span className="text-xs text-brand">{gPercent}% del total</span></div>
-                <div className="progress-bar"><div className="progress-fill bg-yellow" style={{ width: `${gPercent}%` }}></div></div>
+
+              {/* Textual Breakdown */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Proteinas */}
+                <div>
+                  <div className="flex-between" style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff6b35' }}></span> Proteínas ({pDist.toFixed(1)}%)
+                    </span>
+                    <span style={{ color: '#fff' }}><b>{consumido.p}g</b> <span style={{ color: '#666' }}>/ {metaP}g</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${pPercent}%`, height: '100%', background: '#ff6b35', borderRadius: '2px', transition: 'width 0.5s ease' }}></div>
+                  </div>
+                </div>
+
+                {/* Carbos */}
+                <div>
+                  <div className="flex-between" style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }}></span> Carbohidratos ({cDist.toFixed(1)}%)
+                    </span>
+                    <span style={{ color: '#fff' }}><b>{consumido.c}g</b> <span style={{ color: '#666' }}>/ {metaC}g</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${cPercent}%`, height: '100%', background: '#3b82f6', borderRadius: '2px', transition: 'width 0.5s ease' }}></div>
+                  </div>
+                </div>
+
+                {/* Grasas */}
+                <div>
+                  <div className="flex-between" style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#eab308' }}></span> Grasas ({gDist.toFixed(1)}%)
+                    </span>
+                    <span style={{ color: '#fff' }}><b>{consumido.g}g</b> <span style={{ color: '#666' }}>/ {metaG}g</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${gPercent}%`, height: '100%', background: '#eab308', borderRadius: '2px', transition: 'width 0.5s ease' }}></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -143,23 +237,68 @@ export default function AlimentacionTab() {
               })}
             </div>
           </div>
+          
+          <AnalisisNutricional 
+            consumido={consumido}
+            metas={{ kcal: metaKcal, p: metaP, c: metaC, g: metaG }}
+          />
         </div>
 
         <div className="alimentacion-side">
-          <h3 className="section-title mb-16">Recetas Sugeridas</h3>
-          {['Bowl de Quinoa y Salmón', 'Smoothie Proteico Verde', 'Wrap de Pollo y Vegetales'].map((receta, i) => (
-            <div className="recipe-card glass-panel mb-16" style={{ cursor: 'pointer', transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)'} }} key={i}>
-              <div className="recipe-img placeholder-img" style={{ background: 'linear-gradient(45deg, #2a2a2a, #333)' }}></div>
-              <div className="p-16">
-                <span className="text-xs text-brand mb-4 d-block" style={{ color: '#ff6b35' }}>Almuerzo / Cena</span>
-                <h4 className="mb-8">{receta}</h4>
-                <div className="flex-between text-xs text-secondary">
-                  <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Clock size={12}/> 25 min</span>
-                  <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Flame size={12}/> 450 kcal</span>
+          <div style={{ marginBottom: '16px' }}>
+            <h3 className="section-title" style={{ margin: '0 0 4px 0' }}>Sugerencias del Chef</h3>
+            <p style={{ margin: 0, fontSize: '12px', color: '#ff6b35' }}>Objetivo: Alta en Proteína (Ganancia Muscular)</p>
+          </div>
+          
+          {/* Filtros */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+             {['Todas', 'Desayuno', 'Almuerzo', 'Cena'].map(filtro => (
+                <button 
+                  key={filtro}
+                  onClick={() => setRecipeFilter(filtro)}
+                  style={{
+                    background: recipeFilter === filtro ? 'rgba(255, 107, 53, 0.2)' : 'rgba(255,255,255,0.05)',
+                    color: recipeFilter === filtro ? '#ff6b35' : '#aaa',
+                    border: recipeFilter === filtro ? '1px solid rgba(255, 107, 53, 0.5)' : '1px solid transparent',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {filtro}
+                </button>
+             ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {filteredRecetas.map((receta) => (
+              <div className="recipe-card glass-panel" style={{ cursor: 'pointer', transition: 'all 0.2s ease', border: '1px solid rgba(255,255,255,0.05)' }} key={receta.id}>
+                <div className="recipe-img placeholder-img" style={{ backgroundImage: `url(${receta.img})`, backgroundSize: 'cover', backgroundPosition: 'center', height: '140px', borderRadius: '12px 12px 0 0' }}></div>
+                <div className="p-16" style={{ padding: '16px' }}>
+                  <div className="flex-between mb-4">
+                    <span className="text-xs" style={{ color: '#ff6b35', fontWeight: 'bold' }}>{receta.type}</span>
+                    <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px', color: '#ccc' }}>Dificultad: {receta.diff}</span>
+                  </div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#fff', lineHeight: 1.3 }}>{receta.name}</h4>
+                  
+                  {/* Macros distribucion horizontal */}
+                  <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: '#aaa', marginBottom: '12px', background: 'rgba(0,0,0,0.2)', padding: '6px 10px', borderRadius: '8px' }}>
+                    <span style={{ display: 'flex', gap: '4px' }}><b style={{color: '#ff6b35'}}>P</b>{receta.p}g</span>
+                    <span style={{ display: 'flex', gap: '4px' }}><b style={{color: '#3b82f6'}}>C</b>{receta.c}g</span>
+                    <span style={{ display: 'flex', gap: '4px' }}><b style={{color: '#eab308'}}>G</b>{receta.g}g</span>
+                  </div>
+
+                  <div className="flex-between text-xs text-secondary">
+                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Clock size={12} color="#aaa"/> {receta.time}</span>
+                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center', color: '#fff', fontWeight: 'bold' }}><Flame size={12} color="#ff6b35"/> {receta.kcal} kcal</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

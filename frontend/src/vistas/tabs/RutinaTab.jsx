@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target, WifiOff, Wifi } from 'lucide-react';
+import { useUser } from '../../logica/UserContext';
 import '../../estilos/tabs.css';
 
-export default function RutinaTab({ token }) {
-  const [rutina, setRutina] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActivaData, onLogrosUnlocked }) {
+  const { token } = useUser();
+  const [rutina, setRutina] = useState(rutinaActivaData?.plan_semanal?.dias || []);
+  const [loading, setLoading] = useState(!rutinaActivaData);
 
   // States for exercise execution
   const [activeDay, setActiveDay] = useState(null);
@@ -16,26 +18,52 @@ export default function RutinaTab({ token }) {
   const [exerciseProgress, setExerciseProgress] = useState({});
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
   const [isRoutineSequenceActive, setIsRoutineSequenceActive] = useState(false);
-  const [rutinaId, setRutinaId] = useState(null);
+  const [rutinaId, setRutinaId] = useState(rutinaActivaData?.id || null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [currentWeight, setCurrentWeight] = useState('');
+  const [currentReps, setCurrentReps] = useState('');
 
-  // Sync to localStorage
+  // Load progress from DB when rutinaActivaData is provided via props
   useEffect(() => {
-    // Network listeners
+    if (rutinaActivaData?._progreso_guardado && Object.keys(rutinaActivaData._progreso_guardado).length > 0) {
+      setExerciseProgress(rutinaActivaData._progreso_guardado);
+    }
+  }, [rutinaActivaData]);
+
+  // Sync progress to backend database
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Also keep localStorage as a fallback
     if (rutinaId) {
       localStorage.setItem(`gymtrack_rutina_${rutinaId}`, JSON.stringify(exerciseProgress));
+    }
+
+    // Sync to backend DB if we have data
+    if (rutinaId && token && Object.keys(exerciseProgress).length > 0) {
+      fetch('/api/rutinas/sync-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          rutina_id: rutinaId,
+          progreso_json: exerciseProgress
+        })
+      }).catch(err => console.error('Sync progress error:', err));
     }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [exerciseProgress, rutinaId]);
+  }, [exerciseProgress, rutinaId, token]);
 
   useEffect(() => {
     let interval;
@@ -65,6 +93,10 @@ export default function RutinaTab({ token }) {
     }
     setIsResting(false);
     setRestTimeLeft(0);
+
+    // Set default values for weight/reps from previous session or suggestions
+    setCurrentWeight(ejercicio.peso_sugerido?.match(/\d+/)?.[0] || '');
+    setCurrentReps(ejercicio.repeticiones?.match(/\d+/)?.[0] || '');
   };
 
   const closeExercise = () => {
@@ -85,8 +117,25 @@ export default function RutinaTab({ token }) {
     setActiveDay(dayPlan);
     setIsRoutineSequenceActive(true);
     setCurrentSequenceIndex(0);
+    setSessionStartTime(Date.now());
     startExercise(dayPlan.ejercicios[0]);
   };
+
+  useEffect(() => {
+    if (autoStartPlan) {
+      if (autoStartPlan.ejercicios && autoStartPlan.ejercicios.length === 1 && autoStartPlan.grupo_muscular) {
+        // Only one exercise requested from the dashboard
+        setActiveDay(autoStartPlan);
+        setIsRoutineSequenceActive(false);
+        setSessionStartTime(Date.now());
+        startExercise(autoStartPlan.ejercicios[0]);
+      } else {
+        // Full day routine
+        startFullRoutine(autoStartPlan);
+      }
+      if (setAutoStartPlan) setAutoStartPlan(null);
+    }
+  }, [autoStartPlan, setAutoStartPlan]);
 
   const nextExerciseInSequence = () => {
     if (activeExercise) {
@@ -102,10 +151,74 @@ export default function RutinaTab({ token }) {
       setCurrentSequenceIndex(nextIdx);
       startExercise(activeDay.ejercicios[nextIdx]);
     } else {
-      setIsRoutineSequenceActive(false);
-      setActiveExercise(null);
-      setActiveDay(null);
+      finishAndSaveRoutine();
     }
+  };
+
+  const finishAndSaveRoutine = async () => {
+    if (!activeDay) return;
+
+    let finalProgress = { ...exerciseProgress };
+    if (activeExercise) {
+      const exId = activeExercise.id || activeExercise.nombre || activeExercise.ejercicio_nombre;
+      finalProgress[exId] = { currentSet, completedSets };
+      setExerciseProgress(finalProgress);
+    }
+
+    // Save to backend
+    const duracionMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
+    const duracionMinutos = Math.max(1, Math.round(duracionMs / 60000));
+
+    try {
+      console.log("Saving session...", {
+        rutina_id: rutinaId,
+        dia_rutina: activeDay.dia,
+        duracion_minutos: duracionMinutos,
+        detalles_sesion: finalProgress
+      });
+
+      const response = await fetch('/api/entrenamientos/registrar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          rutina_id: rutinaId,
+          dia_rutina: activeDay.dia,
+          duracion_minutos: duracionMinutos,
+          detalles_sesion: finalProgress
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Session saved successfully:", result);
+
+        // Siempre notificar para que se actualicen las estadísticas (como la racha)
+        if (onLogrosUnlocked) {
+          onLogrosUnlocked(result.logros_desbloqueados || []);
+        }
+
+        if (!result.logros_desbloqueados || result.logros_desbloqueados.length === 0) {
+          alert("¡Entrenamiento guardado con éxito!");
+        }
+
+        // Progreso local se mantiene intencionalmente
+      } else {
+        const errorData = await response.json();
+        console.error("Error saving session:", errorData);
+        alert("Error al guardar el entrenamiento: " + (errorData.message || "Error desconocido"));
+      }
+    } catch (e) {
+      console.error("Error saving routine session", e);
+      alert("No se pudo conectar con el servidor para guardar el entrenamiento.");
+    }
+
+    setIsRoutineSequenceActive(false);
+    setActiveExercise(null);
+    setActiveDay(null);
   };
 
   const isDayCompleted = (dayPlan) => {
@@ -119,7 +232,11 @@ export default function RutinaTab({ token }) {
   };
 
   const completeSet = () => {
-    const newCompleted = [...completedSets, currentSet];
+    const newCompleted = [...completedSets, {
+      set: currentSet,
+      peso: parseFloat(currentWeight) || 0,
+      reps: parseInt(currentReps) || 0
+    }];
     setCompletedSets(newCompleted);
 
     const totalSeries = activeExercise?.series || 3;
@@ -132,9 +249,12 @@ export default function RutinaTab({ token }) {
   };
 
   useEffect(() => {
+    if (rutinaActivaData) return;
+
     const fetchRutina = async () => {
+      if (!token) return;
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/rutinas/latest', {
+        const response = await fetch('/api/rutinas/latest', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -146,24 +266,29 @@ export default function RutinaTab({ token }) {
             setRutinaId(data.rutina.id);
             setRutina(data.rutina.plan_semanal.dias || []);
 
-            const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
-            if (saved) {
-              try {
-                setExerciseProgress(JSON.parse(saved));
-              } catch (e) {
-                console.error("Could not parse saved routine progress");
+            // Load progress from backend DB first, fallback to localStorage
+            if (data.progreso_guardado && Object.keys(data.progreso_guardado).length > 0) {
+              setExerciseProgress(data.progreso_guardado);
+            } else {
+              const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
+              if (saved) {
+                try {
+                  setExerciseProgress(JSON.parse(saved));
+                } catch (err) {
+                  console.error("Could not parse saved routine progress", err);
+                }
               }
             }
           }
         }
-      } catch (e) {
-        console.error('Error fetching routine', e);
+      } catch (err) {
+        console.error('Error fetching routine', err);
       } finally {
         setLoading(false);
       }
     };
-    if (token) fetchRutina();
-  }, [token]);
+    if (token && !rutinaActivaData) fetchRutina();
+  }, [token, rutinaActivaData]);
 
   if (loading) {
     return (
@@ -261,11 +386,11 @@ export default function RutinaTab({ token }) {
                 <div className="card-actions" style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '24px' }}>
                   <button
                     className="primary-btn"
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5 }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5, ...(completed ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}) }}
                     onClick={() => startFullRoutine(dayPlan)}
                     disabled={!dayPlan.ejercicios?.length}
                   >
-                    <Play size={16} /> {completed ? 'Repetir' : 'Comenzar'}
+                    {completed ? <CheckCircle2 size={16} /> : <Play size={16} />} {completed ? 'Rutina completada' : 'Comenzar'}
                   </button>
                   <button
                     className="secondary-btn"
@@ -305,8 +430,8 @@ export default function RutinaTab({ token }) {
                       <span className="flex-align-center gap-4"><Target size={14} /> {ej.repeticiones || '10-12'} Reps</span>
                     </div>
                   </div>
-                  <button className="primary-btn flex-align-center gap-8" onClick={() => startExercise({ ...ej, nombre: ej.nombre || ej.ejercicio_nombre || 'Ejercicio', series: ej.series || 3, repeticiones: ej.repeticiones || '10-12', tiempo_descanso: ej.tiempo_descanso || 60, peso_sugerido: ej.peso_sugerido || 'Moderado' })} style={{ padding: '8px 16px' }}>
-                    <Play size={16} /> Iniciar
+                  <button className="primary-btn flex-align-center gap-8" onClick={() => startExercise({ ...ej, nombre: ej.nombre || ej.ejercicio_nombre || 'Ejercicio', series: ej.series || 3, repeticiones: ej.repeticiones || '10-12', tiempo_descanso: ej.tiempo_descanso || 60, peso_sugerido: ej.peso_sugerido || 'Moderado' })} style={{ padding: '8px 16px', ...((exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}) }}>
+                    {(exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? <CheckCircle2 size={16} /> : <Play size={16} />} {(exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? 'Completado' : 'Iniciar'}
                   </button>
                 </div>
               )) : (
@@ -379,7 +504,7 @@ export default function RutinaTab({ token }) {
                     if (isRoutineSequenceActive) {
                       nextExerciseInSequence();
                     } else {
-                      closeExercise();
+                      finishAndSaveRoutine();
                     }
                   }}
                 >
@@ -395,8 +520,31 @@ export default function RutinaTab({ token }) {
                   <p className="text-secondary">Prepárate y realiza <span className="text-white font-bold">{activeExercise.repeticiones}</span> repeticiones.</p>
 
                   <div className="mt-16 pt-16" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <p className="text-xs text-secondary mb-4">PESO SUGERIDO</p>
-                    <p className="text-lg font-bold text-brand">{activeExercise.peso_sugerido || 'Moderado / A tu capacidad'}</p>
+                    <p className="text-xs text-secondary mb-12">REGISTRA TU DESEMPEÑO</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Peso (kg)</label>
+                        <input
+                          type="number"
+                          className="input-field"
+                          value={currentWeight}
+                          onChange={e => setCurrentWeight(e.target.value)}
+                          placeholder="0"
+                          style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Reps</label>
+                        <input
+                          type="number"
+                          className="input-field"
+                          value={currentReps}
+                          onChange={e => setCurrentReps(e.target.value)}
+                          placeholder="0"
+                          style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

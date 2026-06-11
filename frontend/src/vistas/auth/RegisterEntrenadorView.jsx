@@ -16,6 +16,7 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
         especialidad: '',
         experiencia: '',
         certificacion: '',
+        certificacion_archivo: null,
         horarios: [],
         tipos_entrenamiento: [],
         capacidad_maxima: '',
@@ -24,9 +25,13 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
     });
 
     const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        const finalValue = type === 'checkbox' ? checked : value;
-        setFormData((prev) => ({ ...prev, [name]: finalValue }));
+        const { name, value, type, checked, files } = e.target;
+        if (type === 'file') {
+            setFormData((prev) => ({ ...prev, [name]: files[0] }));
+        } else {
+            const finalValue = type === 'checkbox' ? checked : value;
+            setFormData((prev) => ({ ...prev, [name]: finalValue }));
+        }
         setErrors((prev) => ({ ...prev, [name]: undefined }));
     };
 
@@ -65,12 +70,11 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
             if (!formData.contacto.trim()) newErrors.contacto = 'El contacto es obligatorio.';
         } else if (currentStep === 2) {
             if (!formData.especialidad.trim()) newErrors.especialidad = 'La especialidad es obligatoria.';
-            if (!formData.experiencia) {
-                newErrors.experiencia = 'La experiencia es obligatoria.';
-            } else if (isNaN(formData.experiencia) || Number(formData.experiencia) < 0) {
-                newErrors.experiencia = 'Ingrese un valor válido.';
+            if (formData.experiencia === '' || isNaN(formData.experiencia) || Number(formData.experiencia) < 0) {
+                newErrors.experiencia = 'La experiencia debe ser 0 o más años.';
             }
-            if (!formData.certificacion.trim()) newErrors.certificacion = 'La certificación es obligatoria.';
+            if (!formData.certificacion.trim()) newErrors.certificacion = 'El título de certificación es obligatorio.';
+            if (!formData.certificacion_archivo) newErrors.certificacion_archivo = 'Debe adjuntar el comprobante de su certificado.';
         } else if (currentStep === 3) {
             if (formData.horarios.length === 0) newErrors.horarios = 'Seleccione al menos un horario.';
             if (formData.tipos_entrenamiento.length === 0) newErrors.tipos_entrenamiento = 'Seleccione al menos un tipo.';
@@ -205,13 +209,19 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Años de experiencia</label>
-                            <input name="experiencia" type="number" value={formData.experiencia} onChange={handleInputChange} placeholder="ej: 8" style={inputStyle('experiencia')} />
+                            <input name="experiencia" type="number" min="0" value={formData.experiencia} onChange={handleInputChange} placeholder="ej: 8" style={inputStyle('experiencia')} />
                             {fieldError('experiencia')}
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Certificación más alta / Título</label>
+                            <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Título de certificación</label>
                             <input name="certificacion" value={formData.certificacion} onChange={handleInputChange} placeholder="ej: Personal Trainer SENA" style={inputStyle('certificacion')} />
                             {fieldError('certificacion')}
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Adjuntar Certificado (Imagen o PDF)</label>
+                            <input name="certificacion_archivo" type="file" accept="image/*,.pdf" onChange={handleInputChange} style={inputStyle('certificacion_archivo')} />
+                            <p style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Este archivo será revisado por un administrador para validar su cuenta.</p>
+                            {fieldError('certificacion_archivo')}
                         </div>
                     </div>
                 )}
