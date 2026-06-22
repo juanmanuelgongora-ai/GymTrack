@@ -23,6 +23,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [currentWeight, setCurrentWeight] = useState('');
   const [currentReps, setCurrentReps] = useState('');
+  const [hasNewActivity, setHasNewActivity] = useState(false);
 
   // Load progress from DB when rutinaActivaData is provided via props
   useEffect(() => {
@@ -107,9 +108,18 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
         [exId]: { currentSet, completedSets }
       }));
     }
+
+    if (hasNewActivity) {
+      if (window.confirm("¿Deseas registrar este entrenamiento en tu historial antes de salir?")) {
+        finishAndSaveRoutine();
+        return;
+      }
+    }
+
     setActiveExercise(null);
     setIsResting(false);
     setIsRoutineSequenceActive(false);
+    setHasNewActivity(false);
   };
 
   const startFullRoutine = (dayPlan) => {
@@ -172,7 +182,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
     try {
       console.log("Saving session...", {
         rutina_id: rutinaId,
-        dia_rutina: activeDay.dia,
+        dia_rutina: activeDay.dia || 'Día único',
         duracion_minutos: duracionMinutos,
         detalles_sesion: finalProgress
       });
@@ -186,7 +196,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
         },
         body: JSON.stringify({
           rutina_id: rutinaId,
-          dia_rutina: activeDay.dia,
+          dia_rutina: activeDay.dia || 'Día único',
           duracion_minutos: duracionMinutos,
           detalles_sesion: finalProgress
         })
@@ -219,6 +229,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
     setIsRoutineSequenceActive(false);
     setActiveExercise(null);
     setActiveDay(null);
+    setHasNewActivity(false);
   };
 
   const isDayCompleted = (dayPlan) => {
@@ -238,6 +249,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
       reps: parseInt(currentReps) || 0
     }];
     setCompletedSets(newCompleted);
+    setHasNewActivity(true);
 
     const totalSeries = activeExercise?.series || 3;
     if (newCompleted.length >= totalSeries) {
@@ -512,6 +524,15 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                     ? (currentSequenceIndex < activeDay.ejercicios.length - 1 ? 'Siguiente Ejercicio' : 'Finalizar Rutina')
                     : 'Continuar'}
                 </button>
+                {isRoutineSequenceActive && (
+                  <button
+                    className="secondary-btn w-full mt-12 py-12"
+                    style={{ borderColor: 'rgba(255,255,255,0.15)' }}
+                    onClick={finishAndSaveRoutine}
+                  >
+                    Finalizar y Guardar Entrenamiento Aquí
+                  </button>
+                )}
               </div>
             ) : (
               <div className="execution-container mb-32">
