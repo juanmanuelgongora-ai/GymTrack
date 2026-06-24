@@ -92,12 +92,16 @@ const BodyMetricsWidget = ({ clienteData = {}, onViewHistory }) => {
           transition={{ duration: 0.3 }}
         >
           <div className="widget-section-label">
-            <span>IMC</span>
+            <div className="flex-align-center gap-8">
+              <span>IMC</span>
+              <div className="imc-hint-badge">Salud</div>
+            </div>
             <span className="imc-state" style={{ color: imcState.color }}>{imcState.label}</span>
           </div>
           <div className="imc-value-row">
-            <span>{imc.toFixed(1)}</span>
-            <div className="imc-hint">Salud</div>
+            <div className="imc-main-val">
+              <span>{imc.toFixed(1)}</span>
+            </div>
           </div>
           <div className="imc-range-bar">
             <div className="imc-range-track">

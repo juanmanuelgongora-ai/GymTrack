@@ -20,27 +20,10 @@ class AchievementService
      */
     public static function checkStreakAchievements($user)
     {
-        // Obtener sesiones únicas por día
-        $sessions = SesionEntrenamiento::where('user_id', $user->id)
-            ->select(DB::raw('DATE(created_at) as date'))
-            ->distinct()
-            ->orderBy('date', 'desc')
-            ->get();
+        $streak = StreakService::calculateForUser($user);
 
-        if ($sessions->isEmpty()) return [];
-
-        $streak = 1;
-        $prevDate = Carbon::parse($sessions[0]->date);
-
-        for ($i = 1; $i < $sessions->count(); $i++) {
-            $currentDate = Carbon::parse($sessions[$i]->date);
-            if ($prevDate->diffInDays($currentDate) == 1) {
-                $streak++;
-                $prevDate = $currentDate;
-            } else {
-                break;
-            }
-        }
+        if ($streak == 0)
+            return [];
 
         return self::grantByCategory($user, 'racha', $streak);
     }
@@ -60,8 +43,9 @@ class AchievementService
     public static function checkMetricsAchievements($user)
     {
         $cliente = $user->cliente;
-        if (!$cliente) return [];
-        
+        if (!$cliente)
+            return [];
+
         $count = MetricaCorporal::where('cliente_id', $cliente->id)->count();
         return self::grantByCategory($user, 'metricas', $count);
     }
@@ -78,26 +62,26 @@ class AchievementService
             Log::warning("No se encontró perfil de cliente para el usuario: {$user->id}");
             return [];
         }
-        
+
         // Contar hitos de tipo 'fuerza' completados
         $fuerzaCompletados = Hito::where('cliente_id', $cliente->id)
             ->where('tipo', 'fuerza')
             ->where('estado', 'completado')
             ->count();
-        
+
         Log::info("Hitos de fuerza completados: {$fuerzaCompletados}");
-            
+
         $logrosFuerza = self::grantByCategory($user, 'fuerza', $fuerzaCompletados);
-        
+
         // También evaluamos por categoría general 'objetivo' si existieran
         $totalCompletados = Hito::where('cliente_id', $cliente->id)
             ->where('estado', 'completado')
             ->count();
-            
+
         Log::info("Total de hitos completados: {$totalCompletados}");
-            
+
         $logrosObjetivo = self::grantByCategory($user, 'objetivo', $totalCompletados);
-        
+
         $unlocked = array_merge($logrosFuerza, $logrosObjetivo);
 
         if (!empty($unlocked)) {

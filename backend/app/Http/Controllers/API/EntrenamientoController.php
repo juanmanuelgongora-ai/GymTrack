@@ -25,6 +25,23 @@ class EntrenamientoController extends Controller
 
         $user = $request->user();
 
+        // VALIDACIÓN GT-77: Evitar duplicados en la misma semana
+        // Si el usuario ya entrenó este día de la rutina esta semana, no creamos nuevo registro
+        $inicioSemana = now()->startOfWeek(); // Por defecto Lunes
+        $yaExiste = SesionEntrenamiento::where('user_id', $user->id)
+            ->where('rutina_id', $data['rutina_id'] ?? null)
+            ->where('dia_rutina', $data['dia_rutina'])
+            ->where('created_at', '>=', $inicioSemana)
+            ->first();
+
+        if ($yaExiste) {
+            return response()->json([
+                'message' => 'Este día ya fue completado y registrado esta semana.',
+                'sesion' => $yaExiste,
+                'logros_desbloqueados' => []
+            ], 200); // Retornamos 200 OK pero con el registro anterior
+        }
+
         $sesion = SesionEntrenamiento::create([
             'user_id' => $user->id,
             'rutina_id' => $data['rutina_id'] ?? null,
@@ -62,46 +79,8 @@ class EntrenamientoController extends Controller
             ->whereYear('created_at', now()->year)
             ->count();
 
-        // Calcular días consecutivos (racha simple)
-        // Buscamos las sesiones ordenadas por fecha y vemos si hay un salto mayor a 1 día
-        $sesiones = SesionEntrenamiento::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->groupBy(function ($date) {
-                return \Carbon\Carbon::parse($date->created_at)->format('Y-m-d');
-            });
-
-        $racha = 0;
-        $fecha_actual = now()->startOfDay();
-
-        // Si no hay entrenamiento hoy ni ayer, racha es 0
-        $dias_keys = $sesiones->keys();
-        if ($dias_keys->isEmpty()) {
-            $racha = 0;
-        } else {
-            $check_date = clone $fecha_actual;
-            if (!$sesiones->has($check_date->format('Y-m-d'))) {
-                // Verificar si al menos entrenó ayer
-                $check_date->subDay();
-                if (!$sesiones->has($check_date->format('Y-m-d'))) {
-                    $racha = 0; // Se rompió
-                }
-            }
-
-            // Contar hacia atrás
-            if ($racha !== 0 || $sesiones->has(now()->startOfDay()->format('Y-m-d')) || $sesiones->has(now()->subDay()->startOfDay()->format('Y-m-d'))) {
-                // Reiniciar check
-                $check_date = clone $fecha_actual;
-                if (!$sesiones->has($check_date->format('Y-m-d'))) {
-                    $check_date->subDay();
-                }
-
-                while ($sesiones->has($check_date->format('Y-m-d'))) {
-                    $racha++;
-                    $check_date->subDay();
-                }
-            }
-        }
+        // Calcular racha de días usando el StreakService flexible
+        $racha = \App\Services\StreakService::calculateForUser($user);
 
         // Calcular progreso de objetivos (Simulado basado en actividad real)
         $total_minutos = SesionEntrenamiento::where('user_id', $user->id)
