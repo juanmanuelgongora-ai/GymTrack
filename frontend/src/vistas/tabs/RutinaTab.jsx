@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target, WifiOff, Wifi } from 'lucide-react';
+import { Activity, Play, Calendar, Zap, ArrowRight, CheckCircle2, Dumbbell, Clock, ShieldCheck, ListChecks, X, Timer, Target, WifiOff, Wifi, Trophy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '../../logica/UserContext';
 import '../../estilos/tabs.css';
 
-export default function RutinaTab({ token }) {
-  const [rutina, setRutina] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActivaData, onLogrosUnlocked }) {
+  const { token } = useUser();
+  const [rutina, setRutina] = useState(rutinaActivaData?.plan_semanal?.dias || []);
+  const [loading, setLoading] = useState(!rutinaActivaData);
 
   // States for exercise execution
   const [activeDay, setActiveDay] = useState(null);
@@ -16,12 +19,23 @@ export default function RutinaTab({ token }) {
   const [exerciseProgress, setExerciseProgress] = useState({});
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
   const [isRoutineSequenceActive, setIsRoutineSequenceActive] = useState(false);
-  const [rutinaId, setRutinaId] = useState(null);
+  const [rutinaId, setRutinaId] = useState(rutinaActivaData?.id || null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [currentWeight, setCurrentWeight] = useState('');
+  const [currentReps, setCurrentReps] = useState('');
+  const [hasNewActivity, setHasNewActivity] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Sync to localStorage
+  // Load progress from DB when rutinaActivaData is provided via props
   useEffect(() => {
-    // Network listeners
+    if (rutinaActivaData?._progreso_guardado && Object.keys(rutinaActivaData._progreso_guardado).length > 0) {
+      setExerciseProgress(rutinaActivaData._progreso_guardado);
+    }
+  }, [rutinaActivaData]);
+
+  // Sync progress to backend database
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -31,11 +45,26 @@ export default function RutinaTab({ token }) {
       localStorage.setItem(`gymtrack_rutina_${rutinaId}`, JSON.stringify(exerciseProgress));
     }
 
+    if (rutinaId && token && Object.keys(exerciseProgress).length > 0) {
+      fetch('/api/rutinas/sync-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          rutina_id: rutinaId,
+          progreso_json: exerciseProgress
+        })
+      }).catch(err => console.error('Sync progress error:', err));
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [exerciseProgress, rutinaId]);
+  }, [exerciseProgress, rutinaId, token]);
 
   useEffect(() => {
     let interval;
@@ -53,8 +82,7 @@ export default function RutinaTab({ token }) {
   }, [isResting, restTimeLeft, currentSet, activeExercise]);
 
   const startExercise = (ejercicio) => {
-    setActiveExercise(ejercicio);
-    const exId = ejercicio.id || ejercicio.nombre;
+    const exId = ejercicio.id || ejercicio.nombre || ejercicio.ejercicio_nombre;
     const progress = exerciseProgress[exId];
     if (progress) {
       setCurrentSet(progress.currentSet);
@@ -65,6 +93,15 @@ export default function RutinaTab({ token }) {
     }
     setIsResting(false);
     setRestTimeLeft(0);
+
+    const restTime = parseInt(ejercicio.tiempo_descanso || ejercicio.descanso || '60');
+    setActiveExercise({
+      ...ejercicio,
+      tiempo_descanso: isNaN(restTime) ? 60 : restTime
+    });
+
+    setCurrentWeight(ejercicio.peso_sugerido?.match(/\d+/)?.[0] || '');
+    setCurrentReps(ejercicio.repeticiones?.match(/\d+/)?.[0] || '');
   };
 
   const closeExercise = () => {
@@ -75,9 +112,18 @@ export default function RutinaTab({ token }) {
         [exId]: { currentSet, completedSets }
       }));
     }
+
+    if (hasNewActivity) {
+      if (window.confirm("¿Deseas registrar este entrenamiento en tu historial antes de salir?")) {
+        finishAndSaveRoutine();
+        return;
+      }
+    }
+
     setActiveExercise(null);
     setIsResting(false);
     setIsRoutineSequenceActive(false);
+    setHasNewActivity(false);
   };
 
   const startFullRoutine = (dayPlan) => {
@@ -85,8 +131,23 @@ export default function RutinaTab({ token }) {
     setActiveDay(dayPlan);
     setIsRoutineSequenceActive(true);
     setCurrentSequenceIndex(0);
+    setSessionStartTime(Date.now());
     startExercise(dayPlan.ejercicios[0]);
   };
+
+  useEffect(() => {
+    if (autoStartPlan) {
+      if (autoStartPlan.ejercicios && autoStartPlan.ejercicios.length === 1 && autoStartPlan.grupo_muscular) {
+        setActiveDay(autoStartPlan);
+        setIsRoutineSequenceActive(false);
+        setSessionStartTime(Date.now());
+        startExercise(autoStartPlan.ejercicios[0]);
+      } else {
+        startFullRoutine(autoStartPlan);
+      }
+      if (setAutoStartPlan) setAutoStartPlan(null);
+    }
+  }, [autoStartPlan, setAutoStartPlan]);
 
   const nextExerciseInSequence = () => {
     if (activeExercise) {
@@ -102,9 +163,63 @@ export default function RutinaTab({ token }) {
       setCurrentSequenceIndex(nextIdx);
       startExercise(activeDay.ejercicios[nextIdx]);
     } else {
+      finishAndSaveRoutine();
+    }
+  };
+
+  const finishAndSaveRoutine = async () => {
+    if (!activeDay || isSaving) return;
+    setIsSaving(true);
+
+    let finalProgress = { ...exerciseProgress };
+    if (activeExercise) {
+      const exId = activeExercise.id || activeExercise.nombre || activeExercise.ejercicio_nombre;
+      finalProgress[exId] = { currentSet, completedSets };
+      setExerciseProgress(finalProgress);
+    }
+
+    const duracionMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
+    const duracionMinutos = Math.max(1, Math.round(duracionMs / 60000));
+
+    try {
+      const response = await fetch('/api/entrenamientos/registrar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          rutina_id: rutinaId,
+          dia_rutina: activeDay.dia || 'Día único',
+          duracion_minutos: duracionMinutos,
+          detalles_sesion: finalProgress
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (onLogrosUnlocked) {
+          onLogrosUnlocked(result.logros_desbloqueados || []);
+        }
+        if (result.message.includes('completado')) {
+          alert(result.message);
+        } else if (!result.logros_desbloqueados || result.logros_desbloqueados.length === 0) {
+          alert("¡Entrenamiento guardado con éxito!");
+        }
+      } else {
+        const errorData = await response.json();
+        alert("Error al guardar: " + (errorData.message || "Error desconocido"));
+      }
+    } catch (e) {
+      console.error("Error saving routine session", e);
+      alert("No se pudo conectar con el servidor para guardar el entrenamiento.");
+    } finally {
+      setIsSaving(false);
       setIsRoutineSequenceActive(false);
       setActiveExercise(null);
       setActiveDay(null);
+      setHasNewActivity(false);
     }
   };
 
@@ -119,8 +234,13 @@ export default function RutinaTab({ token }) {
   };
 
   const completeSet = () => {
-    const newCompleted = [...completedSets, currentSet];
+    const newCompleted = [...completedSets, {
+      set: currentSet,
+      peso: parseFloat(currentWeight) || 0,
+      reps: parseInt(currentReps) || 0
+    }];
     setCompletedSets(newCompleted);
+    setHasNewActivity(true);
 
     const totalSeries = activeExercise?.series || 3;
     if (newCompleted.length >= totalSeries) {
@@ -132,9 +252,11 @@ export default function RutinaTab({ token }) {
   };
 
   useEffect(() => {
+    if (rutinaActivaData) return;
     const fetchRutina = async () => {
+      if (!token) return;
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/rutinas/latest', {
+        const response = await fetch('/api/rutinas/latest', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -145,25 +267,28 @@ export default function RutinaTab({ token }) {
           if (data.rutina && data.rutina.plan_semanal) {
             setRutinaId(data.rutina.id);
             setRutina(data.rutina.plan_semanal.dias || []);
-
-            const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
-            if (saved) {
-              try {
-                setExerciseProgress(JSON.parse(saved));
-              } catch (e) {
-                console.error("Could not parse saved routine progress");
+            if (data.progreso_guardado && Object.keys(data.progreso_guardado).length > 0) {
+              setExerciseProgress(data.progreso_guardado);
+            } else {
+              const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
+              if (saved) {
+                try {
+                  setExerciseProgress(JSON.parse(saved));
+                } catch (err) {
+                  console.error("Could not parse saved routine progress", err);
+                }
               }
             }
           }
         }
-      } catch (e) {
-        console.error('Error fetching routine', e);
+      } catch (err) {
+        console.error('Error fetching routine', err);
       } finally {
         setLoading(false);
       }
     };
-    if (token) fetchRutina();
-  }, [token]);
+    if (token && !rutinaActivaData) fetchRutina();
+  }, [token, rutinaActivaData]);
 
   if (loading) {
     return (
@@ -221,9 +346,7 @@ export default function RutinaTab({ token }) {
                     {completed && <CheckCircle2 size={18} color="#10b981" />}
                   </h2>
                 </div>
-
                 <div className="card-divider"></div>
-
                 <div className="card-details-grid">
                   <div className="detail-item">
                     <Clock size={16} className="detail-icon" />
@@ -232,7 +355,6 @@ export default function RutinaTab({ token }) {
                       <span className="detail-value">{dayPlan.duracion_estimada || '45 min'}</span>
                     </div>
                   </div>
-
                   <div className="detail-item">
                     <Zap size={16} className="detail-icon" />
                     <div className="detail-info">
@@ -240,7 +362,6 @@ export default function RutinaTab({ token }) {
                       <span className="detail-value">{dayPlan.intensidad || 'Media'}</span>
                     </div>
                   </div>
-
                   <div className="detail-item">
                     <ShieldCheck size={16} className="detail-icon" />
                     <div className="detail-info">
@@ -248,7 +369,6 @@ export default function RutinaTab({ token }) {
                       <span className="detail-value">{dayPlan.semana_plan || weekNumber}</span>
                     </div>
                   </div>
-
                   <div className="detail-item">
                     <ListChecks size={16} className="detail-icon" />
                     <div className="detail-info">
@@ -257,15 +377,14 @@ export default function RutinaTab({ token }) {
                     </div>
                   </div>
                 </div>
-
                 <div className="card-actions" style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '24px' }}>
                   <button
                     className="primary-btn"
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5 }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: dayPlan.ejercicios?.length ? 1 : 0.5, ...(completed ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}) }}
                     onClick={() => startFullRoutine(dayPlan)}
                     disabled={!dayPlan.ejercicios?.length}
                   >
-                    <Play size={16} /> {completed ? 'Repetir' : 'Comenzar'}
+                    {completed ? <CheckCircle2 size={16} /> : <Play size={16} />} {completed ? 'Rutina completada' : 'Comenzar'}
                   </button>
                   <button
                     className="secondary-btn"
@@ -281,11 +400,9 @@ export default function RutinaTab({ token }) {
         </div>
       )}
 
-      {/* Background decoration */}
       <div className="bg-glow" style={{ top: '20%', right: '-10%', background: 'radial-gradient(circle, rgba(255, 107, 53, 0.05) 0%, transparent 70%)' }}></div>
       <div className="bg-glow" style={{ bottom: '10%', left: '-5%', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.03) 0%, transparent 70%)' }}></div>
 
-      {/* Day Details Modal */}
       {activeDay && !activeExercise && !isRoutineSequenceActive && (
         <div className="modal-overlay" onClick={() => setActiveDay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
           <div className="glass-panel p-24" style={{ maxWidth: '600px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -294,7 +411,6 @@ export default function RutinaTab({ token }) {
               <button onClick={() => setActiveDay(null)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
             </div>
             <p className="text-secondary mb-24">Grupo Muscular: <span className="text-white">{activeDay.grupo_muscular}</span></p>
-
             <div className="ejercicios-list">
               {activeDay.ejercicios?.length > 0 ? activeDay.ejercicios.map((ej, idx) => (
                 <div key={idx} className="glass-panel p-16 mb-16 flex-between" style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -305,8 +421,8 @@ export default function RutinaTab({ token }) {
                       <span className="flex-align-center gap-4"><Target size={14} /> {ej.repeticiones || '10-12'} Reps</span>
                     </div>
                   </div>
-                  <button className="primary-btn flex-align-center gap-8" onClick={() => startExercise({ ...ej, nombre: ej.nombre || ej.ejercicio_nombre || 'Ejercicio', series: ej.series || 3, repeticiones: ej.repeticiones || '10-12', tiempo_descanso: ej.tiempo_descanso || 60, peso_sugerido: ej.peso_sugerido || 'Moderado' })} style={{ padding: '8px 16px' }}>
-                    <Play size={16} /> Iniciar
+                  <button className="primary-btn flex-align-center gap-8" onClick={() => startExercise({ ...ej, nombre: ej.nombre || ej.ejercicio_nombre || 'Ejercicio', series: ej.series || 3, repeticiones: ej.repeticiones || '10-12', tiempo_descanso: ej.tiempo_descanso || 60, peso_sugerido: ej.peso_sugerido || 'Moderado' })} style={{ padding: '8px 16px', ...((exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderColor: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' } : {}) }}>
+                    {(exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? <CheckCircle2 size={16} /> : <Play size={16} />} {(exerciseProgress[ej.id || ej.nombre || ej.ejercicio_nombre]?.completedSets?.length >= (ej.series || 3)) ? 'Completado' : 'Iniciar'}
                   </button>
                 </div>
               )) : (
@@ -317,97 +433,152 @@ export default function RutinaTab({ token }) {
         </div>
       )}
 
-      {/* Exercise Execution Modal */}
-      {activeExercise && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(15px)' }}>
-          <div className="glass-panel p-32" style={{ maxWidth: '500px', width: '95%', textAlign: 'center', position: 'relative' }}>
-            {!isOnline && (
-              <div style={{
-                background: 'rgba(255, 68, 68, 0.15)',
-                border: '1px solid rgba(255, 68, 68, 0.4)',
-                color: '#ff4444',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                marginBottom: '20px',
-                animation: 'fadeIn 0.3s ease'
-              }}>
-                <WifiOff size={20} />
-                <div style={{ textAlign: 'left' }}>
-                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>Modo sin conexión</p>
-                  <p style={{ margin: 0, fontSize: '12px', opacity: 0.8 }}>Tu progreso se guarda localmente.</p>
-                </div>
-              </div>
-            )}
-            <button onClick={closeExercise} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}><X size={24} /></button>
-
-            <h2 className="glow-text mb-24" style={{ fontSize: '24px', paddingRight: '20px' }}>{activeExercise.nombre}</h2>
-
-            <div className="stats-grid mb-32" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <div className="glass-panel p-12" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                <p className="text-secondary text-xs mb-4">Series</p>
-                <p className="text-xl font-bold">{completedSets.length} / {activeExercise.series}</p>
-              </div>
-              <div className="glass-panel p-12" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                <p className="text-secondary text-xs mb-4">Reps</p>
-                <p className="text-xl font-bold">{activeExercise.repeticiones}</p>
-              </div>
-              <div className="glass-panel p-12" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                <p className="text-secondary text-xs mb-4">Descanso</p>
-                <p className="text-xl font-bold text-brand">{activeExercise.tiempo_descanso}s</p>
-              </div>
-            </div>
-
-            {isResting ? (
-              <div className="timer-container mb-32 glass-panel py-32 px-16" style={{ borderColor: 'var(--brand-orange)', background: 'radial-gradient(circle, rgba(255,107,53,0.1) 0%, transparent 80%)' }}>
-                <Timer size={48} className="text-brand mb-16 mx-auto animate-pulse" />
-                <h3 className="text-4xl font-bold mb-8 glow-text" style={{ fontSize: '48px' }}>{restTimeLeft}s</h3>
-                <p className="text-secondary mb-16">Recomendado descansar antes de la Serie {currentSet}</p>
-                <button className="secondary-btn w-full" onClick={() => { setIsResting(false); setRestTimeLeft(0); if (currentSet < activeExercise.series) setCurrentSet(prev => prev + 1); }}>Saltar descanso</button>
-              </div>
-            ) : completedSets.length >= activeExercise.series ? (
-              <div className="completion-container mb-32 glass-panel py-32 px-16" style={{ borderColor: '#10b981', background: 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 80%)' }}>
-                <CheckCircle2 size={56} color="#10b981" className="mb-16 mx-auto" />
-                <h3 className="text-2xl font-bold text-white mb-8">¡Ejercicio Completado!</h3>
-                <p className="text-secondary mb-24">Has completado todas las series satisfactoriamente.</p>
-                <button
-                  className="primary-btn w-full py-16"
-                  style={{ background: '#10b981', color: 'white' }}
-                  onClick={() => {
-                    if (isRoutineSequenceActive) {
-                      nextExerciseInSequence();
-                    } else {
-                      closeExercise();
-                    }
-                  }}
-                >
-                  {isRoutineSequenceActive
-                    ? (currentSequenceIndex < activeDay.ejercicios.length - 1 ? 'Siguiente Ejercicio' : 'Finalizar Rutina')
-                    : 'Continuar'}
-                </button>
-              </div>
-            ) : (
-              <div className="execution-container mb-32">
-                <div className="glass-panel p-24 mb-24 text-center">
-                  <h3 className="text-2xl font-bold text-white mb-8">Serie {currentSet}</h3>
-                  <p className="text-secondary">Prepárate y realiza <span className="text-white font-bold">{activeExercise.repeticiones}</span> repeticiones.</p>
-
-                  <div className="mt-16 pt-16" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <p className="text-xs text-secondary mb-4">PESO SUGERIDO</p>
-                    <p className="text-lg font-bold text-brand">{activeExercise.peso_sugerido || 'Moderado / A tu capacidad'}</p>
+      <AnimatePresence>
+        {activeExercise && (
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)' }}
+          >
+            <motion.div
+              className="glass-panel"
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              style={{ maxWidth: '550px', width: '92%', textAlign: 'center', position: 'relative', padding: '40px 32px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              {!isOnline && (
+                <div style={{
+                  background: 'rgba(255, 68, 68, 0.15)',
+                  border: '1px solid rgba(255, 68, 68, 0.4)',
+                  color: '#ff4444',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '20px'
+                }}>
+                  <WifiOff size={20} />
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>Modo sin conexión</p>
+                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.8 }}>Tu progreso se guarda localmente.</p>
                   </div>
                 </div>
+              )}
 
-                <button className="primary-btn w-full flex-align-center justify-center gap-8 py-16" onClick={completeSet} style={{ fontSize: '1.1rem' }}>
-                  <CheckCircle2 size={24} /> Confirmar Serie {currentSet}
-                </button>
+              <button onClick={closeExercise} className="modal-close-btn" style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px', borderRadius: '50%', display: 'flex' }}>
+                <X size={20} />
+              </button>
+
+              <div className="exercise-header mb-32">
+                <p className="text-brand mb-8" style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>En Proceso</p>
+                <h2 className="glow-text m-0" style={{ fontSize: '28px', lineHeight: '1.2' }}>{activeExercise.nombre}</h2>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+
+              <div className="stats-grid-premium mb-32">
+                <div className="stat-card-glass">
+                  <span className="stat-icon-bg"><Dumbbell size={16} /></span>
+                  <div className="stat-content">
+                    <p className="stat-label">Series</p>
+                    <p className="stat-value">{completedSets.length} <small>/ {activeExercise.series}</small></p>
+                  </div>
+                </div>
+                <div className="stat-card-glass">
+                  <span className="stat-icon-bg"><Target size={16} /></span>
+                  <div className="stat-content">
+                    <p className="stat-label">Reps</p>
+                    <p className="stat-value">{activeExercise.repeticiones}</p>
+                  </div>
+                </div>
+                <div className="stat-card-glass">
+                  <span className="stat-icon-bg"><Timer size={16} /></span>
+                  <div className="stat-content">
+                    <p className="stat-label">Descanso</p>
+                    <p className="stat-value text-brand">{activeExercise.tiempo_descanso}s</p>
+                  </div>
+                </div>
+              </div>
+
+              {isResting ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rest-container mb-32 glass-panel-premium"
+                >
+                  <div className="rest-timer-circle">
+                    <Timer size={48} className="text-brand animate-pulse" />
+                    <h3 className="timer-text">{restTimeLeft}<small>s</small></h3>
+                  </div>
+                  <p className="text-secondary mt-16">Tiempo de recuperación recomendado</p>
+                  <p className="text-white font-bold opacity-80 mb-20">Siguiente: Serie {currentSet}</p>
+                  <button className="secondary-btn-premium w-full" onClick={() => { setIsResting(false); setRestTimeLeft(0); if (currentSet < activeExercise.series) setCurrentSet(prev => prev + 1); }}>Saltar descanso</button>
+                </motion.div>
+              ) : completedSets.length >= activeExercise.series ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="completion-card-premium mb-32"
+                >
+                  <div className="success-icon-bg">
+                    <Trophy size={48} color="#10b981" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-8">¡Ejercicio Completado!</h3>
+                  <p className="text-secondary mb-24 max-w-280 mx-auto">Has superado todas las series. Tu progreso se ha sincronizado correctamente.</p>
+                  <button
+                    className="primary-btn-glow w-full"
+                    onClick={() => {
+                      if (isRoutineSequenceActive) {
+                        nextExerciseInSequence();
+                      } else {
+                        finishAndSaveRoutine();
+                      }
+                    }}
+                  >
+                    {isRoutineSequenceActive
+                      ? (currentSequenceIndex < activeDay.ejercicios.length - 1 ? 'Siguiente Ejercicio' : 'Finalizar Sesión')
+                      : 'Cerrar y Guardar'}
+                  </button>
+                </motion.div>
+              ) : (
+                <div className="execution-card-premium mb-32">
+                  <div className="set-indicator mb-24">
+                    <span className="set-badge">Serie {currentSet}</span>
+                    <p className="text-secondary mt-12">Objetivo: <span className="text-white font-bold">{activeExercise.repeticiones} reps</span></p>
+                  </div>
+
+                  <div className="input-grid-premium mb-24">
+                    <div className="input-group-modern">
+                      <label>Peso (kg)</label>
+                      <input
+                        type="number"
+                        value={currentWeight}
+                        onChange={e => setCurrentWeight(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="input-group-modern">
+                      <label>Repeticiones</label>
+                      <input
+                        type="number"
+                        value={currentReps}
+                        onChange={e => setCurrentReps(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <button className="primary-btn-premium w-full" onClick={completeSet}>
+                    <CheckCircle2 size={20} /> Confirmar Serie {currentSet}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

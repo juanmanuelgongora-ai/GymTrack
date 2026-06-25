@@ -4,7 +4,7 @@ import cors from 'cors';
 const app = express();
 const PORT = 3000;
 
-// Middleware para permitir recibir JSON y peticiones de otros puertos (como de tu Laravel)
+// Middleware para permitir recibir JSON y peticiones de otros puertos 
 app.use(express.json());
 app.use(cors());
 
@@ -68,5 +68,5 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Microservicio Matemático corriendo en http://localhost:${PORT}`);
+    console.log(`Microservicio Matemático corriendo en http://localhost:${PORT}`);
 });
