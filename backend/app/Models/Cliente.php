@@ -31,6 +31,8 @@ class Cliente extends Model
         'activo'
     ];
 
+    protected $appends = ['edad'];
+
     protected $casts = [
         'vencimiento_membresia' => 'datetime',
         'activo' => 'boolean'
@@ -49,5 +51,12 @@ class Cliente extends Model
     public function hitos()
     {
         return $this->hasMany(Hito::class);
+    }
+
+    public function getEdadAttribute()
+    {
+        if (!$this->fecha_nacimiento)
+            return null;
+        return \Carbon\Carbon::parse($this->fecha_nacimiento)->age;
     }
 }

@@ -28,7 +28,7 @@ class Entrenador extends Model
         'objetivos_profesionales',
         'estado',
         'motivo_rechazo',
-        'edad',
+        'fecha_nacimiento',
         'genero',
         'contacto',
         'direccion',
@@ -48,5 +48,14 @@ class Entrenador extends Model
     public function certificados()
     {
         return $this->hasMany(EntrenadorCertificado::class, 'entrenador_id');
+    }
+
+    protected $appends = ['edad'];
+
+    public function getEdadAttribute()
+    {
+        if (!$this->fecha_nacimiento)
+            return null;
+        return \Carbon\Carbon::parse($this->fecha_nacimiento)->age;
     }
 }

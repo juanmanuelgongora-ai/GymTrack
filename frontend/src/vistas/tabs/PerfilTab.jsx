@@ -319,6 +319,7 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
                 <div className="data-row"><span className="data-label">Email</span><span className="data-value">{userData?.email}</span></div>
                 <div className="data-row"><span className="data-label">Género</span><span className="data-value">{clienteData.genero === 'M' ? 'Masculino' : clienteData.genero === 'F' ? 'Femenino' : '--'}</span></div>
                 <div className="data-row"><span className="data-label">F. Nacimiento</span><span className="data-value">{clienteData.fecha_nacimiento || '--'}</span></div>
+                <div className="data-row"><span className="data-label">Edad</span><span className="data-value">{clienteData.edad ? `${clienteData.edad} años` : '--'}</span></div>
                 <div className="data-row"><span className="data-label">Ubicación</span><span className="data-value">{clienteData.ubicacion || 'No definida'}</span></div>
               </div>
             )}

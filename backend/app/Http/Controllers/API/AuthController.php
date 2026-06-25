@@ -35,11 +35,8 @@ class AuthController extends Controller
         ]);
 
         if ($user->rol === 'cliente') {
-            // Calculate a dummy birth date from age if present
-            $fechaNacimiento = null;
-            if ($request->filled('edad') && is_numeric($request->edad)) {
-                $fechaNacimiento = Carbon::now()->subYears($request->edad)->format('Y-m-d');
-            }
+            // Receive birth date directly
+            $fechaNacimiento = $request->fecha_nacimiento;
 
             // Calculate basic IMC if peso and estatura are present
             $imc = null;
@@ -89,7 +86,7 @@ class AuthController extends Controller
                 'capacidad_maxima' => $request->capacidad_maxima,
                 'objetivos_profesionales' => $request->objetivos,
                 'estado' => 'pendiente',
-                'edad' => $request->edad,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
                 'genero' => $request->genero,
                 'contacto' => $request->contacto,
                 'direccion' => $request->direccion,

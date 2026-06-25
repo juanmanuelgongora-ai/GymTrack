@@ -6,7 +6,7 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
     const [errors, setErrors] = useState({});
     const [formData, setFormData] = useState({
         nombre: '',
-        edad: '',
+        fecha_nacimiento: '',
         sexo: '',
         contacto: '',
         direccion: '',
@@ -61,10 +61,19 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
             } else if (formData.password.length < 6) {
                 newErrors.password = 'Mínimo 6 caracteres.';
             }
-            if (!formData.edad) {
-                newErrors.edad = 'La edad es obligatoria.';
-            } else if (isNaN(formData.edad) || Number(formData.edad) < 18 || Number(formData.edad) > 70) {
-                newErrors.edad = 'Edad debe ser entre 18 y 70.';
+            if (!formData.fecha_nacimiento) {
+                newErrors.fecha_nacimiento = 'La fecha de nacimiento es obligatoria.';
+            } else {
+                const birthDate = new Date(formData.fecha_nacimiento);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                if (age < 18 || age > 70) {
+                    newErrors.fecha_nacimiento = 'Debe tener entre 18 y 70 años.';
+                }
             }
             if (!formData.sexo) newErrors.sexo = 'Seleccione su sexo.';
             if (!formData.contacto.trim()) newErrors.contacto = 'El contacto es obligatorio.';
@@ -165,9 +174,9 @@ const RegisterEntrenadorView = ({ setView, handleRegister }) => {
                             <input name="direccion" value={formData.direccion} onChange={handleInputChange} placeholder="Ej: Calle 45 #23-15" style={inputStyle('direccion')} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Ingrese su edad</label>
-                            <input name="edad" value={formData.edad} onChange={handleInputChange} placeholder="ej: 28" style={inputStyle('edad')} />
-                            {fieldError('edad')}
+                            <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Fecha de nacimiento</label>
+                            <input name="fecha_nacimiento" type="date" value={formData.fecha_nacimiento} onChange={handleInputChange} style={inputStyle('fecha_nacimiento')} />
+                            {fieldError('fecha_nacimiento')}
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: '#ccc' }}>Ingrese su correo electrónico</label>

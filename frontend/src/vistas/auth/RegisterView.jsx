@@ -18,10 +18,19 @@ const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondit
             } else if (formData.pass.length < 6) {
                 newErrors.pass = 'Mínimo 6 caracteres.';
             }
-            if (!formData.edad) {
-                newErrors.edad = 'La edad es obligatoria.';
-            } else if (isNaN(formData.edad) || Number(formData.edad) < 12 || Number(formData.edad) > 100) {
-                newErrors.edad = 'Edad debe ser entre 12 y 100.';
+            if (!formData.fecha_nacimiento) {
+                newErrors.fecha_nacimiento = 'La fecha de nacimiento es obligatoria.';
+            } else {
+                const birthDate = new Date(formData.fecha_nacimiento);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                if (age < 12 || age > 100) {
+                    newErrors.fecha_nacimiento = 'Debe tener entre 12 y 100 años.';
+                }
             }
             if (!formData.contacto.trim()) newErrors.contacto = 'El número de contacto es obligatorio.';
         } else if (currentStep === 2) {
@@ -86,7 +95,7 @@ const RegisterView = ({ step, setStep, formData, handleInputChange, toggleCondit
                     {[
                         { label: 'Ingrese su nombre', name: 'nombre', placeholder: 'ej: Juan Manuel Lopez', icon: <Icons.User /> },
                         { label: 'Ingrese su dirección', name: 'direccion', placeholder: 'Ej: Calle 12 Bis #12-23', icon: <Icons.Map /> },
-                        { label: 'Ingrese su edad', name: 'edad', placeholder: 'ej: 18' },
+                        { label: 'Fecha de nacimiento', name: 'fecha_nacimiento', type: 'date', icon: <Icons.Calendar /> },
                         { label: 'Ingrese su correo', name: 'correo', placeholder: 'tu@email.com', icon: <Icons.Mail /> },
                         { label: 'Seleccione su EPS', name: 'eps', isSelect: true, options: ["Seleccione...", "Sura", "Sanitas", "Compensar", "Coomeva", "Nueva EPS"] },
                         { label: 'Ingrese su contraseña', name: 'pass', placeholder: '••••••••', icon: <Icons.Lock />, type: 'password' },

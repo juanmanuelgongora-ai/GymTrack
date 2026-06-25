@@ -16,7 +16,7 @@ import ExpiredMembresiaView from './vistas/auth/ExpiredMembresiaView';
 const API_URL = '/api';
 
 const initialFormData = {
-  nombre: '', direccion: '', edad: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
+  nombre: '', direccion: '', fecha_nacimiento: '', correo: '', eps: '', pass: '', contacto: '', familiar: '',
   sexo: '', peso: '', estatura: '', objetivo_principal: '',
   salud: 'Excelente', cirugia: 'No', cirugiaDetalle: '', condiciones: [], medicamentos: 'No', medicamentosDetalle: '', lesion: 'No', lesionDetalle: '', frecuencia: '3-4 veces por semana', sueno: '7-8',
   disclaimer: false
@@ -219,7 +219,7 @@ function App() {
           email: formData.correo,
           password: formData.pass,
           rol: 'cliente',
-          edad: formData.edad,
+          fecha_nacimiento: formData.fecha_nacimiento,
           genero: formData.sexo,
           peso_kg: formData.peso,
           altura_cm: formData.estatura,
@@ -255,7 +255,7 @@ function App() {
               genero: formData.sexo,
               peso: formData.peso,
               estatura: formData.estatura,
-              edad: formData.edad
+              fecha_nacimiento: formData.fecha_nacimiento
             })
           });
           setPendingNotification(true);
@@ -286,7 +286,7 @@ function App() {
       formData.append('email', entrenadorData.correo);
       formData.append('password', entrenadorData.password);
       formData.append('rol', 'entrenador');
-      formData.append('edad', entrenadorData.edad);
+      formData.append('fecha_nacimiento', entrenadorData.fecha_nacimiento);
       formData.append('genero', entrenadorData.sexo);
       formData.append('contacto', entrenadorData.contacto);
       formData.append('direccion', entrenadorData.direccion);
