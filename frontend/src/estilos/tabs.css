@@ -698,6 +698,7 @@
   .force-progress-grid {
     grid-template-columns: 1fr;
   }
+
   .force-selector {
     width: 100%;
   }
@@ -707,16 +708,20 @@
   .force-progress-panel {
     padding: 22px;
   }
+
   .force-progress-header {
     flex-direction: column;
     align-items: stretch;
   }
+
   .force-select-toggle {
     min-width: 100%;
   }
+
   .force-mini-metrics {
     grid-template-columns: 1fr;
   }
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }
@@ -1542,7 +1547,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 16px 12px;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1593,7 +1598,7 @@
   background: rgba(255, 107, 53, 0.05);
   border: 1px solid rgba(255, 107, 53, 0.2);
   border-radius: 24px;
-  padding: 32px;
+  padding: 24px;
   position: relative;
   overflow: hidden;
 }
@@ -1614,17 +1619,27 @@
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.rest-timer-circle > * {
+.rest-timer-circle>* {
   animation: reverse-spin 8s linear infinite;
 }
 
 @keyframes reverse-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 .timer-text {
@@ -1659,7 +1674,7 @@
   background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 24px;
-  padding: 40px 24px;
+  padding: 32px 20px;
 }
 
 .success-icon-bg {
@@ -1697,7 +1712,7 @@
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 24px;
-  padding: 32px 24px;
+  padding: 24px 20px;
 }
 
 .set-badge {
@@ -1768,5 +1783,11 @@
   box-shadow: 0 12px 25px -6px rgba(255, 107, 53, 0.5);
 }
 
-.max-w-280 { max-width: 280px; }
-.mx-auto { margin-left: auto; margin-right: auto; }
+.max-w-280 {
+  max-width: 280px;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}

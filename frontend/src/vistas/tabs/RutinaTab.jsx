@@ -447,7 +447,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
               initial={{ scale: 0.9, y: 20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              style={{ maxWidth: '550px', width: '92%', textAlign: 'center', position: 'relative', padding: '40px 32px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ maxWidth: '480px', width: '92%', textAlign: 'center', position: 'relative', padding: '24px 20px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               {!isOnline && (
                 <div style={{
@@ -473,31 +473,31 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                 <X size={20} />
               </button>
 
-              <div className="exercise-header mb-32">
-                <p className="text-brand mb-8" style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px' }}>En Proceso</p>
-                <h2 className="glow-text m-0" style={{ fontSize: '28px', lineHeight: '1.2' }}>{activeExercise.nombre}</h2>
+              <div className="exercise-header mb-16">
+                <p className="text-brand mb-4" style={{ fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Ejecutando:</p>
+                <h2 className="glow-text m-0" style={{ fontSize: '24px', lineHeight: '1.1', color: '#fff' }}>{activeExercise.nombre}</h2>
               </div>
 
-              <div className="stats-grid-premium mb-32">
+              <div className="stats-grid-premium mb-20">
                 <div className="stat-card-glass">
-                  <span className="stat-icon-bg"><Dumbbell size={16} /></span>
+                  <span className="stat-icon-bg"><Dumbbell size={14} /></span>
                   <div className="stat-content">
                     <p className="stat-label">Series</p>
-                    <p className="stat-value">{completedSets.length} <small>/ {activeExercise.series}</small></p>
+                    <p className="stat-value" style={{ fontSize: '16px' }}>{completedSets.length} <small>/ {activeExercise.series}</small></p>
                   </div>
                 </div>
                 <div className="stat-card-glass">
-                  <span className="stat-icon-bg"><Target size={16} /></span>
+                  <span className="stat-icon-bg"><Target size={14} /></span>
                   <div className="stat-content">
                     <p className="stat-label">Reps</p>
-                    <p className="stat-value">{activeExercise.repeticiones}</p>
+                    <p className="stat-value" style={{ fontSize: '16px' }}>{activeExercise.repeticiones}</p>
                   </div>
                 </div>
                 <div className="stat-card-glass">
-                  <span className="stat-icon-bg"><Timer size={16} /></span>
+                  <span className="stat-icon-bg"><Timer size={14} /></span>
                   <div className="stat-content">
                     <p className="stat-label">Descanso</p>
-                    <p className="stat-value text-brand">{activeExercise.tiempo_descanso}s</p>
+                    <p className="stat-value text-brand" style={{ fontSize: '16px' }}>{activeExercise.tiempo_descanso}s</p>
                   </div>
                 </div>
               </div>
@@ -506,7 +506,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rest-container mb-32 glass-panel-premium"
+                  className="rest-container mb-24 glass-panel-premium"
                 >
                   <div className="rest-timer-circle">
                     <Timer size={48} className="text-brand animate-pulse" />
@@ -520,7 +520,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="completion-card-premium mb-32"
+                  className="completion-card-premium mb-24"
                 >
                   <div className="success-icon-bg">
                     <Trophy size={48} color="#10b981" />
@@ -543,13 +543,13 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                   </button>
                 </motion.div>
               ) : (
-                <div className="execution-card-premium mb-32">
-                  <div className="set-indicator mb-24">
+                <div className="execution-card-premium mb-24">
+                  <div className="set-indicator mb-16">
                     <span className="set-badge">Serie {currentSet}</span>
-                    <p className="text-secondary mt-12">Objetivo: <span className="text-white font-bold">{activeExercise.repeticiones} reps</span></p>
+                    <p className="text-secondary mt-8" style={{ fontSize: '0.85rem' }}>Objetivo: <span className="text-white font-bold">{activeExercise.repeticiones} reps</span></p>
                   </div>
 
-                  <div className="input-grid-premium mb-24">
+                  <div className="input-grid-premium mb-16">
                     <div className="input-group-modern">
                       <label>Peso (kg)</label>
                       <input
@@ -557,6 +557,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                         value={currentWeight}
                         onChange={e => setCurrentWeight(e.target.value)}
                         placeholder="0"
+                        style={{ padding: '12px', fontSize: '18px' }}
                       />
                     </div>
                     <div className="input-group-modern">
@@ -566,6 +567,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                         value={currentReps}
                         onChange={e => setCurrentReps(e.target.value)}
                         placeholder="0"
+                        style={{ padding: '12px', fontSize: '18px' }}
                       />
                     </div>
                   </div>
