@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../logica/UserContext';
-import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp } from 'lucide-react';
+import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp, Trash2, Dumbbell, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import ForceProgressAnalytics from '../../componentes/ForceProgressAnalytics';
 import '../../estilos/tabs.css';
 
@@ -37,6 +37,22 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
   });
 
   const [activeSection, setActiveSection] = useState('personal');
+
+  // ---- Custom Routine Builder state ----
+  const emptyDay = () => ({
+    dia: '',
+    grupo_muscular: '',
+    duracion_estimada: '',
+    intensidad: 'Media',
+    semana_plan: 1,
+    ejercicios: [emptyExercise()]
+  });
+  const emptyExercise = () => ({ nombre: '', series: 3, repeticiones: '10-12', tiempo_descanso: 60 });
+
+  const [customDays, setCustomDays] = useState([emptyDay()]);
+  const [savingCustom, setSavingCustom] = useState(false);
+  const [customSaved, setCustomSaved] = useState(false);
+  // ---- End Custom Routine Builder state ----
 
   const headers = {
     'Authorization': `Bearer ${token}`,
@@ -280,6 +296,7 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
         <div className={`chip ${activeSection === 'personal' ? 'active' : ''}`} onClick={() => setActiveSection('personal')}><User size={14} /> Información Personal</div>
         <div className={`chip ${activeSection === 'estadisticas' ? 'active' : ''}`} onClick={() => setActiveSection('estadisticas')}><TrendingUp size={14} /> Estadísticas</div>
         <div className={`chip ${activeSection === 'metricas' ? 'active' : ''}`} onClick={() => setActiveSection('metricas')}><BarChart3 size={14} /> Historial Métrico</div>
+        <div className={`chip ${activeSection === 'rutina' ? 'active' : ''}`} onClick={() => setActiveSection('rutina')}><Dumbbell size={14} /> Mi Rutina</div>
       </div>
 
       {activeSection === 'personal' && (
@@ -432,6 +449,156 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
         </div>
       )}
 
+      {activeSection === 'rutina' && (() => {
+        const updateDay = (dIdx, field, val) =>
+          setCustomDays(prev => prev.map((d, i) => i === dIdx ? { ...d, [field]: val } : d));
+
+        const updateExercise = (dIdx, eIdx, field, val) =>
+          setCustomDays(prev => prev.map((d, i) => i === dIdx
+            ? { ...d, ejercicios: d.ejercicios.map((e, j) => j === eIdx ? { ...e, [field]: val } : e) }
+            : d
+          ));
+
+        const addDay = () => setCustomDays(prev => [...prev, emptyDay()]);
+        const removeDay = (dIdx) => setCustomDays(prev => prev.filter((_, i) => i !== dIdx));
+        const addExercise = (dIdx) => setCustomDays(prev =>
+          prev.map((d, i) => i === dIdx ? { ...d, ejercicios: [...d.ejercicios, emptyExercise()] } : d)
+        );
+        const removeExercise = (dIdx, eIdx) => setCustomDays(prev =>
+          prev.map((d, i) => i === dIdx ? { ...d, ejercicios: d.ejercicios.filter((_, j) => j !== eIdx) } : d)
+        );
+
+        const handleSaveCustomRoutine = async () => {
+          const invalidDay = customDays.find(d => !d.dia.trim() || d.ejercicios.some(e => !e.nombre.trim()));
+          if (invalidDay) { alert('Por favor completa el nombre de cada día y ejercicio.'); return; }
+          setSavingCustom(true);
+          setCustomSaved(false);
+          try {
+            const res = await fetch('/api/rutinas/custom', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+              body: JSON.stringify({ plan_semanal: { dias: customDays } })
+            });
+            if (res.ok) { setCustomSaved(true); setTimeout(() => setCustomSaved(false), 4000); }
+            else { const err = await res.json(); alert('Error al guardar: ' + (err.message || 'Error desconocido')); }
+          } catch { alert('Error de conexión.'); }
+          setSavingCustom(false);
+        };
+
+        return (
+          <div style={{ animation: 'slideUp 0.4s ease' }}>
+            <div className="flex-between mb-24">
+              <h3 className="section-title flex-align-center gap-12"><Dumbbell size={20} color="#ff6b35" /> Crear Mi Rutina Personalizada</h3>
+              <button className="primary-btn" onClick={addDay} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Plus size={16} /> Agregar Día
+              </button>
+            </div>
+
+            {/* Warning */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: '10px 16px', marginBottom: 24 }}>
+              <AlertTriangle size={16} color="#f59e0b" />
+              <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
+                Al guardar esta rutina, <strong style={{ color: '#fff' }}>reemplazarás tu rutina actual</strong>. Asegúrate de que sea lo que quieres antes de confirmar.
+              </p>
+            </div>
+
+            {customDays.map((day, dIdx) => (
+              <div key={dIdx} className="glass-panel p-24" style={{ marginBottom: 20 }}>
+                {/* Day header */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12, marginBottom: 16, alignItems: 'end' }}>
+                  <div className="form-group">
+                    <label>Nombre del día</label>
+                    <input className="input-field" placeholder="ej: Lunes" value={day.dia}
+                      onChange={e => updateDay(dIdx, 'dia', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>Grupo muscular</label>
+                    <input className="input-field" placeholder="ej: Pecho y Espalda" value={day.grupo_muscular}
+                      onChange={e => updateDay(dIdx, 'grupo_muscular', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>Intensidad</label>
+                    <select className="input-field" value={day.intensidad}
+                      onChange={e => updateDay(dIdx, 'intensidad', e.target.value)}>
+                      <option>Baja</option>
+                      <option>Media</option>
+                      <option>Media-Alta</option>
+                      <option>Alta</option>
+                    </select>
+                  </div>
+                  <button onClick={() => removeDay(dIdx)} disabled={customDays.length === 1}
+                    style={{
+                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8,
+                      padding: '8px 12px', color: '#ef4444', cursor: customDays.length === 1 ? 'not-allowed' : 'pointer', opacity: customDays.length === 1 ? 0.4 : 1
+                    }}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                {/* Exercises */}
+                <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+                  {day.ejercicios.map((ej, eIdx) => (
+                    <div key={eIdx} style={{
+                      display: 'grid', gridTemplateColumns: '2fr 80px 100px 100px auto', gap: 10, alignItems: 'end',
+                      background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px'
+                    }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        {eIdx === 0 && <label style={{ display: 'block', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>Ejercicio</label>}
+                        <input className="input-field" placeholder="ej: Press de Banca" value={ej.nombre}
+                          onChange={e => updateExercise(dIdx, eIdx, 'nombre', e.target.value)} />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        {eIdx === 0 && <label style={{ display: 'block', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>Series</label>}
+                        <input className="input-field" type="number" min="1" value={ej.series}
+                          onChange={e => updateExercise(dIdx, eIdx, 'series', parseInt(e.target.value) || 1)} />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        {eIdx === 0 && <label style={{ display: 'block', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>Repeticiones</label>}
+                        <input className="input-field" placeholder="10-12" value={ej.repeticiones}
+                          onChange={e => updateExercise(dIdx, eIdx, 'repeticiones', e.target.value)} />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        {eIdx === 0 && <label style={{ display: 'block', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>Descanso (s)</label>}
+                        <input className="input-field" type="number" min="10" value={ej.tiempo_descanso}
+                          onChange={e => updateExercise(dIdx, eIdx, 'tiempo_descanso', parseInt(e.target.value) || 60)} />
+                      </div>
+                      <button onClick={() => removeExercise(dIdx, eIdx)} disabled={day.ejercicios.length === 1}
+                        style={{
+                          background: 'none', border: 'none', color: day.ejercicios.length === 1 ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.7)',
+                          cursor: day.ejercicios.length === 1 ? 'not-allowed' : 'pointer', padding: 4, marginTop: eIdx === 0 ? 20 : 0
+                        }}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={() => addExercise(dIdx)}
+                  style={{
+                    background: 'rgba(255,107,53,0.08)', border: '1px dashed rgba(255,107,53,0.35)', borderRadius: 8,
+                    padding: '8px 16px', color: '#ff6b35', cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6
+                  }}>
+                  <Plus size={14} /> Agregar ejercicio
+                </button>
+              </div>
+            ))}
+
+            {/* Save button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
+              <button className="primary-btn" onClick={handleSaveCustomRoutine} disabled={savingCustom}
+                style={{ padding: '12px 28px', fontSize: '0.95rem' }}>
+                {savingCustom ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <><Save size={16} /> Guardar y Activar Rutina</>}
+              </button>
+              {customSaved && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#22c55e', fontSize: '0.85rem' }}>
+                  <CheckCircle2 size={18} /> ¡Rutina guardada y activada exitosamente!
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <style>{`
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .min-h-50 { min-height: 50vh; }
@@ -448,6 +615,7 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
         .form-group label { display: block; font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
         .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; color: #fff; width: 100%; font-size: 0.9rem; }
         .input-field:focus { border-color: #ff6b35; outline: none; }
+        .input-field option { background: #1e1e24; color: #fff; }
         .data-list { display: grid; gap: 8px; }
         .avatar-edit-badge { position: absolute; bottom: 0; right: 0; background: #ff6b35; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid #1a1a1d; }
       `}</style>

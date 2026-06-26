@@ -26,6 +26,16 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   const [currentReps, setCurrentReps] = useState('');
   const [hasNewActivity, setHasNewActivity] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0); // increments each new calendar week
+
+  // --- Helpers for ISO week number ---
+  const getISOWeek = (date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return { week: Math.ceil((((d - yearStart) / 86400000) + 1) / 7), year: d.getUTCFullYear() };
+  };
+  const weekSnapKey = (id) => `gymtrack_week_snap_${id}`;
 
   // Load progress from DB when rutinaActivaData is provided via props
   useEffect(() => {
@@ -33,6 +43,40 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
       setExerciseProgress(rutinaActivaData._progreso_guardado);
     }
   }, [rutinaActivaData]);
+
+  // --- Weekly reset logic ---
+  useEffect(() => {
+    if (!rutinaId) return;
+    const key = weekSnapKey(rutinaId);
+    const { week: currentWeek, year: currentYear } = getISOWeek(new Date());
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      // First time — save snapshot
+      localStorage.setItem(key, JSON.stringify({ week: currentWeek, year: currentYear, weekOffset: 0 }));
+      setWeekOffset(0);
+    } else {
+      const snap = JSON.parse(raw);
+      if (snap.year !== currentYear || snap.week !== currentWeek) {
+        // New week detected — reset progress
+        const newOffset = (snap.weekOffset || 0) + 1;
+        localStorage.setItem(key, JSON.stringify({ week: currentWeek, year: currentYear, weekOffset: newOffset }));
+        // Clear local progress
+        localStorage.removeItem(`gymtrack_rutina_${rutinaId}`);
+        setExerciseProgress({});
+        setWeekOffset(newOffset);
+        // Also clear progress on backend
+        if (token) {
+          fetch('/api/rutinas/sync-progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+            body: JSON.stringify({ rutina_id: rutinaId, progreso_json: {} })
+          }).catch(console.error);
+        }
+      } else {
+        setWeekOffset(snap.weekOffset || 0);
+      }
+    }
+  }, [rutinaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync progress to backend database
   useEffect(() => {
@@ -301,7 +345,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
     );
   }
 
-  const weekNumber = rutina[0]?.semana_plan || 1;
+  const weekNumber = (rutina[0]?.semana_plan || 1) + weekOffset;
 
   return (
     <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease' }}>

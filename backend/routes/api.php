@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/rutinas/latest', [RutinaController::class, 'getLatestRoutine']);
     Route::post('/rutinas/sync-progress', [RutinaController::class, 'syncProgress']);
     Route::get('/rutinas/{rutinaId}/progress', [RutinaController::class, 'getProgress']);
+    Route::put('/rutinas/custom', [RutinaController::class, 'guardarRutinaPersonalizada']);
 
     // Entrenamientos (Sesiones reales)
     Route::post('/entrenamientos/registrar', [EntrenamientoController::class, 'registrar']);

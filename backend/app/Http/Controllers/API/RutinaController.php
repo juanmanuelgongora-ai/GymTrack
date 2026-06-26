@@ -291,4 +291,35 @@ class RutinaController extends Controller
             'progreso_guardado' => $progreso ? $progreso->progreso_json : null
         ]);
     }
+
+    /**
+     * Guarda una rutina personalizada creada por el cliente
+     * y la activa, desactivando la anterior.
+     */
+    public function guardarRutinaPersonalizada(Request $request)
+    {
+        $data = $request->validate([
+            'nombre' => 'nullable|string|max:120',
+            'plan_semanal' => 'required|array',
+            'plan_semanal.dias' => 'required|array|min:1',
+        ]);
+
+        $user = $request->user();
+
+        // Desactivar rutinas anteriores
+        Rutina::where('user_id', $user->id)
+            ->where('activa', true)
+            ->update(['activa' => false]);
+
+        $rutina = Rutina::create([
+            'user_id' => $user->id,
+            'plan_semanal' => $data['plan_semanal'],
+            'activa' => true,
+        ]);
+
+        return response()->json([
+            'message' => 'Rutina personalizada guardada y activada.',
+            'rutina' => $rutina,
+        ], 201);
+    }
 }
