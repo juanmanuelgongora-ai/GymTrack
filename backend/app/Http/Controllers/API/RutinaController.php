@@ -242,8 +242,22 @@ class RutinaController extends Controller
             ->where('rutina_id', $rutina->id)
             ->first();
 
+        // Si tenemos progreso registrado pero fue modificado antes de esta semana,
+        // significa que cambiamos de semana y debemos borrarlo para volver a empezar.
+        $inicioSemana = now()->startOfWeek();
+        if ($progreso && $progreso->updated_at < $inicioSemana && !empty($progreso->progreso_json)) {
+            $progreso->progreso_json = [];
+            $progreso->save();
+        }
+
+        // Calcular la semana de entrenamiento actual:
+        // semanas transcurridas entre la semana de creación de la rutina y la semana actual + 1
+        $semanasTranscurridas = $inicioSemana->diffInWeeks($rutina->created_at->startOfWeek());
+        $semanaActual = 1 + intval($semanasTranscurridas);
+
         return response()->json([
             'rutina' => $rutina,
+            'semana_actual' => $semanaActual,
             'progreso_guardado' => $progreso ? $progreso->progreso_json : null
         ]);
     }

@@ -88,6 +88,31 @@ class EntrenamientoController extends Controller
             ->whereYear('created_at', now()->year)
             ->sum('duracion_minutos');
 
+        // Calcular días planificados de la rutina activa
+        $rutinaActiva = \App\Models\Rutina::where('user_id', $user->id)
+            ->where('activa', true)
+            ->first();
+        $dias_planificados = 3; // fallback estándar
+        if ($rutinaActiva && isset($rutinaActiva->plan_semanal['dias'])) {
+            $dias_planificados = count($rutinaActiva->plan_semanal['dias']);
+        }
+
+        // Obtener días entrenados en la semana actual (Lunes a Domingo)
+        $sesionesEstaSemana = SesionEntrenamiento::where('user_id', $user->id)
+            ->where('created_at', '>=', now()->startOfWeek())
+            ->get();
+
+        $dias_entrenados_semana = array_fill(0, 7, false);
+        foreach ($sesionesEstaSemana as $sesion) {
+            $dayIndex = $sesion->created_at->dayOfWeekIso - 1; // 1 (lunes) -> 0... 7 (domingo) -> 6
+            if ($dayIndex >= 0 && $dayIndex < 7) {
+                $dias_entrenados_semana[$dayIndex] = true;
+            }
+        }
+
+        $dias_activos = count(array_filter($dias_entrenados_semana));
+        $porcentaje_asistencia = $dias_planificados > 0 ? min(100, round(($dias_activos / $dias_planificados) * 100)) : 0;
+
         $progreso_fuerza = min(100, round(($entrenamientos_mes / 12) * 100));
         $progreso_peso = min(100, round(($total_minutos / 240) * 100));
 
@@ -96,7 +121,7 @@ class EntrenamientoController extends Controller
         $variacion_peso = 0;
         if ($cliente) {
             $primera_metrica = MetricaCorporal::where('cliente_id', $cliente->id)->orderBy('fecha', 'asc')->first();
-            $ultima_metrica = MetricaCorporal::where('cliente_id', $cliente->id)->orderBy('fecha', 'desc')->first();
+            $ultima_metrica = MetricaCorporal::where('cliente_id', $cliente->id)->orderBy('created_at', 'desc')->first();
             if ($primera_metrica && $ultima_metrica && $primera_metrica->id !== $ultima_metrica->id) {
                 $variacion_peso = round($ultima_metrica->peso_kg - $primera_metrica->peso_kg, 1);
             }
@@ -108,6 +133,11 @@ class EntrenamientoController extends Controller
             'progreso_fuerza' => $progreso_fuerza,
             'progreso_peso' => $progreso_peso,
             'variacion_peso' => $variacion_peso,
+            'dias_entrenados_semana' => $dias_entrenados_semana,
+            'dias_planificados' => $dias_planificados,
+            'dias_entrenados' => $dias_activos,
+            'porcentaje_asistencia' => $porcentaje_asistencia,
+            'minutos_totales' => $total_minutos,
             'historial' => SesionEntrenamiento::where('user_id', $user->id)->orderBy('created_at', 'desc')->take(10)->get()
         ]);
     }

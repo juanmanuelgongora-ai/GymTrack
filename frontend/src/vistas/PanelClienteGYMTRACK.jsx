@@ -29,7 +29,13 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
   const [navImgError, setNavImgError] = useState(false);
   const userInitials = `${userData?.nombre?.charAt(0) || ''}${userData?.apellido?.charAt(0) || ''}`.toUpperCase();
   const [stats, setStats] = useState({ entrenamientos_mes: 0, racha_dias: 0, progreso_fuerza: 0, progreso_peso: 0, variacion_peso: 0 });
-  const [activitySummary, setActivitySummary] = useState({ porcentaje_asistencia: 83, dias_activos: 5, dias_planificados: 6, minutos_totales: 320 });
+  const [activitySummary, setActivitySummary] = useState({
+    porcentaje_asistencia: 0,
+    dias_activos: 0,
+    dias_planificados: 3,
+    minutos_totales: 0,
+    dias_entrenados_semana: [false, false, false, false, false, false, false]
+  });
   const [todayRoutine, setTodayRoutine] = useState(null);
   const [rutinaData, setRutinaData] = useState(null);
   const [hitos, setHitos] = useState([]);
@@ -69,7 +75,8 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
           porcentaje_asistencia: porcentajeAsistencia,
           dias_activos: diasActivos,
           dias_planificados: diasPlanificados,
-          minutos_totales: dataStats.minutos_totales ?? 320
+          minutos_totales: dataStats.minutos_totales ?? 0,
+          dias_entrenados_semana: dataStats.dias_entrenados_semana ?? [false, false, false, false, false, false, false]
         });
       }
     } catch (e) {
@@ -136,6 +143,17 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
               progreso_fuerza: dataStats.progreso_fuerza || 0,
               progreso_peso: dataStats.progreso_peso || 0,
               variacion_peso: dataStats.variacion_peso || 0
+            });
+            const diasActivos = dataStats.dias_entrenados ?? dataStats.entrenamientos_mes ?? 0;
+            const diasPlanificados = dataStats.dias_planificados ?? 3;
+            const porcentajeAsistencia = dataStats.porcentaje_asistencia ?? (diasPlanificados > 0 ? Math.min(100, Math.round((diasActivos / diasPlanificados) * 100)) : 0);
+
+            setActivitySummary({
+              porcentaje_asistencia: porcentajeAsistencia,
+              dias_activos: diasActivos,
+              dias_planificados: diasPlanificados,
+              minutos_totales: dataStats.minutos_totales ?? 0,
+              dias_entrenados_semana: dataStats.dias_entrenados_semana ?? [false, false, false, false, false, false, false]
             });
           }
           if (hitosRes.ok) {
@@ -263,12 +281,15 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
                     <button className="link-btn">Ver más <ChevronRight size={16} /></button>
                   </div>
                   <div className="activity-days">
-                    {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, idx) => (
-                      <div className={`day ${idx < 6 ? 'active' : ''}`} key={day}>
-                        <span>{day}</span>
-                        <div className="day-indicator">{idx < 6 ? '✓' : '-'}</div>
-                      </div>
-                    ))}
+                    {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, idx) => {
+                      const completed = activitySummary.dias_entrenados_semana[idx];
+                      return (
+                        <div className={`day ${completed ? 'active' : ''}`} key={day}>
+                          <span>{day}</span>
+                          <div className="day-indicator">{completed ? '✓' : '-'}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="activity-summary">
                     <div className="metric-card">

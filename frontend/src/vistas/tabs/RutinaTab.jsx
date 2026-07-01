@@ -26,57 +26,26 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   const [currentReps, setCurrentReps] = useState('');
   const [hasNewActivity, setHasNewActivity] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0); // increments each new calendar week
+  const [semanaActual, setSemanaActual] = useState(rutinaActivaData?.semana_actual || 1);
 
-  // --- Helpers for ISO week number ---
-  const getISOWeek = (date) => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return { week: Math.ceil((((d - yearStart) / 86400000) + 1) / 7), year: d.getUTCFullYear() };
-  };
-  const weekSnapKey = (id) => `gymtrack_week_snap_${id}`;
-
-  // Load progress from DB when rutinaActivaData is provided via props
+  // Load progress and metadata from DB when rutinaActivaData is provided via props
   useEffect(() => {
-    if (rutinaActivaData?._progreso_guardado && Object.keys(rutinaActivaData._progreso_guardado).length > 0) {
-      setExerciseProgress(rutinaActivaData._progreso_guardado);
+    if (rutinaActivaData) {
+      if (rutinaActivaData._progreso_guardado !== undefined) {
+        setExerciseProgress(rutinaActivaData._progreso_guardado || {});
+      }
+      if (rutinaActivaData.semana_actual !== undefined) {
+        setSemanaActual(rutinaActivaData.semana_actual || 1);
+      }
+      if (rutinaActivaData.plan_semanal?.dias) {
+        setRutina(rutinaActivaData.plan_semanal.dias);
+      }
+      if (rutinaActivaData.id) {
+        setRutinaId(rutinaActivaData.id);
+      }
     }
   }, [rutinaActivaData]);
 
-  // --- Weekly reset logic ---
-  useEffect(() => {
-    if (!rutinaId) return;
-    const key = weekSnapKey(rutinaId);
-    const { week: currentWeek, year: currentYear } = getISOWeek(new Date());
-    const raw = localStorage.getItem(key);
-    if (!raw) {
-      // First time — save snapshot
-      localStorage.setItem(key, JSON.stringify({ week: currentWeek, year: currentYear, weekOffset: 0 }));
-      setWeekOffset(0);
-    } else {
-      const snap = JSON.parse(raw);
-      if (snap.year !== currentYear || snap.week !== currentWeek) {
-        // New week detected — reset progress
-        const newOffset = (snap.weekOffset || 0) + 1;
-        localStorage.setItem(key, JSON.stringify({ week: currentWeek, year: currentYear, weekOffset: newOffset }));
-        // Clear local progress
-        localStorage.removeItem(`gymtrack_rutina_${rutinaId}`);
-        setExerciseProgress({});
-        setWeekOffset(newOffset);
-        // Also clear progress on backend
-        if (token) {
-          fetch('/api/rutinas/sync-progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-            body: JSON.stringify({ rutina_id: rutinaId, progreso_json: {} })
-          }).catch(console.error);
-        }
-      } else {
-        setWeekOffset(snap.weekOffset || 0);
-      }
-    }
-  }, [rutinaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync progress to backend database
   useEffect(() => {
@@ -311,8 +280,9 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
           if (data.rutina && data.rutina.plan_semanal) {
             setRutinaId(data.rutina.id);
             setRutina(data.rutina.plan_semanal.dias || []);
-            if (data.progreso_guardado && Object.keys(data.progreso_guardado).length > 0) {
-              setExerciseProgress(data.progreso_guardado);
+            setSemanaActual(data.semana_actual || 1);
+            if (data.progreso_guardado) {
+              setExerciseProgress(data.progreso_guardado || {});
             } else {
               const saved = localStorage.getItem(`gymtrack_rutina_${data.rutina.id}`);
               if (saved) {
@@ -345,7 +315,7 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
     );
   }
 
-  const weekNumber = (rutina[0]?.semana_plan || 1) + weekOffset;
+  const weekNumber = semanaActual;
 
   return (
     <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease' }}>
