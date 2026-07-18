@@ -17,6 +17,7 @@ use App\Http\Controllers\API\TransaccionController;
 use App\Http\Controllers\API\AdminAnaliticasController;
 use App\Http\Controllers\API\ClaseController;
 use App\Http\Controllers\API\EntrenadorCertificadoController;
+use App\Http\Controllers\API\IaController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,6 +29,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/entrenador/certificados/{id}', [EntrenadorCertificadoController::class, 'destroy']);
     Route::get('/entrenador/certificados/{id}/download', [EntrenadorCertificadoController::class, 'download']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // --- IA Fitness Assistant (GT-61) ---
+    Route::get('/ia/chat', [IaController::class, 'getHistory']);
+    Route::post('/ia/chat', [IaController::class, 'sendMessage']);
+    Route::delete('/ia/chat/clear', [IaController::class, 'clearHistory']);
+
     Route::get(
         '/user',
         function (Request $request) {

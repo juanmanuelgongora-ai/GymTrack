@@ -14,6 +14,7 @@ import EjerciciosTab from './tabs/EjerciciosTab';
 import PerfilTab from './tabs/PerfilTab';
 import RutinaTab from './tabs/RutinaTab';
 import LogrosTab from './tabs/LogrosTab';
+import ChatbotIATab from './tabs/ChatbotIATab';
 import AchievementNotification from '../componentes/AchievementNotification';
 import StreakBadge from '../componentes/StreakBadge';
 import RutinaDelDia from '../componentes/RutinaDelDia';
@@ -374,9 +375,11 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':
-        return <PerfilTab onLogrosUnlocked={handleLogrosUnlocked} setView={setView} />;
+        return <PerfilTab onLogrosUnlocked={handleLogrosUnlocked} setView={setView} setActiveTab={setActiveTab} />;
       case 'logros':
         return <LogrosTab />;
+      case 'chatbot':
+        return <ChatbotIATab token={token} />;
       default:
         return (
           <div className="placeholder-container glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', marginTop: '40px', minHeight: '50vh' }}>

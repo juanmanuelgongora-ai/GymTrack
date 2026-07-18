@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../logica/UserContext';
-import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp, Trash2, Dumbbell, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp, Trash2, Dumbbell, AlertTriangle, CheckCircle2, Bot } from 'lucide-react';
 import ForceProgressAnalytics from '../../componentes/ForceProgressAnalytics';
 import '../../estilos/tabs.css';
 
 const API_URL = '/api';
 
-export default function PerfilTab({ onLogrosUnlocked, setView }) {
+export default function PerfilTab({ onLogrosUnlocked, setView, setActiveTab }) {
   const { token, userData, updateUser } = useUser();
   const clienteData = userData?.cliente || {};
 
@@ -270,18 +270,33 @@ export default function PerfilTab({ onLogrosUnlocked, setView }) {
                 <span className="perfil-tag"><Calendar size={14} color="#4ade80" /> {diasMiembro} días como miembro</span>
               </div>
             </div>
-            {setView && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {/* Fit Bot button */}
               <button
-                className="secondary-btn"
+                onClick={() => setActiveTab?.('chatbot')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
-                  borderColor: '#ff8c42', color: '#ff8c42'
+                  padding: '10px 18px', borderRadius: '12px', border: '1px solid rgba(255,107,53,0.4)',
+                  background: 'rgba(255,107,53,0.1)', color: '#ff8c42', cursor: 'pointer',
+                  fontSize: '14px', fontWeight: 600, fontFamily: 'inherit',
+                  transition: 'all 0.2s',
                 }}
-                onClick={() => setView('shop')}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,107,53,0.2)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,107,53,0.3)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,107,53,0.1)'; e.currentTarget.style.boxShadow = 'none'; }}
               >
-                <CreditCard size={16} /> Gestionar Membresía
+                <Bot size={18} />
+                Fit Bot
               </button>
-            )}
+              {setView && (
+                <button
+                  className="secondary-btn"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', borderColor: '#ff8c42', color: '#ff8c42' }}
+                  onClick={() => setView('shop')}
+                >
+                  <CreditCard size={16} /> Gestionar Membresía
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="perfil-stats">
