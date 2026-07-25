@@ -258,6 +258,32 @@ function App() {
               fecha_nacimiento: formData.fecha_nacimiento
             })
           });
+
+          // Generate personalized 7-day meal plan
+          try {
+            const birthYear = formData.fecha_nacimiento
+              ? new Date().getFullYear() - new Date(formData.fecha_nacimiento).getFullYear()
+              : 25;
+            await fetch(`${API_URL}/alimentacion/generar`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${data.access_token}`
+              },
+              body: JSON.stringify({
+                objetivo: formData.objetivo_principal,
+                peso: formData.peso,
+                estatura: formData.estatura,
+                genero: formData.sexo,
+                edad: birthYear,
+                actividad: formData.frecuencia || 'Moderada',
+              })
+            });
+          } catch (e) {
+            console.error('Error generando plan alimentario:', e);
+          }
+
           setPendingNotification(true);
         } catch (e) {
           console.error('Error generando rutina:', e);

@@ -371,7 +371,7 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
       case 'objetivos':
         return <ObjetivosTab onLogrosUnlocked={handleLogrosUnlocked} />;
       case 'alimentacion':
-        return <AlimentacionTab />;
+        return <AlimentacionTab token={token} />;
       case 'ejercicios':
         return <EjerciciosTab />;
       case 'perfil':

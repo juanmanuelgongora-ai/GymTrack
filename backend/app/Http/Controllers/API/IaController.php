@@ -171,4 +171,88 @@ class IaController extends Controller
         IaMensaje::where('user_id', $request->user()->id)->delete();
         return response()->json(['message' => 'Conversación reiniciada.']);
     }
+
+    /**
+     * POST /api/ia/mejorar-alimentacion
+     * Uses Gemini to improve the user's meal plan and saves it directly to the DB.
+     */
+    public function mejorarAlimentacion(Request $request)
+    {
+        $request->validate([
+            'instruccion' => 'required|string|max:1000',
+        ]);
+
+        $user = $request->user();
+        $userId = $user->id;
+
+        $apiKey = env('GEMINI_API_KEY');
+        if (empty($apiKey)) {
+            $envPath = base_path('.env');
+            if (file_exists($envPath)) {
+                foreach (file($envPath) as $line) {
+                    if (str_starts_with(trim($line), 'GEMINI_API_KEY=')) {
+                        $apiKey = trim(str_replace('GEMINI_API_KEY=', '', $line));
+                        break;
+                    }
+                }
+            }
+        }
+        if (empty($apiKey)) {
+            return response()->json(['error' => 'Clave de API no configurada.'], 500);
+        }
+
+        // Load current plan for context
+        $planActual = \App\Models\PlanAlimentacion::where('user_id', $userId)
+            ->where('activo', true)->orderBy('created_at', 'desc')->first();
+
+        $planContext = $planActual ? json_encode($planActual->plan_json, JSON_UNESCAPED_UNICODE) : 'Sin plan actual';
+
+        $prompt = "Eres un nutricionista experto. Tienes el siguiente plan de alimentación semanal de un usuario:\n"
+            . $planContext . "\n\n"
+            . "El usuario solicita: \"{$request->instruccion}\"\n\n"
+            . "Genera un NUEVO plan de alimentación de 7 días (Lunes a Domingo) aplicando los cambios solicitados.\n"
+            . "REGLA CRÍTICA: Devuelve ÚNICAMENTE el JSON puro, sin markdown ni texto adicional.\n"
+            . "Mantén exactamente la misma estructura: "
+            . '{"dias":[{"dia":"Lunes","comidas":[{"id":1,"hora":"07:00","nombre":"Desayuno","descripcion":"...","kcal":450,"p":30,"c":55,"g":10,"img_query":"food keywords"},...]},...]}';
+
+        try {
+            $response = Http::timeout(45)->post(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={$apiKey}",
+                ['contents' => [['parts' => [['text' => $prompt]]]]]
+            );
+
+            if (!$response->successful()) {
+                return response()->json(['error' => 'Error al comunicarse con la IA.'], 500);
+            }
+
+            $result = $response->json();
+            $textResponse = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if (!$textResponse) {
+                return response()->json(['error' => 'La IA no devolvió respuesta.'], 500);
+            }
+
+            $textResponse = preg_replace('/```(?:json)?\n?(.*?)\n?```/ms', '$1', $textResponse);
+            $parsed = json_decode(trim($textResponse), true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($parsed['dias'])) {
+                return response()->json(['error' => 'No se pudo interpretar el plan generado por la IA.'], 500);
+            }
+
+            // Save improved plan
+            \App\Models\PlanAlimentacion::where('user_id', $userId)->update(['activo' => false]);
+            \App\Models\PlanAlimentacion::create([
+                'user_id' => $userId,
+                'plan_json' => $parsed,
+                'activo' => true,
+            ]);
+
+            return response()->json([
+                'message' => 'Plan de alimentación mejorado y guardado.',
+                'plan' => $parsed,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error mejorando alimentacion', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Error interno al mejorar el plan.'], 500);
+        }
+    }
 }

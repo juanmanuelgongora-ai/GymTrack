@@ -18,6 +18,7 @@ use App\Http\Controllers\API\AdminAnaliticasController;
 use App\Http\Controllers\API\ClaseController;
 use App\Http\Controllers\API\EntrenadorCertificadoController;
 use App\Http\Controllers\API\IaController;
+use App\Http\Controllers\API\PlanAlimentacionController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -34,6 +35,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ia/chat', [IaController::class, 'getHistory']);
     Route::post('/ia/chat', [IaController::class, 'sendMessage']);
     Route::delete('/ia/chat/clear', [IaController::class, 'clearHistory']);
+    Route::post('/ia/mejorar-alimentacion', [IaController::class, 'mejorarAlimentacion']);
+
+    // --- Planes de Alimentación IA ---
+    Route::get('/alimentacion', [PlanAlimentacionController::class, 'getActivePlan']);
+    Route::post('/alimentacion/generar', [PlanAlimentacionController::class, 'generarPlan']);
+    Route::put('/alimentacion', [PlanAlimentacionController::class, 'updatePlan']);
 
     Route::get(
         '/user',
