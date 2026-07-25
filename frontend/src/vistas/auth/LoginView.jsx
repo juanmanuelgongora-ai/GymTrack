@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Icons from '../../logica/Icons';
 
-const LoginView = ({ setView, onLogin, setUserAuth }) => {
+const LoginView = ({ setView, onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState({});

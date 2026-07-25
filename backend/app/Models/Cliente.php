@@ -18,6 +18,7 @@ class Cliente extends Model
         'id',
         'user_id',
         'gimnasio_id',
+        'ubicacion',
         'fecha_nacimiento',
         'genero',
         'peso_kg',
@@ -26,7 +27,15 @@ class Cliente extends Model
         'nivel_actividad',
         'objetivo_principal',
         'condicion_medica',
+        'vencimiento_membresia',
         'activo'
+    ];
+
+    protected $appends = ['edad'];
+
+    protected $casts = [
+        'vencimiento_membresia' => 'datetime',
+        'activo' => 'boolean'
     ];
 
     public function user()
@@ -42,5 +51,12 @@ class Cliente extends Model
     public function hitos()
     {
         return $this->hasMany(Hito::class);
+    }
+
+    public function getEdadAttribute()
+    {
+        if (!$this->fecha_nacimiento)
+            return null;
+        return \Carbon\Carbon::parse($this->fecha_nacimiento)->age;
     }
 }

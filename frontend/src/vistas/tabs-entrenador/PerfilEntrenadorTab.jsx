@@ -4,8 +4,73 @@ import '../../estilos/tabs.css';
 import EstadisticasTab from './EstadisticasTab';
 import CertificacionesTab from './CertificacionesTab';
 
-const PerfilEntrenadorTab = () => {
+const API_URL = '/api';
+
+const PerfilEntrenadorTab = ({ userData, token }) => {
     const [subTab, setSubTab] = useState('informacion');
+    const [perfil, setPerfil] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        if (token) {
+            fetchData();
+        } else {
+            setLoading(false);
+        }
+    }, [token]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+            const res = await fetch(`${API_URL}/me/perfil`, { headers });
+            if (res.ok) {
+                setPerfil(await res.json());
+            }
+        } catch (err) {
+            console.error('Error cargando perfil:', err);
+        }
+        setLoading(false);
+    };
+
+    const user = perfil?.user || userData || {};
+    const entrenador = perfil?.entrenador || user?.entrenador || {};
+
+    const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim() || 'Entrenador';
+    const initials = nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'E';
+
+    const renderTiposEntrenamiento = (tipos) => {
+        if (!tipos) return <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>--</span>;
+        let arr = [];
+        try {
+            arr = JSON.parse(tipos);
+        } catch {
+            arr = tipos.toString().split(',').map(t => t.trim());
+        }
+
+        if (!Array.isArray(arr) || arr.length === 0) return <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>--</span>;
+
+        return (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '280px' }}>
+                {arr.map((tipo, idx) => (
+                    <span key={idx} style={{ background: 'rgba(255, 107, 53, 0.1)', color: '#ff6b35', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', border: '1px solid rgba(255, 107, 53, 0.2)' }}>
+                        {tipo}
+                    </span>
+                ))}
+            </div>
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="tab-container" style={{ animation: 'fadeIn 0.5s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ width: 40, height: 40, border: '3px solid rgba(255,107,53,0.3)', borderTop: '3px solid #ff6b35', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+                    <p className="text-secondary">Cargando perfil...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="tab-content-wrapper" style={{ animation: 'fadeIn 0.5s ease', padding: '20px 0' }}>
@@ -15,14 +80,14 @@ const PerfilEntrenadorTab = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                         <div style={{ width: '100px', height: '100px', borderRadius: '16px', background: 'linear-gradient(135deg, #ff8c42, #ff6b35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 'bold', color: '#fff', boxShadow: '0 8px 16px rgba(255, 107, 53, 0.3)' }}>
-                            RM
+                            {initials}
                         </div>
                         <div>
-                            <h1 className="glow-text" style={{ fontSize: '32px', margin: '0 0 8px 0' }}>Roberto Martín Gómez</h1>
+                            <h1 className="glow-text" style={{ fontSize: '32px', margin: '0 0 8px 0' }}>{nombreCompleto}</h1>
                             <div style={{ display: 'flex', gap: '16px', color: '#aaa', fontSize: '14px', alignItems: 'center' }}>
                                 <span style={{ color: '#fff', background: '#d6541f', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>Entrenador Personal</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> Madrid, España</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Building2 size={14} /> FitZone Center</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> GYMTRACK</span>
+                                {entrenador.especialidad && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Building2 size={14} /> {entrenador.especialidad}</span>}
                             </div>
                         </div>
                     </div>
@@ -33,16 +98,16 @@ const PerfilEntrenadorTab = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '30px' }}>
                     <div style={{ background: '#1c1c1e', padding: '20px', borderRadius: '12px', border: '1px solid #333' }}>
-                        <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Clientes Activos</p>
-                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>24</h2>
+                        <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Capacidad Máxima</p>
+                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>{entrenador.capacidad_maxima ?? '--'}</h2>
                     </div>
                     <div style={{ background: '#1c1c1e', padding: '20px', borderRadius: '12px', border: '1px solid #333' }}>
                         <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Años de Experiencia</p>
-                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>8 años</h2>
+                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>{entrenador.experiencia_anios !== undefined && entrenador.experiencia_anios !== null ? entrenador.experiencia_anios : '--'} años</h2>
                     </div>
                     <div style={{ background: '#1c1c1e', padding: '20px', borderRadius: '12px', border: '1px solid #333' }}>
                         <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 8px 0' }}>Sesiones este Mes</p>
-                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>87</h2>
+                        <h2 style={{ fontSize: '28px', color: '#fff', margin: 0 }}>0</h2>
                     </div>
                 </div>
             </div>
@@ -79,19 +144,27 @@ const PerfilEntrenadorTab = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Nombre Completo</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>Roberto Martín Gómez</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{nombreCompleto}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Email</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>roberto.martin@gymtrack.com</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{user.email || '--'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Teléfono</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>+34 687 543 210</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.contacto || '--'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
-                                <span style={{ color: '#888', fontSize: '14px' }}>Fecha de Nacimiento</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>22 de Julio, 1988</span>
+                                <span style={{ color: '#888', fontSize: '14px' }}>Edad</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.edad || '--'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                                <span style={{ color: '#888', fontSize: '14px' }}>Dirección</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.direccion || '--'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                                <span style={{ color: '#888', fontSize: '14px' }}>Rol</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px', textTransform: 'capitalize' }}>{user.rol || 'Entrenador'}</span>
                             </div>
                         </div>
                     </div>
@@ -106,19 +179,19 @@ const PerfilEntrenadorTab = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Especialización Principal</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>Fuerza y Acondicionamiento</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.especialidad || '--'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Certificación Principal</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>NSCA-CPT</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.certificacion || '--'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
                                 <span style={{ color: '#888', fontSize: '14px' }}>Horario de Trabajo</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>L-V 7:00-21:00, S 9:00-14:00</span>
+                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>{entrenador.horarios || '--'}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
-                                <span style={{ color: '#888', fontSize: '14px' }}>Idiomas</span>
-                                <span style={{ color: '#fff', fontWeight: '500', fontSize: '14px' }}>Español, Inglés</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                                <span style={{ color: '#888', fontSize: '14px' }}>Tipos de Entrenamiento</span>
+                                {renderTiposEntrenamiento(entrenador.tipos_entrenamiento)}
                             </div>
                         </div>
                     </div>

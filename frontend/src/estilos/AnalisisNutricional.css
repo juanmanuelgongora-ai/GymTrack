@@ -1,0 +1,163 @@
+/* AnalisisNutricional.css */
+
+.an-container {
+  margin-top: 32px;
+  padding: 32px;
+  border-radius: 20px;
+  background: #121214;
+  border: 1px solid rgba(16, 185, 129, 0.4); /* Green border matching the screenshot */
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.05);
+  animation: fadeIn 0.8s ease;
+}
+
+.an-main-header {
+  margin-bottom: 24px;
+}
+
+.an-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.an-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.an-card {
+  background: #161618;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.an-card-header {
+  margin-bottom: 24px;
+}
+
+.an-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.an-card-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #8a8a8e;
+}
+
+.an-chart-wrapper {
+  width: 100%;
+  margin-top: 16px;
+}
+
+/* Tooltip styles */
+.an-tooltip {
+  background: #1a1a1c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.an-tooltip-label {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #8a8a8e;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.an-tooltip-value {
+  margin: 0;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+/* Donut Layout */
+.an-donut-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.an-donut-chart {
+  flex: 1;
+  max-width: 200px;
+}
+
+.an-donut-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.an-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.an-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
+}
+
+.an-legend-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.an-legend-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.an-legend-value {
+  font-size: 13px;
+  color: #8a8a8e;
+}
+
+.an-optimal-balance {
+  margin-top: 8px;
+  padding: 12px;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.an-optimal-balance span {
+  font-size: 12px;
+  color: #8a8a8e;
+  line-height: 1.4;
+}
+
+@media (max-width: 1024px) {
+  .an-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .an-container {
+    padding: 20px;
+  }
+  
+  .an-donut-layout {
+    flex-direction: column;
+  }
+}

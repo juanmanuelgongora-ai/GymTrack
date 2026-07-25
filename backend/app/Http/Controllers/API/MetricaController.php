@@ -22,7 +22,8 @@ class MetricaController extends Controller
             return response()->json(['message' => 'Perfil de cliente no encontrado.'], 404);
         }
 
-        $metricas = MetricaCorporal::where('cliente_id', $cliente->id)
+        $metricas = MetricaCorporal::with('cliente.user')
+            ->where('cliente_id', $cliente->id)
             ->orderBy('fecha', 'desc')
             ->get();
 
@@ -140,6 +141,12 @@ class MetricaController extends Controller
             $cliente->imc = $imc;
         $cliente->save();
 
-        return response()->json($metrica, 201);
+        // Verificar logros
+        $unlocked = \App\Services\AchievementService::checkMetricsAchievements($request->user());
+
+        return response()->json([
+            'metrica' => $metrica,
+            'logros_desbloqueados' => $unlocked
+        ], 201);
     }
 }

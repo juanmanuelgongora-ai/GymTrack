@@ -201,6 +201,29 @@ body {
   padding-left: 16px;
 }
 
+.input-field {
+  width: 100%;
+  background: var(--input-bg, #222222);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: #ff8c42;
+  box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.2);
+}
+
+textarea.input-field {
+  resize: vertical;
+  min-height: 80px;
+}
+
 /* Step 3 Selection Grid */
 .selection-container {
   text-align: left;
@@ -448,4 +471,86 @@ body {
 
 .footer-link span:hover {
   text-decoration: underline;
+}
+
+/* Notification Toast */
+.notification-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: rgba(26, 26, 26, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 140, 66, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  z-index: 3000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), var(--primary-glow);
+  animation: toastSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.notification-toast h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-toast p {
+  font-size: 0.95rem;
+  color: #ccc;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.notification-toast .primary-btn {
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-toast .primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--primary-glow);
+}
+
+.notification-toast .secondary-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-toast .secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--text-gray);
 }

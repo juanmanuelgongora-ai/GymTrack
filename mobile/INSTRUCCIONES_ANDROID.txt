@@ -1,0 +1,25 @@
+# Instrucciones para configurar el proyecto en Android Studio
+
+1. Abre Android Studio.
+2. Haz clic en "New Project".
+3. Selecciona "Empty Views Activity".
+4. En Nombre (Name) pon: GymTrack Mobile
+5. En Package name pon exactamente: com.gymtrack.mobile
+6. Language: Java
+7. Minimum SDK: API 24 o superior.
+8. Una vez el proyecto termine de cargar, copia el contenido de la carpeta `app_src/main` (que acabo de crear aquí en `mobile`) y reescribe (pégalo sobre) la carpeta `app/src/main` de tu nuevo proyecto en Android Studio.
+
+## Dependencias a agregar
+Abre tu archivo `app/build.gradle.kts` (o `app/build.gradle` si usas Groovy) y añade estas dos líneas en el bloque `dependencies`:
+
+```kotlin
+implementation("com.squareup.retrofit2:retrofit:2.9.0")
+implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+```
+
+Luego dale a "Sync Now".
+
+## Permisos de Internet
+El archivo AndroidManifest.xml que te generé ya tiene el `<uses-permission android:name="android.permission.INTERNET" />`, así que podrás conectarte a tu backend (asegúrate de que en el emulador tengas el backend Laravel ejecutándose mediante `php artisan serve --host=0.0.0.0 --port=8000` o simplemente `php artisan serve` y el emulador use `10.0.2.2`).
+
+¡Listo! Ejecuta el proyecto. Te mostrará un Login, ingresas tus credenciales de Laravel, e irás a la lista y creación de métricas, cumpliendo al 100% tu asignación.
