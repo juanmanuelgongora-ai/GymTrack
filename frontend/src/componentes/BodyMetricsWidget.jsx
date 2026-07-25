@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, ArrowDownRight, ArrowUpRight, Sparkles, TrendingUp } from 'lucide-react';
+import { useUser } from '../logica/UserContext';
 
 const getImcState = (imc) => {
   if (imc < 18.5) return { label: 'Bajo peso', color: 'rgba(96, 165, 250, 0.95)' };
@@ -13,37 +15,68 @@ const formatDifference = (value, unit) => {
   return `${sign}${value.toFixed(1)}${unit}`;
 };
 
-const buildTrend = (delta) => {
-  if (delta <= -0.25) return { icon: ArrowDownRight, status: 'positive', label: 'Mejorando' };
-  if (delta >= 0.25) return { icon: ArrowUpRight, status: 'negative', label: 'Aumentando' };
+const buildTrend = (delta, isWeight = false) => {
+  if (delta <= -0.2) return { icon: ArrowDownRight, status: isWeight ? 'neutral' : 'positive', label: 'Bajando' };
+  if (delta >= 0.2) return { icon: ArrowUpRight, status: isWeight ? 'neutral' : 'negative', label: 'Aumentando' };
   return { icon: ArrowUpRight, status: 'neutral', label: 'Estable' };
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const BodyMetricsWidget = ({ clienteData = {}, onViewHistory }) => {
-  const currentWeight = parseFloat(clienteData.peso_kg) || 78.4;
-  const previousWeight = clienteData.peso_anterior !== undefined
-    ? parseFloat(clienteData.peso_anterior)
-    : currentWeight - 1.2;
-  const weightDelta = parseFloat((currentWeight - previousWeight).toFixed(1));
-  const weightTrend = buildTrend(weightDelta);
+  const { token } = useUser();
+  const [metricasHistory, setMetricasHistory] = useState([]);
 
-  const imc = parseFloat(clienteData.imc) || 22.4;
+  useEffect(() => {
+    if (!token) return;
+    let isMounted = true;
+    fetch('/api/metricas', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setMetricasHistory(data);
+        }
+      })
+      .catch(() => { });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  // Determine current and previous metric records
+  // metricasHistory is ordered desc by fecha
+  const latestRecord = metricasHistory[0] || {};
+  const previousRecord = metricasHistory[1] || {};
+
+  const currentWeight = parseFloat(latestRecord.peso_kg || clienteData.peso_kg) || 70.0;
+  const previousWeight = previousRecord.peso_kg !== undefined
+    ? parseFloat(previousRecord.peso_kg)
+    : currentWeight;
+  const weightDelta = parseFloat((currentWeight - previousWeight).toFixed(1));
+  const weightTrend = buildTrend(weightDelta, true);
+
+  const imc = parseFloat(latestRecord.imc || clienteData.imc) || (currentWeight && clienteData.altura_cm ? currentWeight / Math.pow(clienteData.altura_cm / 100, 2) : 22.0);
   const imcState = getImcState(imc);
   const imcPosition = clamp((imc - 14) / (34 - 14), 0, 1) * 100;
 
-  const currentBodyFat = parseFloat(clienteData.grasa_corporal) || parseFloat(clienteData.grasa) || 16.8;
-  const previousBodyFat = clienteData.grasa_anterior !== undefined
-    ? parseFloat(clienteData.grasa_anterior)
-    : currentBodyFat + 0.9;
+  const currentBodyFat = parseFloat(latestRecord.grasa_corporal || clienteData.grasa_corporal || clienteData.grasa) || 18.0;
+  const previousBodyFat = previousRecord.grasa_corporal !== undefined
+    ? parseFloat(previousRecord.grasa_corporal)
+    : currentBodyFat;
   const bodyFatDelta = parseFloat((currentBodyFat - previousBodyFat).toFixed(1));
-  const bodyFatTrend = buildTrend(bodyFatDelta);
+  const bodyFatTrend = buildTrend(bodyFatDelta, false);
+
+  const lastUpdated = latestRecord.fecha
+    ? new Date(latestRecord.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+    : 'Registro inicial';
 
   const evolutionItems = [
-    { label: 'Progreso', value: `${Math.abs(weightDelta).toFixed(1)} kg`, accent: weightTrend.status === 'positive' ? 'good' : weightTrend.status === 'negative' ? 'alert' : 'neutral' },
+    { label: 'Progreso', value: `${Math.abs(weightDelta).toFixed(1)} kg`, accent: weightDelta === 0 ? 'clean' : weightTrend.status === 'positive' ? 'good' : 'alert' },
     { label: 'IMC', value: imcState.label, accent: 'clean' },
-    { label: 'Grasa', value: `${currentBodyFat.toFixed(1)}%`, accent: bodyFatTrend.status === 'positive' ? 'good' : bodyFatTrend.status === 'negative' ? 'alert' : 'neutral' }
+    { label: 'Grasa', value: `${currentBodyFat.toFixed(1)}%`, accent: bodyFatDelta <= 0 ? 'good' : 'alert' },
   ];
 
   return (
@@ -60,10 +93,10 @@ const BodyMetricsWidget = ({ clienteData = {}, onViewHistory }) => {
           </div>
           <div>
             <h3>Métricas Corporales</h3>
-            <p>Actualizado hoy</p>
+            <p>Actualizado: {lastUpdated}</p>
           </div>
         </div>
-        <div className="widget-chip">Premium</div>
+        <div className="widget-chip">GymTrack</div>
       </div>
 
       <div className="widget-overview-grid">
@@ -83,7 +116,11 @@ const BodyMetricsWidget = ({ clienteData = {}, onViewHistory }) => {
             <span>{currentWeight.toFixed(1)}</span>
             <small>kg</small>
           </div>
-          <p className="metric-note">{formatDifference(weightDelta, ' kg')} respecto al último registro</p>
+          <p className="metric-note">
+            {metricasHistory.length > 1
+              ? `${formatDifference(weightDelta, ' kg')} respecto al registro anterior`
+              : 'Primer registro del sistema'}
+          </p>
         </motion.div>
 
         <motion.div
@@ -128,7 +165,11 @@ const BodyMetricsWidget = ({ clienteData = {}, onViewHistory }) => {
           <div className="bodyfat-value">
             <span>{currentBodyFat.toFixed(1)}%</span>
           </div>
-          <p className="metric-note">{formatDifference(bodyFatDelta, '%')} desde el último registro</p>
+          <p className="metric-note">
+            {metricasHistory.length > 1
+              ? `${formatDifference(bodyFatDelta, '%')} desde el último registro`
+              : 'Primer registro de grasa'}
+          </p>
         </motion.div>
 
         <motion.div className="summary-card" whileHover={{ y: -3 }} transition={{ duration: 0.3 }}>
@@ -159,3 +200,4 @@ const BodyMetricsWidget = ({ clienteData = {}, onViewHistory }) => {
 };
 
 export default BodyMetricsWidget;
+

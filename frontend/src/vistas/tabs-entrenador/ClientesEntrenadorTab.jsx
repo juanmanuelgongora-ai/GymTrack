@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, User, Activity, Edit3, Save, AlertTriangle, Target, HeartPulse, ChevronRight, X, CheckCircle2, Calendar, Scale, TrendingUp, Dumbbell, Plus, Mail } from 'lucide-react';
+import { Users, Search, User, Activity, Edit3, Save, AlertTriangle, Target, HeartPulse, ChevronRight, X, CheckCircle2, Calendar, Scale, TrendingUp, Dumbbell, Plus, Mail, BarChart2 } from 'lucide-react';
 import '../../estilos/tabs.css';
+
 
 export default function ClientesEntrenadorTab() {
   const [clientes, setClientes] = useState([]);
@@ -64,8 +65,8 @@ export default function ClientesEntrenadorTab() {
       });
 
       if (res.ok) {
-        setClientes(prevClientes => 
-          prevClientes.map(c => 
+        setClientes(prevClientes =>
+          prevClientes.map(c =>
             c.id === selectedClient.id ? { ...c, healthInfo: healthFormData } : c
           )
         );
@@ -104,8 +105,8 @@ export default function ClientesEntrenadorTab() {
           </h1>
           <p className="subtitle-text">Visualiza el progreso de tus clientes, filtra por objetivos y administra sus perfiles.</p>
         </div>
-        <button 
-          className="primary-btn flex-align-center gap-12 hover-scale" 
+        <button
+          className="primary-btn flex-align-center gap-12 hover-scale"
           onClick={() => setShowAddModal(true)}
           style={{ padding: '10px 20px', fontSize: '14px', borderRadius: '8px' }}
         >
@@ -131,15 +132,15 @@ export default function ClientesEntrenadorTab() {
             <form onSubmit={handleAddClient} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ color: '#ccc', fontSize: '14px', marginBottom: '8px', display: 'block' }}>Nombre Completo</label>
-                <input required type="text" className="input-field" placeholder="Ej. Juan Pérez" value={newClientData.nombre} onChange={(e) => setNewClientData({...newClientData, nombre: e.target.value})} style={{ width: '100%', boxSizing: 'border-box' }} />
+                <input required type="text" className="input-field" placeholder="Ej. Juan Pérez" value={newClientData.nombre} onChange={(e) => setNewClientData({ ...newClientData, nombre: e.target.value })} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ color: '#ccc', fontSize: '14px', marginBottom: '8px', display: 'block' }}>Correo Electrónico</label>
-                <input required type="email" className="input-field" placeholder="juan@ejemplo.com" value={newClientData.email} onChange={(e) => setNewClientData({...newClientData, email: e.target.value})} style={{ width: '100%', boxSizing: 'border-box' }} />
+                <input required type="email" className="input-field" placeholder="juan@ejemplo.com" value={newClientData.email} onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ color: '#ccc', fontSize: '14px', marginBottom: '8px', display: 'block' }}>Objetivo Principal (Opcional)</label>
-                <input type="text" className="input-field" placeholder="Ej. Pérdida de peso" value={newClientData.objetivo} onChange={(e) => setNewClientData({...newClientData, objetivo: e.target.value})} style={{ width: '100%', boxSizing: 'border-box' }} />
+                <input type="text" className="input-field" placeholder="Ej. Pérdida de peso" value={newClientData.objetivo} onChange={(e) => setNewClientData({ ...newClientData, objetivo: e.target.value })} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <button type="submit" className="primary-btn" style={{ width: '100%', marginTop: '10px' }}>Enviar Invitación</button>
             </form>
@@ -153,10 +154,10 @@ export default function ClientesEntrenadorTab() {
           <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={18} color="#aaa" style={{ position: 'absolute', left: '16px' }} />
-              <input 
-                type="text" 
-                placeholder="Buscar por nombre u objetivo..." 
-                className="input-field" 
+              <input
+                type="text"
+                placeholder="Buscar por nombre u objetivo..."
+                className="input-field"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ paddingLeft: '44px', width: '100%', margin: 0, fontSize: '13px' }}
@@ -170,7 +171,7 @@ export default function ClientesEntrenadorTab() {
               </div>
             ) : filteredClients.length > 0 ? (
               filteredClients.map(client => (
-                <div 
+                <div
                   key={client.id}
                   onClick={() => handleSelectClient(client)}
                   style={{
@@ -229,10 +230,10 @@ export default function ClientesEntrenadorTab() {
                 </div>
               </div>
 
-              {/* Menu de Sub-secciones */}
               <div className="filter-chips mb-24" style={{ paddingBottom: '10px' }}>
                 <div className={`chip ${activeClientTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveClientTab('resumen')}><Activity size={14} /> Resumen y Salud</div>
                 <div className={`chip ${activeClientTab === 'progreso' ? 'active' : ''}`} onClick={() => setActiveClientTab('progreso')}><TrendingUp size={14} /> Métricas y Objetivos</div>
+                <div className={`chip ${activeClientTab === 'estadisticas' ? 'active' : ''}`} onClick={() => setActiveClientTab('estadisticas')}><BarChart2 size={14} /> Estadísticas</div>
                 <div className={`chip ${activeClientTab === 'asistencia' ? 'active' : ''}`} onClick={() => setActiveClientTab('asistencia')}><Calendar size={14} /> Historial de Asistencia</div>
               </div>
 
@@ -243,7 +244,7 @@ export default function ClientesEntrenadorTab() {
                   <div className="glass-panel p-24">
                     <div className="flex-between mb-24">
                       <h3 className="section-title flex-align-center gap-12" style={{ margin: 0 }}>
-                        <HeartPulse size={20} color="#ff6b35" /> 
+                        <HeartPulse size={20} color="#ff6b35" />
                         Información de Salud y Fitness
                       </h3>
                       {!isEditingHealth ? (
@@ -268,7 +269,7 @@ export default function ClientesEntrenadorTab() {
                           <Activity size={16} color="#3b82f6" /> Condiciones Médicas Relevantes
                         </label>
                         {isEditingHealth ? (
-                          <textarea className="input-field" value={healthFormData.condiciones_medicas} onChange={(e) => setHealthFormData({...healthFormData, condiciones_medicas: e.target.value})} placeholder="Ej: Asma, Hipertensión, Diabetes..." style={{ minHeight: '80px', resize: 'vertical' }} />
+                          <textarea className="input-field" value={healthFormData.condiciones_medicas} onChange={(e) => setHealthFormData({ ...healthFormData, condiciones_medicas: e.target.value })} placeholder="Ej: Asma, Hipertensión, Diabetes..." style={{ minHeight: '80px', resize: 'vertical' }} />
                         ) : (
                           <p style={{ color: '#ccc', margin: 0, fontSize: '15px', lineHeight: '1.5' }}>{selectedClient.healthInfo?.condiciones_medicas || 'Ninguna registrada.'}</p>
                         )}
@@ -279,7 +280,7 @@ export default function ClientesEntrenadorTab() {
                           <AlertTriangle size={16} color="#ef4444" /> Lesiones Activas o Crónicas
                         </label>
                         {isEditingHealth ? (
-                          <textarea className="input-field" value={healthFormData.lesiones_activas} onChange={(e) => setHealthFormData({...healthFormData, lesiones_activas: e.target.value})} placeholder="Ej: Esguince tobillo, dolor lumbar crónico..." style={{ minHeight: '80px', resize: 'vertical' }} />
+                          <textarea className="input-field" value={healthFormData.lesiones_activas} onChange={(e) => setHealthFormData({ ...healthFormData, lesiones_activas: e.target.value })} placeholder="Ej: Esguince tobillo, dolor lumbar crónico..." style={{ minHeight: '80px', resize: 'vertical' }} />
                         ) : (
                           <p style={{ color: '#ccc', margin: 0, fontSize: '15px', lineHeight: '1.5' }}>{selectedClient.healthInfo?.lesiones_activas || 'Ninguna registrada.'}</p>
                         )}
@@ -290,7 +291,7 @@ export default function ClientesEntrenadorTab() {
                           <AlertTriangle size={16} color="#eab308" /> Restricciones de Movimiento
                         </label>
                         {isEditingHealth ? (
-                          <textarea className="input-field" value={healthFormData.restricciones_movimiento} onChange={(e) => setHealthFormData({...healthFormData, restricciones_movimiento: e.target.value})} placeholder="Ej: No realizar saltos, evitar ejercicios con impacto en rodillas..." style={{ minHeight: '80px', resize: 'vertical' }} />
+                          <textarea className="input-field" value={healthFormData.restricciones_movimiento} onChange={(e) => setHealthFormData({ ...healthFormData, restricciones_movimiento: e.target.value })} placeholder="Ej: No realizar saltos, evitar ejercicios con impacto en rodillas..." style={{ minHeight: '80px', resize: 'vertical' }} />
                         ) : (
                           <p style={{ color: '#ccc', margin: 0, fontSize: '15px', lineHeight: '1.5' }}>{selectedClient.healthInfo?.restricciones_movimiento || 'Ninguna registrada.'}</p>
                         )}
@@ -301,7 +302,7 @@ export default function ClientesEntrenadorTab() {
                           <Target size={16} color="#4ade80" /> Objetivos Fitness Acordados
                         </label>
                         {isEditingHealth ? (
-                          <textarea className="input-field" value={healthFormData.objetivos_acordados} onChange={(e) => setHealthFormData({...healthFormData, objetivos_acordados: e.target.value})} placeholder="Ej: Pérdida de peso (5kg), Hipertrofia..." style={{ minHeight: '80px', resize: 'vertical' }} />
+                          <textarea className="input-field" value={healthFormData.objetivos_acordados} onChange={(e) => setHealthFormData({ ...healthFormData, objetivos_acordados: e.target.value })} placeholder="Ej: Pérdida de peso (5kg), Hipertrofia..." style={{ minHeight: '80px', resize: 'vertical' }} />
                         ) : (
                           <p style={{ color: '#ccc', margin: 0, fontSize: '15px', lineHeight: '1.5' }}>{selectedClient.healthInfo?.objetivos_acordados || 'Ningún objetivo registrado.'}</p>
                         )}
@@ -319,27 +320,27 @@ export default function ClientesEntrenadorTab() {
                     {selectedClient.metricas && selectedClient.metricas.length > 0 ? (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                         {(() => {
-                           const latest = selectedClient.metricas[0];
-                           return (
-                             <>
-                               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                                 <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Peso</p>
-                                 <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.peso_kg || '--'} kg</p>
-                               </div>
-                               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                                 <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>IMC</p>
-                                 <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.imc || '--'}</p>
-                               </div>
-                               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                                 <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Grasa Corporal</p>
-                                 <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.grasa_corporal || '--'}%</p>
-                               </div>
-                               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                                 <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Masa Muscular</p>
-                                 <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.masa_muscular || '--'} kg</p>
-                               </div>
-                             </>
-                           );
+                          const latest = selectedClient.metricas[0];
+                          return (
+                            <>
+                              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                                <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Peso</p>
+                                <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.peso_kg || '--'} kg</p>
+                              </div>
+                              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                                <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>IMC</p>
+                                <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.imc || '--'}</p>
+                              </div>
+                              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                                <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Grasa Corporal</p>
+                                <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.grasa_corporal || '--'}%</p>
+                              </div>
+                              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                                <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '4px' }}>Masa Muscular</p>
+                                <p style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>{latest.masa_muscular || '--'} kg</p>
+                              </div>
+                            </>
+                          );
                         })()}
                       </div>
                     ) : (
@@ -371,6 +372,200 @@ export default function ClientesEntrenadorTab() {
                 </div>
               )}
 
+              {/* Pestaña: Estadísticas con Gráficos */}
+              {activeClientTab === 'estadisticas' && (() => {
+                const metricas = [...(selectedClient.metricas || [])].reverse(); // oldest first
+                const sesiones = selectedClient.sesiones || [];
+
+                // SVG Line Chart helper
+                const LineChart = ({ data, valueKey, label, color, unit = '' }) => {
+                  if (!data || data.length < 2) return (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#555', fontSize: 13 }}>
+                      Se necesitan al menos 2 mediciones para mostrar el gráfico.
+                    </div>
+                  );
+                  const W = 420, H = 140, pad = { top: 12, right: 12, bottom: 28, left: 38 };
+                  const vals = data.map(d => parseFloat(d[valueKey]) || 0).filter(v => v > 0);
+                  if (!vals.length) return <div style={{ textAlign: 'center', padding: '40px', color: '#555', fontSize: 13 }}>Sin datos suficientes.</div>;
+                  const min = Math.min(...vals), max = Math.max(...vals);
+                  const range = max - min || 1;
+                  const cx = (i) => pad.left + (i / (vals.length - 1)) * (W - pad.left - pad.right);
+                  const cy = (v) => pad.top + ((max - v) / range) * (H - pad.top - pad.bottom);
+                  const pts = vals.map((v, i) => `${cx(i)},${cy(v)}`).join(' ');
+                  const areaClose = `${cx(vals.length - 1)},${H - pad.bottom} ${cx(0)},${H - pad.bottom}`;
+                  const labels = data.filter((_, i) => i === 0 || i === Math.floor(data.length / 2) || i === data.length - 1);
+                  return (
+                    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+                      <defs>
+                        <linearGradient id={`grad-${valueKey}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+                          <stop offset="100%" stopColor={color} stopOpacity="0.03" />
+                        </linearGradient>
+                      </defs>
+                      {/* Grid lines */}
+                      {[0, 0.25, 0.5, 0.75, 1].map(t => {
+                        const y = pad.top + t * (H - pad.top - pad.bottom);
+                        const val = max - t * range;
+                        return (
+                          <g key={t}>
+                            <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                            <text x={pad.left - 4} y={y + 4} textAnchor="end" fill="#555" fontSize="9">{val.toFixed(1)}</text>
+                          </g>
+                        );
+                      })}
+                      {/* Area */}
+                      <polygon points={`${pts} ${areaClose}`} fill={`url(#grad-${valueKey})`} />
+                      {/* Line */}
+                      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+                      {/* Dots */}
+                      {vals.map((v, i) => (
+                        <circle key={i} cx={cx(i)} cy={cy(v)} r="3.5" fill={color} stroke="#1a1a2e" strokeWidth="1.5" />
+                      ))}
+                      {/* X axis labels */}
+                      {labels.map((d, i) => {
+                        const idx = data.indexOf(d);
+                        return (
+                          <text key={i} x={cx(idx)} y={H - pad.bottom + 14} textAnchor="middle" fill="#555" fontSize="9">
+                            {new Date(d.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                          </text>
+                        );
+                      })}
+                    </svg>
+                  );
+                };
+
+                // Training frequency per week from sesiones
+                const freqMap = {};
+                sesiones.forEach(s => {
+                  const d = new Date(s.created_at);
+                  const week = `${d.getFullYear()}-W${Math.ceil((d.getDate() + new Date(d.getFullYear(), d.getMonth(), 1).getDay()) / 7)}`;
+                  freqMap[week] = (freqMap[week] || 0) + 1;
+                });
+                const freqData = Object.entries(freqMap).sort().slice(-8).map(([w, v]) => ({ label: w.split('-W')[1] ? `S${w.split('-W')[1]}` : w, value: v }));
+                const freqMax = Math.max(...freqData.map(d => d.value), 1);
+
+                const latestMetrica = selectedClient.metricas?.[0];
+
+                return (
+                  <div style={{ animation: 'fadeIn 0.4s ease' }}>
+
+                    {/* KPI cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
+                      {[
+                        { label: 'Peso Actual', value: latestMetrica?.peso_kg ? `${latestMetrica.peso_kg} kg` : '--', color: '#ff6b35', sub: metricas.length > 1 ? `${(latestMetrica.peso_kg - metricas[0].peso_kg).toFixed(1)} kg vs inicio` : 'Primera medición' },
+                        { label: 'IMC Actual', value: latestMetrica?.imc ? latestMetrica.imc.toFixed(1) : '--', color: '#3b82f6', sub: latestMetrica?.imc < 25 ? 'Normal' : latestMetrica?.imc < 30 ? 'Sobrepeso' : 'Obesidad' },
+                        { label: 'Masa Muscular', value: latestMetrica?.masa_muscular ? `${latestMetrica.masa_muscular} kg` : '--', color: '#4ade80', sub: metricas.length > 1 && latestMetrica?.masa_muscular && metricas[0]?.masa_muscular ? `+${(latestMetrica.masa_muscular - metricas[0].masa_muscular).toFixed(1)} kg` : '' },
+                        { label: 'Grasa Corporal', value: latestMetrica?.grasa_corporal ? `${latestMetrica.grasa_corporal}%` : '--', color: '#eab308', sub: 'Última medición' },
+                      ].map(({ label, value, color, sub }) => (
+                        <div key={label} style={{ background: `${color}11`, border: `1px solid ${color}33`, borderRadius: 14, padding: 16, textAlign: 'center' }}>
+                          <p style={{ margin: '0 0 4px', color: '#aaa', fontSize: 11 }}>{label}</p>
+                          <p style={{ margin: '0 0 4px', color, fontSize: 22, fontWeight: 700 }}>{value}</p>
+                          <p style={{ margin: 0, color: '#666', fontSize: 10 }}>{sub}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Charts grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+
+                      {/* Weight Chart */}
+                      <div className="glass-panel p-24">
+                        <h4 style={{ margin: '0 0 16px', color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Scale size={16} color="#ff6b35" /> Evolución del Peso
+                        </h4>
+                        <LineChart data={metricas} valueKey="peso_kg" label="Peso" color="#ff6b35" unit="kg" />
+                        {metricas.length > 1 && (() => {
+                          const diff = (parseFloat(metricas[metricas.length - 1]?.peso_kg) - parseFloat(metricas[0]?.peso_kg)).toFixed(1);
+                          return <p style={{ margin: '8px 0 0', fontSize: 12, textAlign: 'center', color: parseFloat(diff) < 0 ? '#4ade80' : '#ff6b35' }}>
+                            {parseFloat(diff) < 0 ? '▼' : '▲'} {Math.abs(diff)} kg desde el inicio
+                          </p>;
+                        })()}
+                      </div>
+
+                      {/* Muscle Mass Chart */}
+                      <div className="glass-panel p-24">
+                        <h4 style={{ margin: '0 0 16px', color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Dumbbell size={16} color="#4ade80" /> Masa Muscular
+                        </h4>
+                        <LineChart data={metricas} valueKey="masa_muscular" label="Masa Muscular" color="#4ade80" unit="kg" />
+                      </div>
+
+                      {/* IMC Chart */}
+                      <div className="glass-panel p-24">
+                        <h4 style={{ margin: '0 0 16px', color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Activity size={16} color="#3b82f6" /> Evolución IMC
+                        </h4>
+                        <LineChart data={metricas} valueKey="imc" label="IMC" color="#3b82f6" />
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 8, fontSize: 10, color: '#555' }}>
+                          {[['<18.5', 'Bajo peso', '#3b82f6'], ['18.5-25', 'Normal', '#4ade80'], ['25-30', 'Sobrepeso', '#eab308'], ['>30', 'Obesidad', '#ef4444']].map(([r, l, c]) => (
+                            <span key={r} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: c }} /> {l} ({r})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Training frequency bar chart */}
+                      <div className="glass-panel p-24">
+                        <h4 style={{ margin: '0 0 16px', color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <BarChart2 size={16} color="#a855f7" /> Frecuencia Semanal de Entrenamientos
+                        </h4>
+                        {freqData.length > 0 ? (
+                          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 110, paddingBottom: 20, position: 'relative' }}>
+                            {freqData.map(({ label, value }) => (
+                              <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                                <span style={{ fontSize: 9, color: '#a855f7', marginBottom: 3, fontWeight: 700 }}>{value}</span>
+                                <div style={{ width: '100%', background: 'rgba(168,85,247,0.15)', borderRadius: '4px 4px 0 0', border: '1px solid rgba(168,85,247,0.3)', height: `${Math.max(4, (value / freqMax) * 80)}px`, transition: 'height 0.5s' }} />
+                                <span style={{ fontSize: 9, color: '#555', marginTop: 4 }}>{label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : <p style={{ color: '#555', textAlign: 'center', padding: 20, fontSize: 13 }}>Sin datos de entrenamientos.</p>}
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#666', textAlign: 'center' }}>
+                          Total: {sesiones.length} sesiones registradas
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Cuerpo – measurements table */}
+                    {metricas.length > 0 && (
+                      <div className="glass-panel p-24">
+                        <h4 style={{ margin: '0 0 16px', color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Scale size={16} color="#ff6b35" /> Historial de Mediciones Corporales
+                        </h4>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                            <thead>
+                              <tr>
+                                {['Fecha', 'Peso (kg)', 'IMC', 'Grasa %', 'Músculo (kg)', 'Cintura cm', 'Pecho cm'].map(col => (
+                                  <th key={col} style={{ padding: '8px 12px', color: '#666', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid #333', whiteSpace: 'nowrap' }}>{col}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...metricas].reverse().map((m, i) => (
+                                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s' }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <td style={{ padding: '10px 12px', color: '#aaa' }}>{new Date(m.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })}</td>
+                                  <td style={{ padding: '10px 12px', color: '#ff6b35', fontWeight: 700 }}>{m.peso_kg || '--'}</td>
+                                  <td style={{ padding: '10px 12px', color: '#3b82f6' }}>{m.imc ? parseFloat(m.imc).toFixed(1) : '--'}</td>
+                                  <td style={{ padding: '10px 12px', color: '#eab308' }}>{m.grasa_corporal ? `${m.grasa_corporal}%` : '--'}</td>
+                                  <td style={{ padding: '10px 12px', color: '#4ade80' }}>{m.masa_muscular || '--'}</td>
+                                  <td style={{ padding: '10px 12px', color: '#ccc' }}>{m.cintura_cm || '--'}</td>
+                                  <td style={{ padding: '10px 12px', color: '#ccc' }}>{m.pecho_cm || '--'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Pestaña: Historial de Asistencia */}
               {activeClientTab === 'asistencia' && (
                 <div style={{ animation: 'fadeIn 0.4s ease' }}>
@@ -389,7 +584,7 @@ export default function ClientesEntrenadorTab() {
                           </div>
                           <div style={{ background: 'rgba(255, 107, 53, 0.1)', border: '1px solid rgba(255, 107, 53, 0.2)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
                             <p style={{ color: '#ff6b35', fontSize: '18px', fontWeight: 'bold', margin: 0, marginTop: '4px' }}>
-                               {new Date(selectedClient.sesiones[0].created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                              {new Date(selectedClient.sesiones[0].created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                             </p>
                             <p style={{ color: '#aaa', fontSize: '12px', margin: '4px 0 0 0' }}>Última Sesión</p>
                           </div>
@@ -442,7 +637,7 @@ export default function ClientesEntrenadorTab() {
                   </thead>
                   <tbody>
                     {filteredClients.map(client => (
-                      <tr key={client.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => handleSelectClient(client)} onMouseEnter={(e) => e.currentTarget.style.background='rgba(255,255,255,0.03)'} onMouseLeave={(e) => e.currentTarget.style.background='transparent'}>
+                      <tr key={client.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => handleSelectClient(client)} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                         <td style={{ padding: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #ff6b35, #ff8c42)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold' }}>
