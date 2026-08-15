@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Activity, Calendar, MonitorPlay, LineChart, User,
   HelpCircle, Settings, Play, ChevronRight, CircleDollarSign, BarChart3, Clock,
-  LogOut, TrendingUp, Construction, Dumbbell, Apple
+  LogOut, TrendingUp, Construction, Dumbbell, Apple, PieChart
 } from 'lucide-react';
 import '../estilos/PanelClienteGYMTRACK.css';
 
@@ -10,6 +10,10 @@ import '../estilos/PanelClienteGYMTRACK.css';
 import PerfilEntrenadorTab from './tabs-entrenador/PerfilEntrenadorTab';
 import HistorialEntrenamientosTab from './tabs-entrenador/HistorialEntrenamientosTab';
 import PlanNutricionalTab from './tabs-entrenador/PlanNutricionalTab';
+import ClientesEntrenadorTab from './tabs-entrenador/ClientesEntrenadorTab';
+import ClasesEntrenadorTab from './tabs-entrenador/ClasesEntrenadorTab';
+import EstadisticasTab from './tabs-entrenador/EstadisticasTab';
+import ChatSoporte from '../componentes/ChatSoporte';
 
 const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -19,25 +23,42 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
   const firstName = data.nombre || 'Entrenador';
   const especialidad = data.entrenador?.especialidad || 'Entrenador';
 
-  // Datos simulados para el Dashboard del Entrenador
-  const metricas = [
-    { title: '$4,250', subtitle: 'Ingresos del mes', icon: CircleDollarSign, stat: '+12%', trend: 'up' },
-    { title: '42', subtitle: 'Clientes activos', icon: Users, stat: '+3', trend: 'up' },
-    { title: '8', subtitle: 'Clases pendientes', icon: Calendar, stat: 'Hoy', trend: 'neutral' },
-    { title: '95%', subtitle: 'Retención', icon: TrendingUp, stat: 'Top', trend: 'up' },
+  const [stats, setStats] = useState(null);
+  const [realClasses, setRealClasses] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const tokenStr = userAuth?.access_token || localStorage.getItem('gymtrack_token');
+        const [statsRes, classesRes] = await Promise.all([
+          fetch('/api/entrenador/dashboard', { headers: { 'Authorization': `Bearer ${tokenStr}`, 'Accept': 'application/json' } }),
+          fetch('/api/clases', { headers: { 'Authorization': `Bearer ${tokenStr}`, 'Accept': 'application/json' } })
+        ]);
+
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (classesRes.ok) setRealClasses(await classesRes.json());
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
+    fetchData();
+  }, [userAuth]);
+
+  const metricas = stats ? [
+    { title: `$${stats.ingresos_mes.toLocaleString()}`, subtitle: 'Ingresos del mes', icon: CircleDollarSign, stat: '+12%', trend: 'up' },
+    { title: stats.clientes_activos.toString(), subtitle: 'Clientes activos', icon: Users, stat: 'Actual', trend: 'up' },
+    { title: stats.clases_pendientes.toString(), subtitle: 'Clases pendientes', icon: Calendar, stat: 'Hoy', trend: 'neutral' },
+    { title: `${stats.retencion}%`, subtitle: 'Retención', icon: TrendingUp, stat: 'Top', trend: 'up' },
+  ] : [
+    { title: '...', subtitle: 'Ingresos del mes', icon: CircleDollarSign, stat: '-', trend: 'neutral' },
+    { title: '...', subtitle: 'Clientes activos', icon: Users, stat: '-', trend: 'neutral' },
+    { title: '...', subtitle: 'Clases pendientes', icon: Calendar, stat: '-', trend: 'neutral' },
+    { title: '...', subtitle: 'Retención', icon: TrendingUp, stat: '-', trend: 'neutral' },
   ];
 
-  const proximasClases = [
-    { id: 1, name: 'Clase de HIIT', time: '10:00 AM', clients: 12, status: 'Próxima' },
-    { id: 2, name: 'Entrenamiento Funcional', time: '02:00 PM', clients: 8, status: 'Hoy' },
-    { id: 3, name: 'Yoga y Estiramiento', time: '05:30 PM', clients: 15, status: 'Hoy' },
-  ];
+  const proximasClases = realClasses.filter(c => c.estado === 'programada').slice(0, 3);
 
-  const nuevosClientes = [
-    { id: 1, name: 'Carlos Mendoza', goal: 'Pérdida de peso', joined: 'Ayer' },
-    { id: 2, name: 'Laura Gómez', goal: 'Hipertrofia', joined: 'Hace 2 días' },
-    { id: 3, name: 'Andrés Felipe', goal: 'Acondicionamiento', joined: 'Hace 3 días' },
-  ];
+  const nuevosClientes = stats?.nuevos_clientes || [];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -114,14 +135,14 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
                           <Clock size={24} color="#ff6b35" />
                         </div>
                         <div className="exercise-info" style={{ marginLeft: '15px', flex: 1 }}>
-                          <h3>{clase.name}</h3>
+                          <h3>{clase.nombre}</h3>
                           <div className="exercise-details">
-                            <span><Users size={14} /> {clase.clients} inscritos</span>
+                            <span><Users size={14} /> {clase.capacidad_max} máx</span>
                             <span>•</span>
-                            <span style={{ color: '#ff6b35' }}>{clase.time}</span>
+                            <span style={{ color: '#ff6b35' }}>{clase.horario_inicio.substring(0, 5)} - {clase.horario_fin.substring(0, 5)}</span>
                           </div>
                         </div>
-                        <button className="secondary-btn">
+                        <button className="secondary-btn" onClick={() => setActiveTab('clases')}>
                           Ver Detalles
                         </button>
                       </div>
@@ -171,12 +192,12 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
                   </div>
                   <div className="nutrition-info">
                     <div className="cals">
-                      <h4>$4,250 <span>/ $5,000</span></h4>
-                      <div className="progress-bar"><div className="progress" style={{ width: '85%', background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
+                      <h4>${stats?.ingresos_mes?.toLocaleString() || '0'} <span>/ $5.000.000</span></h4>
+                      <div className="progress-bar"><div className="progress" style={{ width: `${Math.min(100, (stats?.ingresos_mes || 0) / 50000)}%`, background: 'linear-gradient(90deg, #22c55e, #4ade80)' }}></div></div>
                     </div>
                     <div className="macros" style={{ marginTop: '15px' }}>
-                      <div className="macro"><CircleDollarSign size={12} color="#ff6b35" /> Planes Básicos <b>$1,200</b></div>
-                      <div className="macro"><CircleDollarSign size={12} color="#a855f7" /> Planes Premium <b>$3,050</b></div>
+                      <div className="macro"><CircleDollarSign size={12} color="#ff6b35" /> Base <b>${(stats?.ingresos_mes ? stats.ingresos_mes * 0.4 : 0).toLocaleString()}</b></div>
+                      <div className="macro"><CircleDollarSign size={12} color="#a855f7" /> Premium <b>${(stats?.ingresos_mes ? stats.ingresos_mes * 0.6 : 0).toLocaleString()}</b></div>
                     </div>
                   </div>
                   <button className="secondary-btn full-width mt-1"><LineChart size={16} /> Ver Reporte Financiero</button>
@@ -187,11 +208,18 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
           </>
         );
 
-      // Placeholder para el resto de pestañas requeridas
       case 'clientes':
+        return <ClientesEntrenadorTab />;
+
+      case 'clases':
+        return <ClasesEntrenadorTab />;
+
+      case 'estadisticas':
+        return <EstadisticasTab />;
+
+      // Placeholder para el resto de pestañas requeridas
       case 'rutinas':
       case 'calendario':
-      case 'clases':
       case 'finanzas':
       case 'ayuda':
       case 'configuracion':
@@ -224,7 +252,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
         return <PlanNutricionalTab />;
 
       case 'perfil':
-        return <PerfilEntrenadorTab />;
+        return <PerfilEntrenadorTab userData={data} token={userAuth?.access_token || localStorage.getItem('gymtrack_token')} />;
 
       default:
         return null;
@@ -243,37 +271,19 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
             <p>Portal para Entrenadores</p>
           </div>
         </div>
-        <div className="nav-links" style={{ overflowX: 'auto', flexWrap: 'nowrap' }}>
-          <button className={`nav-btn ${activeTab === 'inicio' ? 'active' : ''}`} onClick={() => setActiveTab('inicio')}>
-            <LayoutDashboard size={18} /> Panel
-          </button>
-          <button className={`nav-btn ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
-            <Activity size={18} /> Historial
-          </button>
-          <button className={`nav-btn ${activeTab === 'nutricion' ? 'active' : ''}`} onClick={() => setActiveTab('nutricion')}>
-            <Apple size={18} /> Nutrición
-          </button>
-          <button className={`nav-btn ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
-            <Users size={18} /> Clientes
-          </button>
-          <button className={`nav-btn ${activeTab === 'rutinas' ? 'active' : ''}`} onClick={() => setActiveTab('rutinas')}>
-            <Dumbbell size={18} /> Rutinas
-          </button>
-          <button className={`nav-btn ${activeTab === 'calendario' ? 'active' : ''}`} onClick={() => setActiveTab('calendario')}>
-            <Calendar size={18} /> Calendario
-          </button>
-          <button className={`nav-btn ${activeTab === 'clases' ? 'active' : ''}`} onClick={() => setActiveTab('clases')}>
-            <MonitorPlay size={18} /> Clases
-          </button>
-          <button className={`nav-btn ${activeTab === 'finanzas' ? 'active' : ''}`} onClick={() => setActiveTab('finanzas')}>
-            <LineChart size={18} /> Finanzas
-          </button>
-          <button className={`nav-btn ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}>
-            <User size={18} /> Perfil
-          </button>
-          <button className={`nav-btn ${activeTab === 'ayuda' ? 'active' : ''}`} onClick={() => setActiveTab('ayuda')}>
-            <HelpCircle size={18} /> Ayuda
-          </button>
+        <div className="nav-links">
+          {['inicio', 'clientes', 'clases', 'historial', 'nutricion', 'estadisticas', 'perfil'].map(tab => (
+            <button key={tab} className={`nav-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              {tab === 'inicio' && <LayoutDashboard size={18} />}
+              {tab === 'clientes' && <Users size={18} />}
+              {tab === 'clases' && <Calendar size={18} />}
+              {tab === 'historial' && <Activity size={18} />}
+              {tab === 'nutricion' && <Apple size={18} />}
+              {tab === 'estadisticas' && <PieChart size={18} />}
+              {tab === 'perfil' && <User size={18} />}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
 
         <div className="nav-user">
@@ -301,6 +311,7 @@ const PanelEntrenadorGYMTRACK = ({ setView, userData, userAuth, onLogout }) => {
       <main className="dashboard-main">
         {renderContent()}
       </main>
+      <ChatSoporte user={data} />
     </div>
   );
 };
