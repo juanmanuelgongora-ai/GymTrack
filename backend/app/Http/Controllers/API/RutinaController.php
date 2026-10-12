@@ -27,63 +27,172 @@ class RutinaController extends Controller
         ]);
 
         $user = $request->user();
+        $cliente = $user->cliente;
+
+        // Si los datos no vienen en el request, completarlos con el perfil del cliente
+        $objetivo = $data['objetivo'] ?? $cliente?->objetivo_principal;
+        $frecuencia = $data['frecuencia'] ?? $cliente?->nivel_actividad;
+        $genero = $data['genero'] ?? $cliente?->genero;
+        $peso = $data['peso'] ?? $cliente?->peso_kg;
+        $estatura = $data['estatura'] ?? $cliente?->altura_cm;
+        $edad = $data['edad'] ?? $cliente?->edad;
+
+        $condicionMedica = [];
+        if ($cliente?->condicion_medica) {
+            $condicionMedica = is_string($cliente->condicion_medica) ? json_decode($cliente->condicion_medica, true) : $cliente->condicion_medica;
+        }
+
+        $salud = $data['salud'] ?? ($condicionMedica['salud'] ?? null);
+        $lesiones = $data['lesiones'] ?? ($condicionMedica['lesion'] ?? null);
+        $condiciones = $data['condiciones'] ?? ($condicionMedica['condiciones'] ?? []);
+
+        // Validar si hacen falta datos cruciales para armar un buen prompt para la IA
+        $faltantes = [];
+        if (empty($objetivo))
+            $faltantes[] = 'objetivo_principal';
+        if (empty($peso) || !is_numeric($peso))
+            $faltantes[] = 'peso';
+        if (empty($estatura) || !is_numeric($estatura))
+            $faltantes[] = 'estatura';
+        if (empty($edad) && empty($cliente?->fecha_nacimiento))
+            $faltantes[] = 'edad';
+        if (empty($genero))
+            $faltantes[] = 'genero';
+
+        if (!empty($faltantes)) {
+            return response()->json([
+                'success' => false,
+                'falta_datos' => true,
+                'campos_faltantes' => $faltantes,
+                'message' => 'Se requieren datos físicos adicionales para que la IA genere tu rutina personalizada.',
+                'datos_actuales' => [
+                    'objetivo_principal' => $objetivo,
+                    'peso' => $peso,
+                    'estatura' => $estatura,
+                    'genero' => $genero,
+                    'edad' => $edad,
+                    'frecuencia' => $frecuencia,
+                    'salud' => $salud,
+                    'lesion' => $lesiones,
+                    'condiciones' => $condiciones
+                ]
+            ], 422);
+        }
+
+        // Asignar datos unificados
+        $data['objetivo'] = $objetivo;
+        $data['frecuencia'] = $frecuencia ?? '3-4 veces';
+        $data['genero'] = $genero;
+        $data['peso'] = $peso;
+        $data['estatura'] = $estatura;
+        $data['edad'] = $edad;
+        $data['salud'] = $salud ?? 'Bueno';
+        $data['lesiones'] = $lesiones ?? 'No';
+        $data['condiciones'] = $condiciones;
 
         $apiKey = env('GEMINI_API_KEY');
         $planJson = null;
 
         if ($apiKey) {
-            $prompt = "Actúa como un entrenador personal experto de vanguardia. Tu trabajo es diseñar minuciosamente una rutina semanal detallada en formato estrictamente JSON." . "\n"
-                . "PERFIL BIOLÓGICO DEL CLIENTE:\n"
-                . "- Género: " . ($data['genero'] ?? 'No especificado') . "\n"
-                . "- Edad: " . ($data['edad'] ?? 'No especificada') . " años\n"
-                . "- Peso: " . ($data['peso'] ?? 'No especificado') . " kg\n"
-                . "- Estatura: " . ($data['estatura'] ?? 'No especificada') . " cm\n\n"
-                . "HISTORIAL Y OBJETIVOS:\n"
-                . "- Objetivo principal: " . ($data['objetivo'] ?? 'Mejorar condición física') . "\n"
-                . "- Historial de actividad física previa: " . ($data['frecuencia'] ?? '3-4 veces') . ". (Deduce nivel a partir de esto).\n"
-                . "- Nivel de experiencia deducido: " . ($data['nivel'] ?? 'Principiante') . "\n\n"
-                . "VARIABLES FÍSICAS LIMITANTES:\n"
-                . "- Problemas de Salud: " . ($data['salud'] ?? 'Ninguno') . "\n"
-                . "- Lesiones: " . ($data['lesiones'] ?? 'No') . "\n"
-                . "- Condiciones: " . ($data['condiciones'] ?? 'Ninguna') . "\n\n"
-                . "INSTRUCCIÓN CRÍTICA DE DISEÑO:\n"
-                . "1. Basándote en el historial de actividad, deduce la cantidad de días de entrenamiento (Nunca=3; 5 o más=5; intermedio=4).\n"
-                . "2. INSTRUCCIÓN DE GÉNERO: El análisis debe cambiar según el género si corresponde. Mujeres generalmente priorizan Tren Inferior (Glúteos/Isquios/Cuádriceps) unos 2-3 días, mientras que Hombres suelen darle más espacio al Tren Superior. Si la chica prioriza otra cosa en su 'Objetivo', hazle caso a eso, de lo contrario asume el estándar.\n"
-                . "3. Cuida el peso, edad y sobre todo lesiones: evita por completo la zona lesionada.\n\n"
-                . "El JSON debe tener la siguiente estructura estricta (y NO devuelvas NADA más que el JSON puro, sin tags de markdown):" . "\n"
-                . "{ \"dias\": [ { \"dia\": \"Día 1\", \"grupo_muscular\": \"Pecho y Tríceps\", \"duracion_estimada\": \"60 min\", \"intensidad\": \"Alta\", \"semana_plan\": 1, \"ejercicios\": [ { \"nombre\": \"Press de banca\", \"series\": 4, \"repeticiones\": \"10-12\", \"descanso\": \"90s\" } ] } ] }";
+            $prompt = "Actúa como un entrenador personal de élite. Diseña un plan de entrenamiento semanal estructurado de 3 a 5 días para el siguiente usuario:\n"
+                . "Nombre: " . ($user->name ?? $user->nombre ?? 'Usuario') . "\n"
+                . "Edad: " . ($data['edad'] ?? 'No especificada') . " años\n"
+                . "Sexo: " . ($data['genero'] ?? 'No especificado') . "\n"
+                . "Peso: " . ($data['peso'] ?? 'No especificado') . " kg\n"
+                . "Estatura: " . ($data['estatura'] ?? 'No especificada') . " cm\n"
+                . "Nivel de Actividad: " . ($data['frecuencia'] ?? '3-4 veces') . "\n"
+                . "Objetivo Principal: " . ($data['objetivo'] ?? 'Mejorar condición física') . "\n"
+                . "Nivel: " . ($data['nivel'] ?? 'Principiante') . "\n"
+                . "Problemas de Salud: " . ($data['salud'] ?? 'Ninguno') . "\n"
+                . "Lesiones: " . ($data['lesiones'] ?? 'No') . "\n"
+                . "Condiciones: " . json_encode($data['condiciones'] ?? []) . "\n\n"
+                . "Debes responder ÚNICAMENTE con un objeto JSON válido, sin bloques markdown de código ```json, sin explicaciones antes ni después.\n"
+                . "La estructura del JSON debe ser exactamente:\n"
+                . "{\n"
+                . "  \"descripcion\": \"Breve resumen del enfoque del plan\",\n"
+                . "  \"plan_semanal\": {\n"
+                . "    \"dias\": [\n"
+                . "      {\n"
+                . "        \"dia\": \"Día 1\",\n"
+                . "        \"grupo_muscular\": \"Pecho y Tríceps\",\n"
+                . "        \"duracion_estimada\": \"60 min\",\n"
+                . "        \"intensidad\": \"Alta\",\n"
+                . "        \"semana_plan\": 1,\n"
+                . "        \"ejercicios\": [\n"
+                . "          {\n"
+                . "            \"nombre\": \"Press de banca con barra\",\n"
+                . "            \"series\": 4,\n"
+                . "            \"repeticiones\": \"8-10\",\n"
+                . "            \"descanso\": \"90s\"\n"
+                . "          }\n"
+                . "        ]\n"
+                . "      }\n"
+                . "    ]\n"
+                . "  }\n"
+                . "}";
 
-            try {
-                $response = Http::withHeaders([
-                    'Content-Type' => 'application/json'
-                ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={$apiKey}", [
-                            'contents' => [
-                                [
-                                    'parts' => [
-                                        ['text' => $prompt]
-                                    ]
-                                ]
+            // Intentar modelos compatibles de Gemini
+            $models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash'];
+
+            foreach ($models as $model) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+                $payload = [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt]
                             ]
-                        ]);
+                        ]
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
+                        'topK' => 40,
+                        'topP' => 0.95,
+                        'maxOutputTokens' => 4096,
+                        'responseMimeType' => 'application/json'
+                    ]
+                ];
 
-                if ($response->successful()) {
-                    $result = $response->json();
-                    $textResponse = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                $ch = curl_init($url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Content-Type: application/json'
+                ]);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
-                    if ($textResponse) {
-                        $textResponse = preg_replace('/```(?:json)?\n?(.*?)\n?```/ms', '$1', $textResponse);
-                        $parsedJson = json_decode(trim($textResponse), true);
-                        if (json_last_error() === JSON_ERROR_NONE && isset($parsedJson['dias'])) {
-                            $planJson = $parsedJson;
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($ch);
+                curl_close($ch);
+
+                if ($httpCode === 200 && $response) {
+                    $resData = json_decode($response, true);
+                    if (isset($resData['candidates'][0]['content']['parts'][0]['text'])) {
+                        $text = $resData['candidates'][0]['content']['parts'][0]['text'];
+                        $text = preg_replace('/^```json\s*/i', '', $text);
+                        $text = preg_replace('/```$/', '', trim($text));
+                        $decoded = json_decode($text, true);
+                        if ($decoded && isset($decoded['plan_semanal'])) {
+                            $planJson = $decoded['plan_semanal'];
+                            break;
+                        } elseif ($decoded && isset($decoded['dias'])) {
+                            $planJson = $decoded;
+                            break;
                         }
                     }
+                } else {
+                    \Illuminate\Support\Facades\Log::warning("Gemini API call failed with model {$model}, HTTP code: {$httpCode}, error: {$curlError}");
                 }
-            } catch (\Exception $e) {
-                // Ignore exception to fallback
             }
         }
 
         if (!$planJson) {
+            \Illuminate\Support\Facades\Log::info("Gemini models failed or not reachable. Generating intelligent fallback routine for user {$user->id}");
             $frecuencia = $data['frecuencia'] ?? 'Nunca';
             $isBeginner = in_array($frecuencia, ['Nunca', '1-2 veces']);
             $lesionStr = strtolower($data['lesiones'] ?? 'no');

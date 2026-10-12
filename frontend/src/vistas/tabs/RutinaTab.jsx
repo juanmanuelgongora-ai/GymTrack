@@ -25,8 +25,107 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
   const [currentWeight, setCurrentWeight] = useState('');
   const [currentReps, setCurrentReps] = useState('');
   const [hasNewActivity, setHasNewActivity] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [semanaActual, setSemanaActual] = useState(rutinaActivaData?.semana_actual || 1);
+  const [generatingRoutine, setGeneratingRoutine] = useState(false);
+  const [generateError, setGenerateError] = useState(null);
+  const [showDataModal, setShowDataModal] = useState(false);
+  const [missingFields, setMissingFields] = useState([]);
+  const [physicalForm, setPhysicalForm] = useState({
+    peso: '',
+    estatura: '',
+    genero: 'M',
+    edad: '25',
+    objetivo: 'Ganar masa muscular',
+    frecuencia: '3-4 veces',
+    salud: 'Bueno',
+    lesion: 'No',
+    lesionDetalle: ''
+  });
+
+  const handleGenerarRutina = async (customPayload = null) => {
+    if (!token || generatingRoutine) return;
+    setGeneratingRoutine(true);
+    setGenerateError(null);
+    try {
+      const payload = customPayload || {
+        objetivo: physicalForm.objetivo,
+        frecuencia: physicalForm.frecuencia,
+        peso: physicalForm.peso,
+        estatura: physicalForm.estatura,
+        genero: physicalForm.genero,
+        edad: physicalForm.edad,
+        salud: physicalForm.salud,
+        lesiones: physicalForm.lesion === 'Sí' ? (physicalForm.lesionDetalle || 'Sí') : 'No'
+      };
+
+      const response = await fetch('/api/rutinas/generar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+
+      if (response.status === 422 && data.falta_datos) {
+        setMissingFields(data.campos_faltantes || []);
+        if (data.datos_actuales) {
+          setPhysicalForm(prev => ({
+            ...prev,
+            peso: data.datos_actuales.peso || prev.peso,
+            estatura: data.datos_actuales.estatura || prev.estatura,
+            genero: data.datos_actuales.genero || prev.genero,
+            edad: data.datos_actuales.edad || prev.edad,
+            objetivo: data.datos_actuales.objetivo_principal || prev.objetivo,
+            frecuencia: data.datos_actuales.frecuencia || prev.frecuencia,
+            salud: data.datos_actuales.salud || prev.salud,
+            lesion: data.datos_actuales.lesion || prev.lesion
+          }));
+        }
+        setShowDataModal(true);
+        setGenerateError('Para que la IA diseñe tu rutina ideal, necesitamos completar tus datos físicos.');
+        return;
+      }
+
+      if (response.ok && data.rutina?.plan_semanal) {
+        setShowDataModal(false);
+        setRutinaId(data.rutina.id);
+        setRutina(data.rutina.plan_semanal.dias || []);
+        setSemanaActual(data.rutina.semana_actual || 1);
+        if (data.progreso_guardado) {
+          setExerciseProgress(data.progreso_guardado);
+        }
+      } else {
+        setGenerateError(data.message || 'No se pudo generar la rutina con la IA. Completa tus datos para intentarlo.');
+        setShowDataModal(true);
+      }
+    } catch (err) {
+      console.error('Error al generar rutina con IA:', err);
+      setGenerateError('Error de conexión al generar la rutina.');
+    } finally {
+      setGeneratingRoutine(false);
+    }
+  };
+
+  const handlePhysicalFormSubmit = (e) => {
+    e.preventDefault();
+    if (!physicalForm.peso || !physicalForm.estatura) {
+      alert('Por favor ingresa tu peso y estatura.');
+      return;
+    }
+    handleGenerarRutina({
+      objetivo: physicalForm.objetivo,
+      frecuencia: physicalForm.frecuencia,
+      peso: physicalForm.peso,
+      estatura: physicalForm.estatura,
+      genero: physicalForm.genero,
+      edad: physicalForm.edad,
+      salud: physicalForm.salud,
+      lesiones: physicalForm.lesion === 'Sí' ? (physicalForm.lesionDetalle || 'Sí') : 'No'
+    });
+  };
 
   // Load progress and metadata from DB when rutinaActivaData is provided via props
   useEffect(() => {
@@ -336,7 +435,37 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
         <div className="glass-panel p-32 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
           <Activity size={48} className="mb-16 text-secondary" style={{ opacity: 0.3 }} />
           <p className="text-secondary">No se encontró ninguna rutina activa.</p>
-          <button className="primary-btn mt-24">Generar Nueva Rutina</button>
+          {generateError && (
+            <p style={{ color: '#ef4444', marginTop: '12px', fontSize: '0.9rem' }}>{generateError}</p>
+          )}
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px', flexWrap: 'wrap' }}>
+            <button
+              className="primary-btn"
+              onClick={() => handleGenerarRutina()}
+              disabled={generatingRoutine}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: generatingRoutine ? 'not-allowed' : 'pointer' }}
+            >
+              {generatingRoutine ? (
+                <>
+                  <Activity size={18} className="animate-pulse" />
+                  <span>La IA está creando tu rutina...</span>
+                </>
+              ) : (
+                <>
+                  <Zap size={18} />
+                  <span>Generar Rutina con IA</span>
+                </>
+              )}
+            </button>
+            <button
+              className="secondary-btn"
+              onClick={() => setShowDataModal(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Target size={18} />
+              <span>Personalizar Datos de la IA</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="rutinas-grid-historia">
@@ -591,6 +720,234 @@ export default function RutinaTab({ autoStartPlan, setAutoStartPlan, rutinaActiv
                   </button>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal para completar datos físicos si la IA no pudo generar la rutina */}
+      <AnimatePresence>
+        {showDataModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '20px'
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-panel"
+              style={{
+                width: '100%',
+                maxWidth: '520px',
+                background: '#16161a',
+                border: '1px solid rgba(255,107,53,0.3)',
+                borderRadius: '16px',
+                padding: '28px',
+                maxHeight: '90vh',
+                overflowY: 'auto'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Zap size={24} color="#ff6b35" />
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>Datos para tu Rutina IA</h3>
+                </div>
+                <button
+                  onClick={() => setShowDataModal(false)}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', marginBottom: '20px', lineHeight: 1.5 }}>
+                La Inteligencia Artificial necesita conocer tus datos físicos y objetivos para estructurar tu plan de entrenamiento semanal.
+              </p>
+
+              <form onSubmit={handlePhysicalFormSubmit}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      Peso (kg) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      placeholder="Ej: 75"
+                      value={physicalForm.peso}
+                      onChange={e => setPhysicalForm({ ...physicalForm, peso: e.target.value })}
+                      className="input-field"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      Estatura (cm) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="Ej: 175"
+                      value={physicalForm.estatura}
+                      onChange={e => setPhysicalForm({ ...physicalForm, estatura: e.target.value })}
+                      className="input-field"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      Género
+                    </label>
+                    <select
+                      value={physicalForm.genero}
+                      onChange={e => setPhysicalForm({ ...physicalForm, genero: e.target.value })}
+                      style={{ background: '#1c1c21', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    >
+                      <option value="M">Masculino</option>
+                      <option value="F">Femenino</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      Edad (Años)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej: 24"
+                      value={physicalForm.edad}
+                      onChange={e => setPhysicalForm({ ...physicalForm, edad: e.target.value })}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                    Objetivo Principal
+                  </label>
+                  <select
+                    value={physicalForm.objetivo}
+                    onChange={e => setPhysicalForm({ ...physicalForm, objetivo: e.target.value })}
+                    style={{ background: '#1c1c21', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                  >
+                    <option value="Ganar masa muscular">Ganar masa muscular (Hipertrofia)</option>
+                    <option value="Perder peso y definición">Perder peso y definir</option>
+                    <option value="Ganar fuerza">Ganar fuerza máxima</option>
+                    <option value="Resistencia y condición física">Resistencia y salud cardiovascular</option>
+                    <option value="Tonificación general">Tonificación general</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                    Días / Frecuencia de entrenamiento
+                  </label>
+                  <select
+                    value={physicalForm.frecuencia}
+                    onChange={e => setPhysicalForm({ ...physicalForm, frecuencia: e.target.value })}
+                    style={{ background: '#1c1c21', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                  >
+                    <option value="3 días por semana">3 días por semana</option>
+                    <option value="4 días por semana">4 días por semana</option>
+                    <option value="5 días por semana">5 días por semana</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      ¿Lesiones o molestias?
+                    </label>
+                    <select
+                      value={physicalForm.lesion}
+                      onChange={e => setPhysicalForm({ ...physicalForm, lesion: e.target.value })}
+                      style={{ background: '#1c1c21', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    >
+                      <option value="No">No, ninguna</option>
+                      <option value="Sí">Sí, tengo lesiones/dolores</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      Estado de salud general
+                    </label>
+                    <select
+                      value={physicalForm.salud}
+                      onChange={e => setPhysicalForm({ ...physicalForm, salud: e.target.value })}
+                      style={{ background: '#1c1c21', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    >
+                      <option value="Excelente">Excelente</option>
+                      <option value="Bueno">Bueno</option>
+                      <option value="Regular">Regular</option>
+                    </select>
+                  </div>
+                </div>
+
+                {physicalForm.lesion === 'Sí' && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                      ¿Qué zona o articulación está lesionada?
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Rodilla derecha, hombro, espalda baja"
+                      value={physicalForm.lesionDetalle}
+                      onChange={e => setPhysicalForm({ ...physicalForm, lesionDetalle: e.target.value })}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px', color: '#fff', width: '100%' }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setShowDataModal(false)}
+                    style={{ flex: 1 }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary-btn"
+                    disabled={generatingRoutine}
+                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    {generatingRoutine ? (
+                      <>
+                        <Activity size={18} className="animate-pulse" />
+                        <span>Generando Rutina...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={18} />
+                        <span>Guardar y Crear con IA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

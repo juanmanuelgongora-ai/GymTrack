@@ -88,9 +88,15 @@ function App() {
 
   React.useEffect(() => {
     if (userData && userData.rol === 'cliente' && view === 'panelCliente') {
-      const isExpired = userData.cliente?.vencimiento_membresia && new Date(userData.cliente.vencimiento_membresia) < new Date();
-      if (isExpired) {
-        handleSetView('expiredMembresia');
+      const vencimientoRaw = userData.cliente?.vencimiento_membresia || userData.vencimiento_membresia;
+      if (vencimientoRaw) {
+        const vencimiento = new Date(vencimientoRaw);
+        // Otorgar gracia hasta el final del día de la fecha de vencimiento
+        vencimiento.setHours(23, 59, 59, 999);
+        const isExpired = vencimiento < new Date();
+        if (isExpired) {
+          handleSetView('expiredMembresia');
+        }
       }
     }
   }, [userData, view, handleSetView]);

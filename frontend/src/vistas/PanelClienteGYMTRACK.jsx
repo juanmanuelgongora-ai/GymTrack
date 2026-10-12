@@ -134,6 +134,34 @@ const PanelClienteGYMTRACK = ({ onLogout, activeTab, setActiveTab, autoStartPlan
               let dayIndex = (new Date().getDay() + 6) % 7;
               if (dayIndex >= dias.length) dayIndex = dias.length - 1;
               setTodayRoutine(dias[dayIndex]);
+            } else {
+              // Si no existe rutina para este cliente, intentar generarla automáticamente
+              try {
+                const genRes = await fetch('/api/rutinas/generar', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    objetivo: clienteData.objetivo_principal || 'Mejorar condición física',
+                    frecuencia: clienteData.nivel_actividad || '3-4 veces'
+                  })
+                });
+                if (genRes.ok) {
+                  const genData = await genRes.json();
+                  if (genData.rutina?.plan_semanal?.dias) {
+                    setRutinaData(genData.rutina);
+                    const dias = genData.rutina.plan_semanal.dias;
+                    let dayIndex = (new Date().getDay() + 6) % 7;
+                    if (dayIndex >= dias.length) dayIndex = dias.length - 1;
+                    setTodayRoutine(dias[dayIndex]);
+                  }
+                }
+              } catch (errGen) {
+                console.error("Error auto-generando rutina en panel:", errGen);
+              }
             }
           }
           if (statsRes.ok) {
