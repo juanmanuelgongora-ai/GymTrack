@@ -1,0 +1,39 @@
+# Vendor (will be rebuilt inside container)
+vendor/
+
+# Laravel logs and cache
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+
+# Environment files (use docker-compose environment instead)
+.env
+.env.*
+
+# Git
+.git/
+.gitignore
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Tests
+tests/
+phpunit.xml
+
+# Node (if any frontend assets in backend)
+node_modules/
+npm-debug.log
+
+# Docker files themselves (not needed in image)
+Dockerfile
+.dockerignore
+docker-compose*.yml
