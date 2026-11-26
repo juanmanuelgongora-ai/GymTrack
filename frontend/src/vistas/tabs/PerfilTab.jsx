@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../logica/UserContext';
-import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp, Trash2, Dumbbell, AlertTriangle, CheckCircle2, Bot } from 'lucide-react';
+import { User, Activity, Edit3, Save, BarChart3, MapPin, Building2, Calendar, Camera, Loader2, Plus, X, CreditCard, TrendingUp, Trash2, Dumbbell, AlertTriangle, CheckCircle2, Bot, QrCode } from 'lucide-react';
 import ForceProgressAnalytics from '../../componentes/ForceProgressAnalytics';
 import '../../estilos/tabs.css';
 
@@ -37,6 +37,40 @@ export default function PerfilTab({ onLogrosUnlocked, setView, setActiveTab }) {
   });
 
   const [activeSection, setActiveSection] = useState('personal');
+
+  // ---- Microservicio de Acceso QR (:3007) ----
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrImage, setQrImage] = useState(null);
+  const [qrError, setQrError] = useState(null);
+
+  const handleOpenQr = async () => {
+    setShowQrModal(true);
+    setQrLoading(true);
+    setQrError(null);
+    try {
+      const res = await fetch('http://localhost:3007/api/acceso/generar-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario_id: userData?.id || 'cliente-gymtrack',
+          nombre: `${userData?.nombre || ''} ${userData?.apellido || ''}`.trim() || 'Juan Manuel',
+          membresia_activa: clienteData?.vencimiento_membresia ? new Date(clienteData.vencimiento_membresia) > new Date() : true
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.qr_base64) {
+        setQrImage(data.qr_base64);
+      } else {
+        setQrError(data.error || 'No se pudo generar el código QR.');
+      }
+    } catch (err) {
+      console.error('Error generando QR de acceso:', err);
+      setQrError('No se pudo conectar con el microservicio de acceso (puerto 3007). Asegúrate de que esté encendido.');
+    } finally {
+      setQrLoading(false);
+    }
+  };
 
   // ---- Custom Routine Builder state ----
   const emptyDay = () => ({
@@ -286,6 +320,13 @@ export default function PerfilTab({ onLogrosUnlocked, setView, setActiveTab }) {
               >
                 <Bot size={18} />
                 Fit Bot
+              </button>
+              <button
+                className="secondary-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', borderColor: '#10b981', color: '#10b981' }}
+                onClick={handleOpenQr}
+              >
+                <QrCode size={16} /> Pase de Acceso QR
               </button>
               {setView && (
                 <button
@@ -634,6 +675,87 @@ export default function PerfilTab({ onLogrosUnlocked, setView, setActiveTab }) {
         .data-list { display: grid; gap: 8px; }
         .avatar-edit-badge { position: absolute; bottom: 0; right: 0; background: #ff6b35; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid #1a1a1d; }
       `}</style>
+
+      {/* Modal Pase de Acceso QR (Microservicio de Acceso :3007) */}
+      {showQrModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '380px',
+            width: '100%',
+            background: 'linear-gradient(145deg, #18181b 0%, #09090b 100%)',
+            border: '1px solid rgba(255, 140, 66, 0.3)',
+            borderRadius: '24px',
+            padding: '28px',
+            textAlign: 'center',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <QrCode size={20} color="#ff8c42" />
+                <span style={{ fontWeight: 700, color: '#fff', fontSize: '1.05rem' }}>Pase de Acceso QR</span>
+              </div>
+              <button
+                onClick={() => setShowQrModal(false)}
+                style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{
+              background: '#fff',
+              padding: '16px',
+              borderRadius: '16px',
+              display: 'inline-block',
+              margin: '0 auto 20px auto',
+              boxShadow: '0 8px 24px rgba(255,140,66,0.15)'
+            }}>
+              {qrLoading ? (
+                <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Loader2 size={36} className="animate-spin" color="#ff8c42" />
+                </div>
+              ) : qrImage ? (
+                <img src={qrImage} alt="Código QR de Acceso" style={{ width: 180, height: 180, display: 'block' }} />
+              ) : (
+                <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4d4d', fontSize: '0.85rem', padding: '10px' }}>
+                  {qrError || 'Error al cargar QR'}
+                </div>
+              )}
+            </div>
+
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#fff' }}>
+              {userData?.nombre || 'Juan Manuel'} {userData?.apellido || ''}
+            </h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>
+              ● Acceso Habilitado · Microservicio :3007
+            </p>
+            <p style={{ fontSize: '0.78rem', color: '#888', margin: 0, lineHeight: 1.4 }}>
+              Presenta este código en el lector o torniquete del gimnasio para validar tu ingreso en tiempo real.
+            </p>
+
+            <button
+              className="primary-btn mt-24 w-full"
+              style={{ width: '100%', marginTop: '20px' }}
+              onClick={() => setShowQrModal(false)}
+            >
+              Cerrar Pase
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

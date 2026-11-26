@@ -6,11 +6,12 @@ echo    GYMTRACK - Iniciando Servidor Completo
 echo ============================================
 echo.
 echo [1/3] Iniciando Backend (Laravel) en puerto 8000...
-echo [2/3] Iniciando 6 Microservicios...
+echo [2/3] Iniciando 7 Microservicios...
 echo [3/3] Iniciando Frontend (Vite) en puerto 5173...
 echo.
 echo Backend API:  http://127.0.0.1:8000
 echo Frontend:     http://localhost:5173
+echo MS Auth:      http://localhost:3009
 echo MS Reportes:  http://localhost:5001
 echo MS Calc:      http://localhost:3000
 echo MS Chat:      http://localhost:3006
@@ -26,6 +27,7 @@ REM Start Laravel backend in the background
 start "GymTrack Backend" /D "%~dp0backend" cmd /c "php artisan serve --host=127.0.0.1 --port=8000"
 
 REM Start Microservicios
+start "GymTrack MS Auth" /D "%~dp0microservicio-auth" cmd /c "npm start"
 start "GymTrack MS Reportes" /D "%~dp0microservicio-reportes" cmd /c "npm start"
 start "GymTrack MS Calculadora" /D "%~dp0microservicio-calculadora" cmd /c "npm start"
 start "GymTrack MS Chat" /D "%~dp0microservicio-chat" cmd /c "npm start"

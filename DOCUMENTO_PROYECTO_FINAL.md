@@ -7,7 +7,7 @@
 | **Materia** | Desarrollo de Software III |
 | **Docente** | Mg(c). Juan Pablo Pinillos Reina |
 | **Proyecto** | GymTrack — Plataforma Integral de Gestión de Gimnasio |
-
+| **Estudiante** | Juan Manuel Gongora 2357650-2724 |
 ---
 
 ## 1. Descripción del Problema
@@ -348,9 +348,181 @@ erDiagram
 | `planes_alimentacion` | Plan nutricional semanal (JSON) | `user_id → users.id` |
 | `personal_access_tokens` | Tokens Sanctum de sesión | `tokenable_id → users.id` |
 
+#### 6.4 Cumplimiento de la Estructura Mínima Obligatoria de BD
+
+El enunciado del proyecto exige como mínimo 4 tablas, dos con llaves foráneas. GymTrack supera este requerimiento con 15 tablas, destacando el siguiente núcleo relacional:
+
+| Clasificación en el Enunciado | Tabla en GymTrack | Descripción y Llaves |
+|---|---|---|
+| **Tabla A (Principal)** | `users` | Usuarios del sistema (`id PK`, email, rol, activo, password). |
+| **Tabla B (Principal)** | `rutinas` | Catálogo y planes de entrenamiento (`id PK`, plan_semanal JSON, activa, semana_actual). |
+| **Tabla C (Relación / Dominio con FK a A y B)** | `rutina_progresos` | Registra el avance de un usuario en su rutina (`id PK`, `user_id FK → users.id`, `rutina_id FK → rutinas.id`, completado, fecha). |
+| **Tabla D (Entidad con FK a A o B)** | `clientes` | Datos antropométricos y médicos (`id PK`, `user_id FK → users.id`, peso, estatura, objetivo, membresía). |
+
+Otras tablas complementarias con FK directa a `users`:
+- `metricas_corporales` (`user_id FK`)
+- `transacciones` (`user_id FK`)
+- `hitos` (`user_id FK`)
+- `entrenadors` (`user_id FK`)
+
 ---
 
+## 7. CRUD Completo de Entidades (API REST)
 
+El sistema cuenta con API REST 100% funcional y operaciones CRUD completas en más de 3 entidades del dominio:
+
+### 7.1 CRUD Entidad 1: Clientes (`/api/clientes` y `/api/admin/clientes`)
+
+| Operación | Método HTTP | Endpoint | Descripción |
+|---|---|---|---|
+| **Create** | `POST` | `/api/auth/register` | Registro de nuevo cliente con perfil físico y objetivo inicial. |
+| **Read (List)** | `GET` | `/api/admin/clientes` | Obtiene el listado paginado de clientes registrados (vista Admin). |
+| **Read (Item)** | `GET` | `/api/admin/clientes/{id}` | Obtiene el detalle completo, métricas y estado de membresía. |
+| **Update** | `PUT` | `/api/profile/update` | Actualiza peso, altura, metas, lesiones y datos personales. |
+| **Delete** | `DELETE` | `/api/admin/users/{id}` | Desactiva o elimina la cuenta del cliente en el sistema. |
+
+**Ejemplo de Request (POST - Registro Cliente):**
+```json
+POST /api/auth/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Juan Pérez",
+  "email": "juan@gymtrack.com",
+  "password": "password123",
+  "rol": "cliente",
+  "peso": 75.5,
+  "estatura": 178,
+  "objetivo_principal": "Ganar masa muscular",
+  "nivel_actividad": "3-4 veces"
+}
+```
+
+**Ejemplo de Response (201 Created):**
+```json
+{
+  "status": "exito",
+  "message": "Usuario registrado correctamente.",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 4,
+    "name": "Juan Pérez",
+    "email": "juan@gymtrack.com",
+    "rol": "cliente"
+  }
+}
+```
+
+---
+
+### 7.2 CRUD Entidad 2: Rutinas de Entrenamiento (`/api/rutinas`)
+
+| Operación | Método HTTP | Endpoint | Descripción |
+|---|---|---|---|
+| **Create** | `POST` | `/api/rutinas/generar` | Genera y almacena una rutina con IA (o fallback inteligente) para el usuario. |
+| **Read (Active)** | `GET` | `/api/rutinas/latest` | Obtiene la rutina semanal activa del usuario autenticado con sus días y ejercicios. |
+| **Read (History)**| `GET` | `/api/rutinas/historial` | Consulta el histórico de rutinas finalizadas o anteriores. |
+| **Update** | `PUT` | `/api/rutinas/{id}/progreso` | Actualiza el estado de las series/repeticiones o la semana actual de entrenamiento. |
+| **Delete** | `DELETE` | `/api/rutinas/{id}` | Desactiva o elimina una rutina asignada. |
+
+**Ejemplo de Request (POST - Generar Rutina con IA):**
+```json
+POST /api/rutinas/generar HTTP/1.1
+Authorization: Bearer <TOKEN>
+Content-Type: application/json
+
+{
+  "objetivo": "Ganar masa muscular",
+  "frecuencia": "4 días por semana",
+  "peso": 75,
+  "estatura": 178,
+  "genero": "M",
+  "edad": 25,
+  "salud": "Bueno",
+  "lesiones": "No"
+}
+```
+
+**Ejemplo de Response (201 Created):**
+```json
+{
+  "message": "Rutina generada exitosamente.",
+  "rutina": {
+    "id": 1,
+    "user_id": 4,
+    "semana_actual": 1,
+    "activa": 1,
+    "plan_semanal": {
+      "dias": [
+        {
+          "dia": "Día 1",
+          "grupo_muscular": "Pecho y Tríceps",
+          "duracion_estimada": "60 min",
+          "ejercicios": [
+            { "nombre": "Press de banca", "series": 4, "repeticiones": "10-12", "descanso": "90s" }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+### 7.3 CRUD Entidad 3: Métricas Corporales (`/api/metricas`)
+
+| Operación | Método HTTP | Endpoint | Descripción |
+|---|---|---|---|
+| **Create** | `POST` | `/api/metricas` | Registra una nueva medición antropométrica (peso, % grasa, % músculo). |
+| **Read (List)** | `GET` | `/api/metricas` | Lista todas las mediciones ordenadas cronológicamente para generar gráficas. |
+| **Read (Latest)**| `GET` | `/api/metricas/latest` | Obtiene la última medición registrada del cliente. |
+| **Update** | `PUT` | `/api/metricas/{id}` | Permite corregir una medición registrada por error. |
+| **Delete** | `DELETE` | `/api/metricas/{id}` | Elimina un registro de medición corporal. |
+
+**Ejemplo de Request (POST - Registro de Métrica):**
+```json
+POST /api/metricas HTTP/1.1
+Authorization: Bearer <TOKEN>
+Content-Type: application/json
+
+{
+  "peso": 74.2,
+  "estatura": 178,
+  "grasa_corporal": 17.5,
+  "masa_muscular": 62.8,
+  "fecha": "2026-11-26"
+}
+```
+
+**Ejemplo de Response (201 Created):**
+```json
+{
+  "message": "Métrica corporal registrada exitosamente",
+  "metrica": {
+    "id": 15,
+    "user_id": 4,
+    "peso": 74.2,
+    "grasa_corporal": 17.5,
+    "masa_muscular": 62.8,
+    "fecha": "2026-11-26T00:00:00.000000Z"
+  }
+}
+```
+
+---
+
+### 7.4 CRUD Entidad 4: Usuarios (`microservicio-auth` - `/api/auth/usuarios`)
+
+| Operación | Método HTTP | Endpoint | Descripción |
+|---|---|---|---|
+| **Create** | `POST` | `/api/auth/register` | Crea un nuevo usuario con contraseña cifrada (bcrypt) y genera JWT. |
+| **Read (List)** | `GET` | `/api/auth/usuarios` | Lista todos los usuarios con su rol y estado de activación (solo Admin). |
+| **Read (Self)** | `GET` | `/api/auth/me` | Obtiene los datos del usuario autenticado mediante su Bearer Token. |
+| **Update** | `PUT` | `/api/auth/usuarios/{id}` | Actualiza nombre, correo o estado activo/inactivo del usuario. |
+| **Delete** | `DELETE` | `/api/auth/usuarios/{id}` | Elimina el registro del usuario en la base de datos (solo Admin). |
+
+---
 
 ## 8. Instrucciones de Despliegue con Docker
 
@@ -387,6 +559,7 @@ docker-compose exec -T mysql mysql -u gymtrack -pgymtrack_pass gymtrack_db < dat
 | Frontend React | frontend:80 | (via gateway) |
 | Backend Laravel | backend:80 | (via gateway) |
 | MySQL | mysql:3306 | localhost:3306 |
+| MS Auth / Usuarios | microservicio-auth:3009 | (via gateway) |
 | MS Acceso QR | microservicio-acceso:3007 | (via gateway) |
 | MS Calculadora | microservicio-calculadora:3000 | (via gateway) |
 | MS Chat | microservicio-chat:3006 | (via gateway) |
@@ -399,8 +572,8 @@ docker-compose exec -T mysql mysql -u gymtrack -pgymtrack_pass gymtrack_db < dat
 | Rol | Email | Contraseña |
 |---|---|---|
 | Administrador | admin@gymtrack.com | password123 |
-| Entrenador | carlos@gymtrack.com | password123 |
-| Cliente | juan@gymtrack.com | password123 |
+| Entrenador | roberto@gmail.com | Password123 |
+| Cliente | juan@gmail.com | Password123 |
 
 ---
 

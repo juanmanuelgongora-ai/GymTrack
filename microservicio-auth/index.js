@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { randomUUID } from 'crypto';
 
 dotenv.config();
 
@@ -72,7 +73,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     try {
         const [rows] = await pool.execute(
-            'SELECT id, name, email, password, rol, activo FROM users WHERE email = ? LIMIT 1',
+            'SELECT id, nombre, apellido, email, password_hash, rol, activo FROM users WHERE email = ? LIMIT 1',
             [email]
         );
 
@@ -86,15 +87,17 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(403).json({ error: 'Usuario inactivo. Contacta al administrador.' });
         }
 
-        // Verificar contraseña con bcrypt
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        // Verificar contraseña con bcrypt contra password_hash
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatch) {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
 
+        const fullName = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+
         // Generar JWT
         const token = jwt.sign(
-            { id: user.id, email: user.email, rol: user.rol, name: user.name },
+            { id: user.id, email: user.email, rol: user.rol, name: fullName },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -104,10 +107,12 @@ app.post('/api/auth/login', async (req, res) => {
             message: 'Inicio de sesión exitoso.',
             token,
             user: {
-                id:    user.id,
-                name:  user.name,
-                email: user.email,
-                rol:   user.rol,
+                id:       user.id,
+                nombre:   user.nombre,
+                apellido: user.apellido,
+                name:     fullName,
+                email:    user.email,
+                rol:      user.rol,
             }
         });
 
@@ -122,14 +127,20 @@ app.post('/api/auth/login', async (req, res) => {
  * Registra un nuevo usuario (cliente)
  */
 app.post('/api/auth/register', async (req, res) => {
-    const { name, email, password, rol = 'cliente' } = req.body;
+    let { name, nombre, apellido, email, password, rol = 'cliente' } = req.body;
 
-    if (!name || !email || !password) {
+    if (!nombre && name) {
+        const parts = name.trim().split(' ');
+        nombre = parts[0] || 'Usuario';
+        apellido = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    }
+
+    if (!nombre || !email || !password) {
         return res.status(400).json({ error: 'Nombre, email y contraseña son requeridos.' });
     }
 
-    if (password.length < 8) {
-        return res.status(422).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+    if (password.length < 6) {
+        return res.status(422).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
     }
 
     try {
@@ -143,20 +154,22 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(409).json({ error: 'El correo electrónico ya está registrado.' });
         }
 
-        // Hash de la contraseña
+        // Hash de la contraseña compatible con bcrypt de Laravel ($2y$ / $2b$)
         const hashedPassword = await bcrypt.hash(password, 12);
+        const userId = randomUUID();
+        const userApellido = apellido || '';
 
-        // Insertar nuevo usuario
-        const [result] = await pool.execute(
-            'INSERT INTO users (name, email, password, rol, activo, created_at, updated_at) VALUES (?, ?, ?, ?, 1, NOW(), NOW())',
-            [name, email, hashedPassword, rol]
+        // Insertar nuevo usuario con UUID
+        await pool.execute(
+            'INSERT INTO users (id, nombre, apellido, email, password_hash, rol, activo, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, NOW())',
+            [userId, nombre, userApellido, email, hashedPassword, rol]
         );
 
-        const userId = result.insertId;
+        const fullName = `${nombre} ${userApellido}`.trim();
 
         // Generar JWT inmediatamente
         const token = jwt.sign(
-            { id: userId, email, rol, name },
+            { id: userId, email, rol, name: fullName },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -165,7 +178,7 @@ app.post('/api/auth/register', async (req, res) => {
             status: 'exito',
             message: 'Usuario registrado correctamente.',
             token,
-            user: { id: userId, name, email, rol }
+            user: { id: userId, nombre, apellido: userApellido, name: fullName, email, rol }
         });
 
     } catch (err) {
@@ -181,7 +194,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.get('/api/auth/me', verifyToken, async (req, res) => {
     try {
         const [rows] = await pool.execute(
-            'SELECT id, name, email, rol, activo, created_at FROM users WHERE id = ? LIMIT 1',
+            'SELECT id, nombre, apellido, email, rol, activo, foto_url, created_at FROM users WHERE id = ? LIMIT 1',
             [req.user.id]
         );
 
@@ -189,7 +202,10 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Usuario no encontrado.' });
         }
 
-        return res.json({ status: 'exito', user: rows[0] });
+        const user = rows[0];
+        user.name = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+
+        return res.json({ status: 'exito', user });
 
     } catch (err) {
         console.error('[Me Error]:', err.message);
@@ -230,9 +246,13 @@ app.get('/api/auth/usuarios', verifyToken, async (req, res) => {
 
     try {
         const [rows] = await pool.execute(
-            'SELECT id, name, email, rol, activo, created_at FROM users ORDER BY created_at DESC'
+            'SELECT id, nombre, apellido, email, rol, activo, created_at FROM users ORDER BY created_at DESC'
         );
-        return res.json({ status: 'exito', total: rows.length, usuarios: rows });
+        const usuarios = rows.map(u => ({
+            ...u,
+            name: `${u.nombre || ''} ${u.apellido || ''}`.trim()
+        }));
+        return res.json({ status: 'exito', total: usuarios.length, usuarios });
     } catch (err) {
         return res.status(500).json({ error: 'Error al obtener usuarios.' });
     }
@@ -240,21 +260,27 @@ app.get('/api/auth/usuarios', verifyToken, async (req, res) => {
 
 /**
  * PUT /api/auth/usuarios/:id
- * Actualizar usuario (nombre, email, activo)
+ * Actualizar usuario (nombre, apellido, email, activo)
  */
 app.put('/api/auth/usuarios/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { name, email, activo } = req.body;
+    let { name, nombre, apellido, email, activo } = req.body;
+
+    if (!nombre && name) {
+        const parts = name.trim().split(' ');
+        nombre = parts[0];
+        apellido = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+    }
 
     // Solo admin o el mismo usuario puede editar
-    if (req.user.rol !== 'admin' && req.user.id !== parseInt(id)) {
+    if (req.user.rol !== 'admin' && req.user.id !== id) {
         return res.status(403).json({ error: 'Acceso denegado.' });
     }
 
     try {
         await pool.execute(
-            'UPDATE users SET name = COALESCE(?, name), email = COALESCE(?, email), activo = COALESCE(?, activo), updated_at = NOW() WHERE id = ?',
-            [name || null, email || null, activo !== undefined ? activo : null, id]
+            'UPDATE users SET nombre = COALESCE(?, nombre), apellido = COALESCE(?, apellido), email = COALESCE(?, email), activo = COALESCE(?, activo) WHERE id = ?',
+            [nombre || null, apellido || null, email || null, activo !== undefined ? activo : null, id]
         );
         return res.json({ status: 'exito', message: 'Usuario actualizado correctamente.' });
     } catch (err) {
