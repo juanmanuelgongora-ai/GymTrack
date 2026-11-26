@@ -1,4 +1,4 @@
-# 🏋️ GymTrack — Sistema de Gestión de Gimnasio con Microservicios
+# GymTrack — Sistema de Gestión de Gimnasio con Microservicios
 
 > **Proyecto Final — Desarrollo de Software III**
 > Programa: Tecnología en Sistemas | Docente: Mg(c). Juan Pablo Pinillos Reina
@@ -49,19 +49,19 @@ docker-compose exec -T mysql mysql -u gymtrack -pgymtrack_pass gymtrack_db < dat
               ┌───────────────────────┼────────────────────────┐
               │                       │                        │
               ▼                       ▼                        ▼
-   ┌─────────────────┐    ┌──────────────────────┐  ┌──────────────────┐
-   │ Frontend React  │    │  Backend Laravel     │  │  Microservicios  │
-   │ nginx — :80     │    │  PHP 8.2 — :80       │  │  Node.js         │
-   └─────────────────┘    │  Clientes · Rutinas  │  │                  │
-                          │  Pagos · Métricas    │  │ Auth/Users :3009 │
-                          │  Logros · Hitos      │  │ Acceso QR :3007  │
-                          └──────────┬───────────┘  │ Calculadora :3000│
-                                     │              │ Chat :3006       │
-                                     ▼              │ Notific. :3005   │
-                             ┌──────────────┐       │ Reportes :5001   │
-                             │  MySQL 8.0   │       │ Rutinas IA :3008 │
-                             │  gymtrack_db │       └──────────────────┘
-                             └──────────────┘
+   ┌─────────────────┐    ┌──────────────────────┐   ┌──────────────────┐
+   │ Frontend React  │    │  Backend Laravel     │   │  Microservicios  │
+   │ nginx — :80     │    │  PHP 8.2 — :80       │   │  Node.js         │
+   └─────────────────┘    │  Clientes · Rutinas  │   │                  │
+                          │  Pagos · Métricas    │   │ Auth/Users :3009 │
+                          │  Logros · Hitos      │   │ Acceso QR :3007  │
+                          └──────────┬───────────┘   │ Calculadora :3000│
+                                     │               │ Chat :3006       │
+                                     ▼               │ Notific. :3005   │
+                             ┌──────────────┐        │ Reportes :5001   │
+                             │  MySQL 8.0    │       │ Rutinas IA :3008 │
+                             │  gym_track_db │       └──────────────────┘
+                             └────────────── ┘
 ```
 
 ---
