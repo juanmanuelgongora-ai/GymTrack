@@ -99,7 +99,7 @@ El patrón principal implementado es el **API Gateway**. Se utilizó **nginx** c
 
 | Path del Request | Servicio Destino | Puerto Interno |
 |---|---|---|
-| `/api/auth/*` | Backend Laravel | 80 |
+| `/api/auth/*` | MS Auth (Usuarios/JWT) | 3009 |
 | `/api/clientes/*` | Backend Laravel | 80 |
 | `/api/rutinas/*` | Backend Laravel | 80 |
 | `/api/metricas/*` | Backend Laravel | 80 |
@@ -148,7 +148,8 @@ graph TB
         GW["🌐 API Gateway\nnginx — :8080\n(Punto de entrada único)"]
 
         subgraph Backend["Servicios Backend"]
-            BE["⚙️ Backend Laravel\nPHP 8.2 — :80\nAuth · Clientes · Rutinas\nMétricas · Pagos · Logros"]
+            BE["⚙️ Backend Laravel\nPHP 8.2 — :80\nClientes · Rutinas\nMétricas · Pagos · Logros"]
+            MSAUTH["🔑 MS Auth / Usuarios\nNode.js — :3009\nLogin · Registro · JWT · CRUD"]
             MSA["🔐 MS Acceso QR\nNode.js — :3007\nGenerar / Validar QR"]
             MSCALC["🧮 MS Calculadora\nNode.js — :3000\nIMC · Calorías · TMB"]
             MSCHAT["💬 MS Chat\nNode.js — :3006\nSocket.IO Tiempo Real"]
@@ -164,6 +165,7 @@ graph TB
     U --> GW
     GW --> FE
     GW --> BE
+    GW --> MSAUTH
     GW --> MSA
     GW --> MSCALC
     GW --> MSCHAT
@@ -171,17 +173,16 @@ graph TB
     GW --> MSREP
     GW --> MSRUT
     BE --> DB
+    MSAUTH --> DB
 ```
 
 ### 6.2 Descripción Detallada de Microservicios
 
-#### 🔧 Backend Laravel — Servicio Principal
-- **Tecnología**: PHP 8.2 + Laravel 12 + Sanctum
+#### 🔧 Backend Laravel — Servicio Principal (Dominio)
+- **Tecnología**: PHP 8.2 + Laravel 12
 - **Puerto interno**: 80
-- **Responsabilidad**: Núcleo del negocio. Gestiona autenticación, usuarios, clientes, entrenadores, rutinas, métricas, pagos, logros, hitos y planes de alimentación.
+- **Responsabilidad**: Núcleo del dominio del negocio. Gestiona clientes, entrenadores, rutinas, métricas, pagos, logros, hitos y planes de alimentación.
 - **Endpoints principales**:
-  - `POST /api/auth/login` — Autenticación
-  - `POST /api/auth/register` — Registro de nuevo cliente
   - `GET /api/clientes` — Listar clientes (admin)
   - `PUT /api/clientes/{id}` — Actualizar perfil de cliente
   - `POST /api/rutinas/generar` — Generar rutina con IA
@@ -189,6 +190,20 @@ graph TB
   - `POST /api/metricas` — Registrar nueva métrica
   - `GET /api/transacciones` — Historial de pagos
   - `POST /api/membresia/renovar` — Renovar membresía
+
+#### 🔑 Microservicio de Usuarios / Autenticación (`microservicio-auth`)
+- **Tecnología**: Node.js 20 + Express + JWT + bcryptjs + MySQL2
+- **Puerto interno**: 3009
+- **Responsabilidad**: Servicio independiente de autenticación y gestión de usuarios. Emite y valida tokens JWT, gestiona el registro/login y expone CRUD de usuarios.
+- **Endpoints**:
+  - `POST /api/auth/login` — Autenticación y emisión de JWT
+  - `POST /api/auth/register` — Registro de nuevo usuario
+  - `GET /api/auth/me` — Obtener perfil del usuario autenticado
+  - `POST /api/auth/validate` — Validación de token JWT para otros servicios
+  - `GET /api/auth/usuarios` — Listar usuarios (admin)
+  - `PUT /api/auth/usuarios/:id` — Actualizar usuario
+  - `DELETE /api/auth/usuarios/:id` — Eliminar usuario (admin)
+  - `GET /health` — Health check
 
 #### 🔐 Microservicio de Acceso QR
 - **Tecnología**: Node.js 20 + Express + QRCode

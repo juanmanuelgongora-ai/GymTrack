@@ -68,6 +68,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - microservicio-auth
       - microservicio-acceso
       - microservicio-calculadora
       - microservicio-chat
@@ -78,6 +79,27 @@ services:
       - gymtrack-network
 
   # ─── Microservicios Node.js ───────────────────────────────
+
+  # SERVICIO DE USUARIOS / AUTENTICACIÓN (requerido por el enunciado)
+  microservicio-auth:
+    build: ./microservicio-auth
+    container_name: gymtrack-auth
+    restart: unless-stopped
+    environment:
+      PORT: 3009
+      NODE_ENV: production
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: gymtrack
+      DB_PASSWORD: gymtrack_pass
+      DB_DATABASE: gymtrack_db
+      JWT_SECRET: gymtrack_jwt_secret_2026_seguro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - gymtrack-network
+
   microservicio-acceso:
     build: ./microservicio-acceso
     container_name: gymtrack-acceso

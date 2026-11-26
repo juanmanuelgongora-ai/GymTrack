@@ -52,15 +52,15 @@ docker-compose exec -T mysql mysql -u gymtrack -pgymtrack_pass gymtrack_db < dat
    ┌─────────────────┐    ┌──────────────────────┐  ┌──────────────────┐
    │ Frontend React  │    │  Backend Laravel     │  │  Microservicios  │
    │ nginx — :80     │    │  PHP 8.2 — :80       │  │  Node.js         │
-   └─────────────────┘    │  Auth · Clientes     │  │                  │
-                          │  Rutinas · Pagos     │  │ Acceso QR :3007  │
-                          │  Métricas · Logros   │  │ Calculadora :3000│
-                          └──────────┬───────────┘  │ Chat :3006       │
-                                     │              │ Notific. :3005   │
-                                     ▼              │ Reportes :5001   │
-                             ┌──────────────┐       │ Rutinas IA :3008 │
-                             │  MySQL 8.0   │       └──────────────────┘
-                             │  gymtrack_db │
+   └─────────────────┘    │  Clientes · Rutinas  │  │                  │
+                          │  Pagos · Métricas    │  │ Auth/Users :3009 │
+                          │  Logros · Hitos      │  │ Acceso QR :3007  │
+                          └──────────┬───────────┘  │ Calculadora :3000│
+                                     │              │ Chat :3006       │
+                                     ▼              │ Notific. :3005   │
+                             ┌──────────────┐       │ Reportes :5001   │
+                             │  MySQL 8.0   │       │ Rutinas IA :3008 │
+                             │  gymtrack_db │       └──────────────────┘
                              └──────────────┘
 ```
 
@@ -74,6 +74,7 @@ docker-compose exec -T mysql mysql -u gymtrack -pgymtrack_pass gymtrack_db < dat
 | `gymtrack-backend` | php:8.2-apache | — | Backend Laravel (API REST) |
 | `gymtrack-frontend` | nginx:alpine | — | Frontend React (SPA) |
 | `gymtrack-mysql` | mysql:8.0 | 3306 | Base de datos principal |
+| `gymtrack-auth` | node:20-alpine | — | MS Usuarios y Autenticación (JWT) |
 | `gymtrack-acceso` | node:20-alpine | — | MS Acceso QR |
 | `gymtrack-calculadora` | node:20-alpine | — | MS Calculadora IMC/Calorías |
 | `gymtrack-chat` | node:20-alpine | — | MS Chat en tiempo real |
@@ -98,6 +99,7 @@ gymtrack/
 ├── gateway/                    # API Gateway nginx
 │   ├── nginx.conf              # Enrutamiento a microservicios
 │   └── Dockerfile
+├── microservicio-auth/         # Usuarios y Autenticación JWT
 ├── microservicio-acceso/       # Control QR de acceso
 ├── microservicio-calculadora/  # IMC y calorías
 ├── microservicio-chat/         # Socket.IO chat en tiempo real
@@ -134,10 +136,10 @@ gymtrack/
 
 | Requisito | Estado |
 |---|---|
-| Arquitectura microservicios | ✅ 7 servicios independientes |
+| Arquitectura microservicios | ✅ 8 servicios independientes |
 | Patrón API Gateway | ✅ nginx como gateway en :8080 |
 | Patrón DTO + Services + Repository | ✅ Eloquent ORM + 18 controllers |
-| Mínimo 3 microservicios en contenedores separados | ✅ 7 microservicios |
+| Mínimo 3 microservicios en contenedores separados | ✅ 8 microservicios (incluye Auth, Dominio y Secundarios) |
 | Mínimo 4 tablas con FK | ✅ 15 tablas relacionadas |
 | CRUD completo en 3 entidades | ✅ Clientes, Rutinas, Métricas |
 | API REST 100% funcional | ✅ 40+ endpoints documentados |
