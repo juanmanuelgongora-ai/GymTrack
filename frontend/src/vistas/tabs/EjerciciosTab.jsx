@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Dumbbell, PlayCircle, Star, ChevronRight, X, Clock, Activity, Target } from 'lucide-react';
+import { useUser } from '../../logica/UserContext';
 import '../../estilos/tabs.css';
 
-export default function EjerciciosTab({ token, userData }) {
+export default function EjerciciosTab() {
+  const { token, userData } = useUser();
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -18,12 +20,15 @@ export default function EjerciciosTab({ token, userData }) {
   const userGoal = clienteData.objetivo_principal || 'Mantenimiento';
   const userLevel = clienteData.nivel_actividad || 'Principiante';
 
-  const fetchExercises = async () => {
+  const fetchExercises = React.useCallback(async () => {
     setLoading(true);
     try {
-      let url = `http://127.0.0.1:8000/api/ejercicios?search=${search}`;
-      if (selectedMuscle !== 'Todas') url += `&grupo_muscular=${selectedMuscle}`;
-      if (selectedLevel !== 'Cualquier Nivel') url += `&dificultad=${selectedLevel}`;
+      let url = `/api/ejercicios`;
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (selectedMuscle !== 'Todas') params.append('grupo_muscular', selectedMuscle);
+      if (selectedLevel !== 'Cualquier Nivel') params.append('dificultad', selectedLevel);
+      if (params.toString()) url += `?${params.toString()}`;
 
       const response = await fetch(url, {
         headers: {
@@ -41,7 +46,7 @@ export default function EjerciciosTab({ token, userData }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, selectedMuscle, selectedLevel, token]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,11 +54,11 @@ export default function EjerciciosTab({ token, userData }) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, selectedMuscle, selectedLevel, token]);
+  }, [fetchExercises]);
 
   const toggleFavorite = async (ejercicioId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/ejercicios/${ejercicioId}/toggle-favorito`, {
+      const response = await fetch(`/api/ejercicios/${ejercicioId}/toggle-favorito`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

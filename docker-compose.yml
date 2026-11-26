@@ -1,0 +1,171 @@
+version: '3.9'
+
+services:
+  # ─── Database ─────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: gymtrack-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: gymtrack_root
+      MYSQL_DATABASE: gymtrack_db
+      MYSQL_USER: gymtrack
+      MYSQL_PASSWORD: gymtrack_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - gymtrack_mysql:/var/lib/mysql
+    networks:
+      - gymtrack-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pgymtrack_root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─── Laravel Backend ──────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: gymtrack-backend
+    restart: unless-stopped
+    environment:
+      APP_NAME: GymTrack
+      APP_ENV: production
+      APP_KEY: base64:Kg0Yby6dFIobkZKP4mgiiTqgqD8y9ePGJ2zmNEx8c0M=
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: gymtrack_db
+      DB_USERNAME: gymtrack
+      DB_PASSWORD: gymtrack_pass
+      QUEUE_CONNECTION: sync
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - gymtrack-network
+
+  # ─── React Frontend ───────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: gymtrack-frontend
+    restart: unless-stopped
+    networks:
+      - gymtrack-network
+
+  # ─── API Gateway ──────────────────────────────────────────
+  gateway:
+    build: ./gateway
+    container_name: gymtrack-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+      - frontend
+      - microservicio-auth
+      - microservicio-acceso
+      - microservicio-calculadora
+      - microservicio-chat
+      - microservicio-notificaciones
+      - microservicio-reportes
+      - microservicio-rutinas
+    networks:
+      - gymtrack-network
+
+  # ─── Microservicios Node.js ───────────────────────────────
+
+  # SERVICIO DE USUARIOS / AUTENTICACIÓN (requerido por el enunciado)
+  microservicio-auth:
+    build: ./microservicio-auth
+    container_name: gymtrack-auth
+    restart: unless-stopped
+    environment:
+      PORT: 3009
+      NODE_ENV: production
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: gymtrack
+      DB_PASSWORD: gymtrack_pass
+      DB_DATABASE: gymtrack_db
+      JWT_SECRET: gymtrack_jwt_secret_2026_seguro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - gymtrack-network
+
+  microservicio-acceso:
+    build: ./microservicio-acceso
+    container_name: gymtrack-acceso
+    restart: unless-stopped
+    environment:
+      PORT: 3007
+      NODE_ENV: production
+    networks:
+      - gymtrack-network
+
+  microservicio-calculadora:
+    build: ./microservicio-calculadora
+    container_name: gymtrack-calculadora
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+    networks:
+      - gymtrack-network
+
+  microservicio-chat:
+    build: ./microservicio-chat
+    container_name: gymtrack-chat
+    restart: unless-stopped
+    environment:
+      PORT: 3006
+      NODE_ENV: production
+    networks:
+      - gymtrack-network
+
+  microservicio-notificaciones:
+    build: ./microservicio-notificaciones
+    container_name: gymtrack-notificaciones
+    restart: unless-stopped
+    environment:
+      PORT: 3005
+      NODE_ENV: production
+    networks:
+      - gymtrack-network
+
+  microservicio-reportes:
+    build: ./microservicio-reportes
+    container_name: gymtrack-reportes
+    restart: unless-stopped
+    environment:
+      PORT: 5001
+      NODE_ENV: production
+    networks:
+      - gymtrack-network
+
+  microservicio-rutinas:
+    build: ./microservicio-rutinas
+    container_name: gymtrack-rutinas
+    restart: unless-stopped
+    environment:
+      PORT: 3008
+      NODE_ENV: production
+    networks:
+      - gymtrack-network
+
+# ─── Volumes ────────────────────────────────────────────────
+volumes:
+  gymtrack_mysql:
+    driver: local
+
+# ─── Networks ───────────────────────────────────────────────
+networks:
+  gymtrack-network:
+    driver: bridge

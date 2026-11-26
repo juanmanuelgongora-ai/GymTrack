@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
+use App\Models\Cliente;
+use App\Models\Transaccion;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+
+class PagoController extends Controller
+{
+    public function renovarMembresia(Request $request)
+    {
+        $request->validate([
+            'plan_nombre' => 'required|string',
+            'meses' => 'required|integer|min:1',
+            'monto' => 'required|numeric',
+            'metodo_pago' => 'required|string',
+            'detalles_pago' => 'nullable|array'
+        ]);
+
+        $user = $request->user();
+
+        if ($user->rol !== 'cliente') {
+            return response()->json(['message' => 'Solo los clientes pueden renovar membresía.'], 403);
+        }
+
+        $cliente = $user->cliente;
+
+        $detalles = $request->detalles_pago;
+        $estado = 'completado';
+        $mensajeExito = 'Membresía renovada exitosamente.';
+
+        // Lógica de simulación del Gateway
+        if ($request->metodo_pago === 'tarjeta') {
+            $cvv = $detalles['cvv'] ?? null;
+            $expiry = $detalles['expiry'] ?? null;
+            $number = preg_replace('/\s/', '', $detalles['number'] ?? '');
+
+            // Simular rechazo por CVV inválido (fondos insuficientes)
+            if ($cvv === '000') {
+                $estado = 'rechazado';
+                $mensajeExito = 'Transacción rechazada por el banco. Por favor verifica tus fondos o intenta con otra tarjeta.';
+            }
+
+            // Simular rechazo por tarjeta vencida (fecha en el pasado)
+            if ($estado !== 'rechazado' && $expiry) {
+                [$mes, $anio] = array_pad(explode('/', $expiry), 2, null);
+                $anioCompleto = $anio ? ('20' . $anio) : date('Y');
+                $fechaTarjeta = Carbon::create((int) $anioCompleto, (int) $mes, 1)->endOfMonth();
+                if ($fechaTarjeta->isPast()) {
+                    $estado = 'rechazado';
+                    $mensajeExito = 'La tarjeta ingresada se encuentra vencida. Por favor utiliza una tarjeta vigente.';
+                }
+            }
+
+            // Simular rechazo por número de tarjeta inválido (menos de 16 dígitos)
+            if ($estado !== 'rechazado' && strlen($number) < 16) {
+                $estado = 'rechazado';
+                $mensajeExito = 'El número de tarjeta no es válido. Verifica los 16 dígitos e intenta nuevamente.';
+            }
+        } elseif ($request->metodo_pago === 'transferencia') {
+            $estado = 'pendiente';
+            $mensajeExito = 'Transferencia recibida. Tu membresía se activará una vez validado el pago.';
+        }
+
+        if ($estado === 'rechazado') {
+            // Guardamos la transacción rechazada
+            $transaccion = Transaccion::create([
+                'id' => (string) Str::uuid(),
+                'cliente_id' => $cliente->id,
+                'monto' => $request->monto,
+                'metodo_pago' => $request->metodo_pago,
+                'estado' => 'rechazado',
+                'concepto' => "Renovación: " . $request->plan_nombre,
+                'fecha' => Carbon::now()
+            ]);
+
+            Log::warning("[AUDITORÍA] Transacción rechazada: ID {$transaccion->id} - Cliente: {$cliente->id} - Monto: {$request->monto} - Método: {$request->metodo_pago}");
+
+            return response()->json([
+                'message' => $mensajeExito,
+                'transaccion' => $transaccion
+            ], 400);
+        }
+
+        // Si es completado, actualizamos membresía
+        if ($estado === 'completado') {
+            $fechaBase = ($cliente->vencimiento_membresia && $cliente->vencimiento_membresia->isFuture())
+                ? $cliente->vencimiento_membresia
+                : Carbon::now();
+
+            $cliente->vencimiento_membresia = $fechaBase->addMonths($request->meses);
+            $cliente->save();
+        }
+
+        // Registrar la transacción
+        $transaccion = Transaccion::create([
+            'id' => (string) Str::uuid(),
+            'cliente_id' => $cliente->id,
+            'monto' => $request->monto,
+            'metodo_pago' => $request->metodo_pago,
+            'estado' => $estado,
+            'concepto' => "Renovación: " . $request->plan_nombre,
+            'fecha' => Carbon::now()
+        ]);
+
+        Log::info("[AUDITORÍA] Transacción {$estado} registrada en sistema: ID {$transaccion->id} | Cliente: {$cliente->id} | Monto: {$request->monto} | Método: {$request->metodo_pago}");
+
+        return response()->json([
+            'message' => $mensajeExito,
+            'vencimiento_membresia' => $cliente->vencimiento_membresia,
+            'user' => $user->load('cliente'),
+            'transaccion' => $transaccion
+        ]);
+    }
+}
